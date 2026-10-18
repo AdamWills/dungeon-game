@@ -40,6 +40,27 @@ describe('battle turns', () => {
     expect(theirs.battle!.log.length).toBeGreaterThan(1); // the leech already struck or missed
   });
 
+  it('gives only the enemy that caught you the first strike; the rest go by Speed', () => {
+    const state = fight(1, ['pipe_leech', 'intake_rat', 'grudge_gator'], 'enemy_ambush');
+    const names = state.battle!.order.map((id) => state.battle!.combatants.find((c) => c.id === id)!.name);
+    expect(names).toEqual(['Pipe Leech', 'Intake Rat', 'You', 'Grudge Gator']);
+  });
+
+  it('always gives you a first turn, however bad the ambush', () => {
+    for (let seed = 1; seed <= 100; seed++) {
+      for (const cls of ['brawler', 'hexer']) {
+        const state = emptyRun(seed);
+        state.cls = cls;
+        state.player.stats.hp = 3;
+        const spots = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const ids = ['grudge_gator', 'grudge_gator', 'intake_rat', 'sludge_hopper'].map((d, i) => spawn(state, d, nearPlayer(state, spots[i][0], spots[i][1])).id);
+        startBattle(state, { enemyIds: ids, start: 'enemy_ambush', tile: { ...state.player.pos } });
+        expect(state.battle!.combatants[0].alive).toBe(true);
+        expect(currentActor(state.battle!)!.side).toBe('player');
+      }
+    }
+  });
+
   it('marks ambush-round damage with the bonus', () => {
     for (let seed = 1; seed < 40; seed++) {
       const state = fight(seed, ['grudge_gator'], 'player_ambush');

@@ -183,6 +183,8 @@ export type BattleState = {
   /** Props within reach of the fight, up to 4. */
   props: ArenaProp[];
   badIdeaUsed: boolean;
+  /** You always get a first turn: until then, nothing can take you below 1 HP. */
+  playerHasActed: boolean;
   /** What killed the player, for the death screen. */
   killedBy?: { enemy: string; move: string };
 };

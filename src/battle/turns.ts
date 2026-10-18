@@ -44,6 +44,7 @@ export function startBattle(state: GameState, encounter: Encounter): void {
     result: null,
     props: gatherArena(state, encounter.tile),
     badIdeaUsed: false,
+    playerHasActed: false,
   };
   state.battle = battle;
   const from = state.mode;
@@ -83,6 +84,7 @@ export function battleCommand(state: GameState, cmd: BattleCommand): void {
   const actor = currentActor(battle);
   if (!actor || actor.side !== 'player') return;
   if (!playerAct(state, battle, actor, cmd)) return; // refused: still your turn
+  battle.playerHasActed = true;
   if (!checkOver(state, battle)) {
     advance(battle);
     runTurns(state);
@@ -98,9 +100,13 @@ function beginRound(battle: BattleState): void {
     b.stats.speed - a.stats.speed || (a.side === 'player' ? -1 : b.side === 'player' ? 1 : a.id.localeCompare(b.id));
   alive.sort(bySpeed);
   let order: Combatant[];
-  if (battle.round === 1 && battle.ambushSide) {
-    // The ambushing side takes the whole opening round first.
-    order = [...alive.filter((c) => c.side === battle.ambushSide), ...alive.filter((c) => c.side !== battle.ambushSide)];
+  if (battle.round === 1 && battle.ambushSide === 'player') {
+    // Sneaking up on them: you take the whole opening round first.
+    order = [...alive.filter((c) => c.side === 'player'), ...alive.filter((c) => c.side !== 'player')];
+  } else if (battle.round === 1 && battle.ambushSide === 'enemy') {
+    // Caught: the one that caught you strikes first; everyone else goes by Speed.
+    const ambusher = alive.find((c) => c.id === battle.encounter.enemyIds[0]);
+    order = ambusher ? [ambusher, ...alive.filter((c) => c !== ambusher)] : alive;
   } else order = alive;
   const ids = order.map((c) => c.id);
   // Hasted combatants get a second turn at the end of the round.
@@ -150,7 +156,8 @@ function startTurn(state: GameState, battle: BattleState, c: Combatant): boolean
   for (const s of [...c.statuses]) {
     const def = STATUSES[s.kind];
     if (def.dot && c.alive) {
-      const dmg = def.dot;
+      // Damage over time also respects the first-turn guarantee.
+      const dmg = isYou && !battle.playerHasActed ? Math.min(def.dot, c.stats.hp - 1) : def.dot;
       c.stats.hp = Math.max(0, c.stats.hp - dmg);
       say(battle, fill((isYou ? def.youLine : def.tickLine) ?? '', { name: c.name, dmg }), isYou ? 'bad' : 'good');
       fx(battle, c.id, 'hit', dmg);
@@ -175,8 +182,10 @@ function startTurn(state: GameState, battle: BattleState, c: Combatant): boolean
   return !skip;
 }
 
-function ambushActive(battle: BattleState, side: 'player' | 'enemy'): boolean {
-  return battle.round === 1 && battle.ambushSide === side;
+/** The ambush bonus: all of your attacks in a sneak attack, or the catcher's first blow. */
+function ambushActive(battle: BattleState, side: 'player' | 'enemy', actorId?: string): boolean {
+  if (battle.round !== 1 || battle.ambushSide !== side) return false;
+  return side === 'player' || actorId === battle.encounter.enemyIds[0];
 }
 
 // --- actions ----------------------------------------------------------------
@@ -353,6 +362,8 @@ function hurt(state: GameState, battle: BattleState, target: Combatant, source: 
   if (hasStatus(target, 'hexed')) dmg *= 2;
   if (target.defending) dmg = Math.ceil(dmg * TUNING.combat.defendMultiplier);
   dmg = Math.max(1, dmg);
+  // No dying before your first turn, however bad the ambush.
+  if (target.side === 'player' && !battle.playerHasActed) dmg = Math.min(dmg, target.stats.hp - 1);
   target.stats.hp = Math.max(0, target.stats.hp - dmg);
   fx(battle, target.id, 'hit', dmg);
   if (target.stats.hp === 0) kill(state, battle, target, source);
@@ -389,7 +400,7 @@ function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void
     fx(battle, me.id, 'miss');
     return;
   }
-  const ambush = ambushActive(battle, 'enemy');
+  const ambush = ambushActive(battle, 'enemy', actor.id);
   const raw = modifyDamage(baseDamage(def.weapon + move.bonus, actor.stats.str, me.stats.armor), { ambush, defending: false });
   const braced = me.defending;
   const idx = battle.log.length;

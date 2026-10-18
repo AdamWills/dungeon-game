@@ -56,6 +56,11 @@
 - Tests: 91. The bot now also improvises (last run: 26 deaths, 14 escapes, 72 battles, no crashes, every run finished).
 - Checked in the browser with real keys: shoved a barrel onto a Feral Intern (stunned it), then combined a Pipe Bomb and a Rubber Chicken into Squeaky Shrapnel to finish it.
 
+### Ambush fix (after playtesting M3)
+- Problem: being caught by a group could kill you before your first turn. When you were ambushed, every enemy in the fight got the first strike and +50% damage, not just the one that caught you. Measured over 200 seeds, a Hexer died before acting in 58% of 3-enemy ambushes (31% with 2 enemies).
+- Fix: only the enemy that caught you strikes first with the bonus, as the GDD says; the rest act by Speed. Plus a new rule: you always get a first turn (nothing, damage over time included, can take you below 1 HP before you have acted). Now 0 deaths before acting for either class, even against four enemies.
+- Tests for both rules (100 seeds, both classes, four enemies, starting at 3 HP). GDD updated.
+
 ## Next
 
 M4: Party and host. 3 recruitable allies with stances and loyalty, scripted host lines for routine events, the death screen with a full elimination report, XP and the level-up screen.
