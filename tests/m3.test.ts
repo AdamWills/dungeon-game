@@ -230,7 +230,7 @@ describe('hazards', () => {
     s.player.stats.hp = 1;
     for (let i = 0; i < 100 && s.mode === 'roaming'; i++) step(s, NO_INPUT);
     expect(s.mode).toBe('dead');
-    expect(s.runEnd).toMatchObject({ kind: 'died', enemy: 'the Sludge Pool' });
+    expect(s.runEnd).toMatchObject({ kind: 'died', enemy: 'Sludge Pool' });
   });
 });
 

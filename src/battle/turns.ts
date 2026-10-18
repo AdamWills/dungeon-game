@@ -162,7 +162,7 @@ function startTurn(state: GameState, battle: BattleState, c: Combatant): boolean
       say(battle, fill((isYou ? def.youLine : def.tickLine) ?? '', { name: c.name, dmg }), isYou ? 'bad' : 'good');
       fx(battle, c.id, 'hit', dmg);
       if (c.stats.hp === 0) {
-        if (isYou) battle.killedBy = { enemy: def.name.toLowerCase(), move: 'a lingering condition' };
+        if (isYou) battle.killedBy = { enemy: def.killer ?? def.name, move: 'slow, lingering finish' };
         kill(state, battle, c, c);
         return false;
       }

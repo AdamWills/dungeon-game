@@ -14,12 +14,14 @@ export type StatusDef = {
   tickLine?: string;
   /** The same, when it is happening to you. */
   youLine?: string;
+  /** Who gets the credit on the elimination report if it finishes you off. */
+  killer?: string;
 };
 
 export const STATUSES: Record<StatusKind, StatusDef> = {
-  bleed: { kind: 'bleed', name: 'Bleeding', help: 'Loses 1 HP at the start of each turn.', dot: 1, tickLine: '{name} bleeds for {dmg}. Somebody get a mop!', youLine: 'You bleed for {dmg}. Somebody get a mop!' },
-  poison: { kind: 'poison', name: 'Poisoned', help: 'Loses 2 HP at the start of each turn.', dot: 2, tickLine: '{name} takes {dmg} from poison. Green is not a flattering colour.', youLine: 'You take {dmg} from poison. Green is not your colour, contestant.' },
-  burning: { kind: 'burning', name: 'Burning', help: 'Loses 3 HP at the start of each turn.', dot: 3, tickLine: '{name} burns for {dmg}! Somebody fetch the extinguisher. Slowly.', youLine: 'You burn for {dmg}! Now THAT is a hot contestant!' },
+  bleed: { kind: 'bleed', name: 'Bleeding', help: 'Loses 1 HP at the start of each turn.', dot: 1, killer: 'Blood Loss', tickLine: '{name} bleeds for {dmg}. Somebody get a mop!', youLine: 'You bleed for {dmg}. Somebody get a mop!' },
+  poison: { kind: 'poison', name: 'Poisoned', help: 'Loses 2 HP at the start of each turn.', dot: 2, killer: 'Poison', tickLine: '{name} takes {dmg} from poison. Green is not a flattering colour.', youLine: 'You take {dmg} from poison. Green is not your colour, contestant.' },
+  burning: { kind: 'burning', name: 'Burning', help: 'Loses 3 HP at the start of each turn.', dot: 3, killer: 'Fire', tickLine: '{name} burns for {dmg}! Somebody fetch the extinguisher. Slowly.', youLine: 'You burn for {dmg}! Now THAT is a hot contestant!' },
   stunned: { kind: 'stunned', name: 'Stunned', help: 'Loses its turn.', tickLine: '{name} is stunned and just stands there. Riveting television.', youLine: 'You are stunned and just stand there. Riveting television.' },
   charmed: { kind: 'charmed', name: 'Charmed', help: 'Will not attack.', tickLine: '{name} is too charmed to fight. Aww!', youLine: 'You are too charmed to fight. Aww!' },
   hexed: { kind: 'hexed', name: 'Hexed', help: 'Takes double damage.' },

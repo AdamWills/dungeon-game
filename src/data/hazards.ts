@@ -15,7 +15,7 @@ export type HazardDef = {
   onEnter: boolean;
   /** Active for `on` ticks out of every `on + off`; always active if absent. */
   cycle?: { on: number; off: number };
-  /** For the elimination report. */
+  /** For the elimination report: "with a lovely {deathMove}". */
   deathMove: string;
 };
 
@@ -24,18 +24,18 @@ export const HAZARDS: Record<HazardKind, HazardDef> = {
     kind: 'sludge', name: 'Sludge Pool',
     help: 'Sludge: hurts anything standing in it, 1 HP every 3/4 second.',
     damage: 1, everyTicks: 45, onEnter: false,
-    deathMove: 'a long, relaxing soak',
+    deathMove: 'long, relaxing soak',
   },
   spikes: {
     kind: 'spikes', name: 'Floor Spikes',
     help: 'Spikes: 3 damage when stepped on, and again every second you stay.',
     damage: 3, everyTicks: 60, onEnter: true,
-    deathMove: 'a surprise pedicure',
+    deathMove: 'surprise pedicure',
   },
   gas_vent: {
     kind: 'gas_vent', name: 'Gas Vent',
     help: 'Gas vent: puffs on and off; 2 damage every half second while it is puffing.',
     damage: 2, everyTicks: 30, onEnter: false, cycle: { on: 90, off: 150 },
-    deathMove: 'a deep breath of something green',
+    deathMove: 'deep breath of something green',
   },
 };

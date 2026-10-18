@@ -16,7 +16,8 @@ export const NOTICES = {
 
   died: {
     title: 'YOU DIED',
-    subtitle: 'Eliminated!',
+    subtitle: 'Thanks for playing, contestant!',
+    badge: 'ELIMINATED!',
     lines: [
       'Contestant: one (1) {class}, previously alive.',
       'Eliminated by: {enemy}, with a lovely {move}.',
@@ -28,6 +29,7 @@ export const NOTICES = {
   escaped: {
     title: 'YOU ESCAPED',
     subtitle: 'Round 1 complete! Stay tuned!',
+    badge: 'WINNER!',
     lines: [
       'The contestant has found the stairwell and left the Intake Sewers!',
       'Nobody had that on the board, folks. Nobody.',

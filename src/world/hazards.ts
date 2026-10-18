@@ -40,7 +40,7 @@ function hurtIfOnHazard(state: GameState, e: Entity): void {
 
   state.events.push({ type: 'entityDied', id: e.id, defId: e.defId, killerId: `hazard:${tile.hazard}` });
   if (e.kind === 'player') {
-    state.runEnd = { kind: 'died', enemy: `the ${def.name}`, move: def.deathMove };
+    state.runEnd = { kind: 'died', enemy: def.name, move: def.deathMove };
     const from = state.mode;
     state.mode = 'dead';
     state.events.push({ type: 'modeChanged', from, to: 'dead' });

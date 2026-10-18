@@ -25,10 +25,11 @@ import type { InventoryMenu } from './inventory';
 import { buildItemIcons, type ItemIcons } from './itemIcons';
 import type { Picker } from './picker';
 import { drawPrizeCard } from './prizeCard';
+import { bigTitle, confetti, marquee, PALETTE, popIn, spotlights, starburst, sunburst } from './showbiz';
 import { buildPropSprites, type PropSprites } from './propSprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
-import { bar, centered, FONT, FONT_BIG, wrapText } from './text';
+import { bar, centered, FONT, wrapLines, wrapText } from './text';
 
 export type Toast = { text: string; until: number };
 
@@ -48,6 +49,8 @@ export class Renderer {
   private battleView: BattleView;
   readonly icons: ItemIcons;
   private propSprites: PropSprites;
+  /** When the current prize card (and other big moments) first appeared, for animations. */
+  private shownAt = new WeakMap<object, number>();
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -109,10 +112,16 @@ export class Renderer {
     if (state.mode === 'menu') {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
-      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now);
+      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now));
       else ui.inventory.draw(ctx, w, h, state, this.icons);
     }
-    if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state);
+    if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);
+  }
+
+  /** First time we drew this object, for pop-in animations. */
+  since(obj: object, now: number): number {
+    if (!this.shownAt.has(obj)) this.shownAt.set(obj, now);
+    return this.shownAt.get(obj)!;
   }
 
   private drawToasts(toasts: Toast[], now: number): void {
@@ -380,44 +389,54 @@ export class Renderer {
     return cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
   }
 
-  private drawOverlay(lines: string[], color: string, title?: string, subtitle?: string): void {
-    const { ctx, dpr } = this;
-    const w = this.canvas.width / dpr;
-    const h = this.worldH / dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, w, h);
-    let y = h / 2 - (lines.length * 22 + (title ? 40 : 0) + (subtitle ? 30 : 0)) / 2;
-    if (title) {
-      ctx.font = FONT_BIG;
-      ctx.fillStyle = color;
-      centered(ctx, title, w / 2, y);
-      y += 40;
-    }
-    if (subtitle) {
-      ctx.font = FONT;
-      ctx.fillStyle = '#9aa89a';
-      centered(ctx, subtitle.toUpperCase(), w / 2, y);
-      y += 34;
-    }
-    ctx.font = FONT;
-    lines.forEach((l, i) => {
-      ctx.fillStyle = i === lines.length - 1 && title ? '#d9b310' : title ? '#c8d0c4' : color;
-      centered(ctx, l, w / 2, y + i * 22);
-    });
-  }
-
-  private drawRunEnd(state: GameState): void {
+  /** The end of a run, as a full game-show moment: sunburst, marquee, the works. */
+  private drawRunEnd(state: GameState, now: number): void {
+    const { ctx, canvas, dpr } = this;
     const end = state.runEnd!;
-    if (end.kind === 'died') {
-      const d = NOTICES.died;
-      const cls = CLASSES[state.player.defId].name;
-      const lines = d.lines.map((l) => l.replaceAll('{enemy}', end.enemy).replaceAll('{move}', end.move).replaceAll('{class}', cls));
-      this.drawOverlay([...lines, '', d.prompt], '#f08a7a', d.title, d.subtitle);
-    } else {
-      const d = NOTICES.escaped;
-      this.drawOverlay([...d.lines, '', d.prompt], '#9fd68a', d.title, d.subtitle);
-    }
+    const since = this.since(end, now);
+    const died = end.kind === 'died';
+    const d = died ? NOTICES.died : NOTICES.escaped;
+    const cls = CLASSES[state.cls].name;
+    const lines = died ? d.lines.map((l) => l.replaceAll('{enemy}', end.enemy).replaceAll('{move}', end.move).replaceAll('{class}', cls)) : d.lines;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = 'rgba(8, 2, 16, 0.85)';
+    ctx.fillRect(0, 0, w, h);
+    spotlights(ctx, w, h, now);
+    sunburst(ctx, w / 2, h / 2, Math.max(w, h) * 0.6, died ? ['#7a1a1a', '#2a0606'] : ['#ffd23a', '#e8601a'], now);
+    if (!died) confetti(ctx, w, h, since, now);
+
+    const pw = Math.min(760, w - 32);
+    const ph = Math.min(430, h - 32);
+    const cx = w / 2;
+    const cy = h / 2;
+    const s = popIn((now - since) / 450);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s, s);
+    ctx.translate(-cx, -cy);
+    const x = cx - pw / 2;
+    const y = cy - ph / 2;
+    marquee(ctx, x, y, pw, ph, now, { fill: died ? '#3a0a0a' : '#3a0e5a' });
+    bigTitle(ctx, d.title, cx, y + 70, 72, { colors: died ? ['#ffe0d8', '#ff5a3a', '#a01a0a'] : PALETTE.gold, maxWidth: pw - 170 });
+    starburst(ctx, x + pw - 54, y + 54, 58, died ? '#a01a0a' : '#ff3ea5', d.badge, now);
+    ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ff9ad0';
+    centered(ctx, d.subtitle.toUpperCase(), cx, y + 118);
+    let yy = y + 156;
+    lines.forEach((l, i) => {
+      ctx.fillStyle = i === lines.length - 1 ? '#ffd23a' : '#ffffff';
+      for (const part of wrapLines(ctx, l, pw - 70)) {
+        centered(ctx, part, cx, yy);
+        yy += 24;
+      }
+      yy += 4;
+    });
+    if (Math.floor(now / 450) % 2 === 0)
+      bigTitle(ctx, d.prompt.toUpperCase(), cx, y + ph - 46, 26, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a', maxWidth: pw - 60 });
+    ctx.restore();
   }
 }
 

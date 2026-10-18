@@ -10,6 +10,7 @@ import { computeStats } from '../game/equipment';
 import type { Equipment } from '../game/types';
 import type { MenuKey } from './input';
 import type { PlayerSprites } from './playerSprite';
+import { bigTitle, marquee, spotlights, sunburst } from './showbiz';
 import { centered, FONT, FONT_BIG, wrapLines } from './text';
 
 const STORE_KEY = 'subpar-dungeon:last-contestant';
@@ -50,18 +51,29 @@ export class Picker {
   }
 
   draw(ctx: CanvasRenderingContext2D, w: number, h: number, sprites: PlayerSprites, now: number): void {
-    ctx.fillStyle = '#07090a';
+    // The studio: dark stage, sweeping spotlights, the show logo on a marquee.
+    const stage = ctx.createLinearGradient(0, 0, 0, h);
+    stage.addColorStop(0, '#1a0630');
+    stage.addColorStop(1, '#07030c');
+    ctx.fillStyle = stage;
     ctx.fillRect(0, 0, w, h);
-    ctx.textBaseline = 'top';
     const cx = w / 2;
-    let y = Math.max(24, h * 0.08);
-    ctx.font = FONT_BIG;
-    ctx.fillStyle = '#d9b310';
-    centered(ctx, UI_TEXT.picker.title, cx, y);
+    sunburst(ctx, cx, 90, Math.min(w, 900) * 0.55, ['#ff3ea5', '#5a1a8a'], now);
+    spotlights(ctx, w, h, now);
+    const lw = Math.min(560, w - 32);
+    marquee(ctx, cx - lw / 2, 18, lw, 128, now, { fill: '#3a0e5a' });
+    bigTitle(ctx, UI_TEXT.picker.show, cx, 70, 60, { tilt: -0.03, maxWidth: lw - 60 });
+    ctx.font = 'bold 15px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffd8f0';
+    centered(ctx, UI_TEXT.picker.tagline, cx, 108);
+    let y = 172;
+    bigTitle(ctx, UI_TEXT.picker.title, cx, y, 30, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a' });
     ctx.font = FONT;
-    ctx.fillStyle = '#9aa89a';
-    centered(ctx, UI_TEXT.picker.sub, cx, y + 32);
-    y += 80;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#c8b8e0';
+    centered(ctx, UI_TEXT.picker.sub, cx, y + 22);
+    y += 64;
 
     const race = RACES[this.races[this.race]];
     const cls = CLASSES[this.classes[this.cls]];
@@ -71,7 +83,7 @@ export class Picker {
     ];
     for (const [label, value, i] of rows) {
       const sel = this.row === i;
-      ctx.fillStyle = sel ? '#2a2a12' : '#121614';
+      ctx.fillStyle = sel ? '#5a1a6a' : '#1e0a30';
       ctx.fillRect(cx - 220, y - 6, 440, 34);
       ctx.fillStyle = '#6f7d70';
       ctx.fillText(label, cx - 204, y + 4);
@@ -87,7 +99,7 @@ export class Picker {
     const size = 24 * 5;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sprite, cx - 330 - size / 2, 130 + Math.round(Math.sin(now / 400) * 3), size, size);
+    ctx.drawImage(sprite, cx - 330 - size / 2, 226 + Math.round(Math.sin(now / 400) * 3), size, size);
     ctx.restore();
 
     // What you get, in plain words.

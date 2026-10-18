@@ -13,6 +13,7 @@ import type { PropSprites } from './propSprites';
 import { PROPS } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
+import { bigTitle, confetti, marquee, PALETTE, popIn, starburst } from './showbiz';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
 const FX_MS = 700;
@@ -88,7 +89,7 @@ export class BattleView {
       ctx.fillStyle = battle.ambushSide === 'player' ? '#d9b310' : '#f08a7a';
       centered(ctx, battle.ambushSide === 'player' ? 'AMBUSH: YOU STRIKE FIRST, +50% DAMAGE THIS ROUND' : 'AMBUSHED: THEY STRIKE FIRST, +50% DAMAGE THIS ROUND', w / 2, 52);
     }
-    if (battle.result) this.drawResult(ctx, w, h, battle);
+    if (battle.result) this.drawResult(ctx, w, h, battle, now);
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, w: number, floorBottom: number, scale: number): void {
@@ -289,21 +290,40 @@ export class BattleView {
     lines.slice(0, fit).forEach((l, i) => ctx.fillText(l, x + 14, helpY + i * 18));
   }
 
-  private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState): void {
-    const text = UI_TEXT.result[battle.result!];
-    const color = battle.result === 'lost' ? '#f08a7a' : battle.result === 'won' ? '#9fd68a' : '#d9b310';
-    const bw = Math.min(560, w - 40);
-    const bx = (w - bw) / 2;
-    const by = Math.round(h * 0.3);
-    panel(ctx, bx, by, bw, 112);
-    ctx.font = FONT_BIG;
-    ctx.fillStyle = color;
-    centered(ctx, text.title, w / 2, by + 18);
-    ctx.font = FONT;
-    ctx.fillStyle = '#9aa89a';
-    centered(ctx, text.sub, w / 2, by + 52);
-    ctx.fillStyle = '#d9b310';
-    centered(ctx, UI_TEXT.result.prompt, w / 2, by + 80);
+  private resultSince = new WeakMap<BattleState, number>();
+
+  /** The end of a fight, game-show style: a marquee banner that pops in. */
+  private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState, now: number): void {
+    if (!this.resultSince.has(battle)) this.resultSince.set(battle, now);
+    const since = this.resultSince.get(battle)!;
+    const r = battle.result!;
+    const text = UI_TEXT.result[r];
+    const look = {
+      won: { title: PALETTE.gold, badge: '#ff3ea5', fill: '#3a0e5a' },
+      fled: { title: ['#e8faff', '#38c8ff', '#1a6ae8'], badge: '#1a8ae8', fill: '#0e2a5a' },
+      lost: { title: ['#ffe0d8', '#ff5a3a', '#a01a0a'], badge: '#a01a0a', fill: '#3a0a0a' },
+    }[r];
+    ctx.fillStyle = 'rgba(8, 2, 16, 0.55)';
+    ctx.fillRect(0, 0, w, h);
+    if (r === 'won') confetti(ctx, w, h, since, now);
+    const bw = Math.min(620, w - 40);
+    const bh = 210;
+    const cx = w / 2;
+    const cy = Math.round(h * 0.36);
+    const s = popIn((now - since) / 400);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(s, s);
+    ctx.translate(-cx, -cy);
+    marquee(ctx, cx - bw / 2, cy - bh / 2, bw, bh, now, { fill: look.fill });
+    bigTitle(ctx, text.title, cx, cy - 34, 64, { colors: look.title, maxWidth: bw - 150 });
+    starburst(ctx, cx + bw / 2 - 40, cy - bh / 2 + 30, 46, look.badge, text.badge, now);
+    ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffffff';
+    centered(ctx, text.sub, cx, cy + 14);
+    if (Math.floor(now / 450) % 2 === 0) bigTitle(ctx, UI_TEXT.result.prompt, cx, cy + 66, 24, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a' });
+    ctx.restore();
   }
 }
 

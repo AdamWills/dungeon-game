@@ -66,6 +66,12 @@
 - Fix: every new item (chest or floor) pauses the game on a prize card in the middle of the screen, showing the icon, name, rarity, what it does, the joke and how to use it. ENTER closes it; several pickups at once queue up. Other messages now stay up for 5 seconds.
 - Test: the card pauses time, blocks other inventory commands, and closes back to roaming.
 
+### Game-show look (user direction: "big and corny")
+- A showbiz kit (`src/ui/showbiz.ts`): rotating sunbursts, marquee frames with chasing light bulbs, chunky gold titles with outlines and drop shadows, spinning starburst badges, sweeping spotlights, confetti, and a pop-in bounce. All original; no real show's logo, set or catchphrase.
+- Used for the prize card (colours and badge by rarity: BOOBY PRIZE!, SPECIAL PRIZE!, JACKPOT!!), the battle result banner (VICTORY with confetti, YOU GOT AWAY, YOU DIED), the end-of-run screens (YOU DIED / ELIMINATED!, YOU ESCAPED / WINNER!) and the contestant picker, which now has a "DESCEND & WIN!" show logo. Headings stay plain; the corn is in the styling and badges.
+- Fixed while checking: the elimination report read "with a lovely a long, relaxing soak" and "the the Sludge Pool"; hazard and status deaths now read cleanly.
+- Titles use the Impact font where the system has it (Mac and Windows do), falling back to a heavy sans.
+
 ## Next
 
 M4: Party and host. 3 recruitable allies with stances and loyalty, scripted host lines for routine events, the death screen with a full elimination report, XP and the level-up screen.
