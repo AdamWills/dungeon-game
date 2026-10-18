@@ -145,7 +145,7 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
 
 /** Tiles other enemies stand on or are moving into, plus chests. */
 function occupiedBy(state: GameState, self: Entity): Set<string> {
-  const s = new Set<string>(state.floor.chests.map((c) => `${c.pos.x},${c.pos.y}`));
+  const s = new Set<string>([...state.floor.chests, ...state.floor.props].map((c) => `${c.pos.x},${c.pos.y}`));
   for (const o of state.floor.entities) {
     if (o === self) continue;
     const t = tileOf(o);

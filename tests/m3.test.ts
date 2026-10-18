@@ -303,9 +303,12 @@ describe('generation and loot', () => {
         }),
       );
       expect(hazards).toBeGreaterThan(0);
-      // Stairs still reachable, and no chest sits in the way of a room's middle.
-      const dist = bfsDistances(f, f.start);
+      // Chests and props block movement, but never the way to the stairs or any room.
+      const blocked = new Set([...f.chests, ...f.props].map((c) => `${c.pos.x},${c.pos.y}`));
+      const dist = bfsDistances(f, f.start, (x, y) => blocked.has(`${x},${y}`));
       expect(dist[f.stairs.y * f.width + f.stairs.x]).toBeGreaterThan(0);
+      for (const r of f.rooms) expect(dist[r.center.y * f.width + r.center.x], `seed ${seed} room ${r.id}`).toBeGreaterThanOrEqual(0);
+      expect(f.props.length).toBeGreaterThan(0);
     }
   });
 

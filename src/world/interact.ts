@@ -16,6 +16,10 @@ export function chestAt(state: GameState, x: number, y: number) {
   return state.floor.chests.find((c) => c.pos.x === x && c.pos.y === y);
 }
 
+export function propAt(state: GameState, x: number, y: number) {
+  return state.floor.props.find((p) => p.pos.x === x && p.pos.y === y);
+}
+
 export function isClosedDoor(state: GameState, x: number, y: number): boolean {
   const t = state.floor.tiles[y]?.[x];
   return !!t?.door && !t.door.open;

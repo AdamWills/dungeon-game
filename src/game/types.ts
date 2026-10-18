@@ -2,6 +2,7 @@
 // these rather than replace them.
 
 import type { HazardKind } from '../data/hazards';
+import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
 import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
 
@@ -23,6 +24,26 @@ export type Tile = {
 
 export type Chest = { id: string; pos: Vec; opened: boolean };
 
+/** A prop standing on the map (barrels, vending machines, ...). */
+export type MapProp = { id: string; defId: string; pos: Vec; usesLeft: number };
+
+/** A prop in a battle's arena, and where it came from on the map. */
+export type ArenaProp = {
+  id: string;
+  defId: string;
+  usesLeft: number;
+  source: { kind: 'map'; propId: string } | { kind: 'corpse'; at: Vec } | { kind: 'sludge'; at: Vec };
+};
+
+/** Every improvisation, from any channel, resolves to this before it touches the game. */
+export type ImprovOutcome = {
+  grade: Grade;
+  effects: OutcomeEffect[];
+  narration: string;
+  source: 'table' | 'parser' | 'llm';
+  discoveryKey: string;
+};
+
 /** An item lying on the floor, waiting to be picked up. */
 export type FloorItem = { id: string; pos: Vec; item: ItemInstance };
 
@@ -42,6 +63,7 @@ export type Floor = {
   entities: Entity[];
   chests: Chest[];
   items: FloorItem[];
+  props: MapProp[];
   /** 1 where the player can currently see, flat index y * width + x. */
   visible: number[];
 };
@@ -134,6 +156,9 @@ export type BattleCommand =
   | { kind: 'item'; slot: number; targetId?: string }
   | { kind: 'defend' }
   | { kind: 'flee' }
+  | { kind: 'improvise'; channel: 'prop'; propId: string; verb: PropVerb }
+  | { kind: 'improvise'; channel: 'jank'; slots: [number, number] }
+  | { kind: 'improvise'; channel: 'badIdea' }
   | { kind: 'continue' }; // acknowledge the result screen
 
 /** Inventory screen commands (time is paused). Slots index player.inventory. */
@@ -155,6 +180,9 @@ export type BattleState = {
   fx: BattleFx[];
   fxSeq: number;
   result: 'won' | 'fled' | 'lost' | null;
+  /** Props within reach of the fight, up to 4. */
+  props: ArenaProp[];
+  badIdeaUsed: boolean;
   /** What killed the player, for the death screen. */
   killedBy?: { enemy: string; move: string };
 };
@@ -178,7 +206,8 @@ export type GameEvent =
   | { type: 'itemEquipped'; defId: string; slot: 'weapon' | 'armor' | 'trinket' }
   | { type: 'itemRefused'; defId: string; reason: 'cursed' | 'battleOnly' | 'notUsable' }
   | { type: 'hazardHurt'; id: string; kind: HazardKind; dmg: number }
-  | { type: 'corpseEaten'; hp: number };
+  | { type: 'corpseEaten'; hp: number }
+  | { type: 'improvised'; key: string; grade: Grade; firstThisRun: boolean };
 
 export type GameState = {
   seed: number;
@@ -195,6 +224,8 @@ export type GameState = {
   grace: number;
   battle: BattleState | null;
   runEnd: RunEnd | null;
+  /** How often each improvisation has been done this run (repeats get weaker). */
+  improvCounts: Record<string, number>;
   /** Events raised during the current step; the shell drains them onto the bus. */
   events: GameEvent[];
 };

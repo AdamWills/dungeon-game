@@ -9,6 +9,8 @@ import { SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
+import type { PropSprites } from './propSprites';
+import { PROPS } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
@@ -21,6 +23,7 @@ export class BattleView {
   constructor(
     private playerSprites: PlayerSprites,
     private enemySprites: EnemySprites,
+    private propSprites: PropSprites,
     private floorTile: (ctx: CanvasRenderingContext2D, x: number, y: number) => void,
   ) {}
 
@@ -56,6 +59,25 @@ export class BattleView {
       acting: actor?.id === me.id,
       sprite: this.playerSprites('up', 'stand', false),
     });
+
+    // The arena: props you can Improvise with, between you and them.
+    if (battle.props.length) {
+      const ps = SPRITE * Math.max(2, scale - 1);
+      const baseY = panelTop - ps - 30;
+      ctx.font = FONT;
+      ctx.fillStyle = '#6f7d70';
+      ctx.fillText('ARENA', Math.round(w * 0.42), baseY - 22);
+      battle.props.forEach((p, i) => {
+        const x = Math.round(w * 0.42 + i * (ps + 40));
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        if (p.usesLeft <= 0) ctx.globalAlpha = 0.3;
+        ctx.drawImage(this.propSprites(p.defId), x, baseY, ps, ps);
+        ctx.restore();
+        ctx.fillStyle = p.usesLeft > 0 ? '#c8d0c4' : '#5a5f58';
+        centered(ctx, PROPS[p.defId].name, x + ps / 2, baseY + ps + 4);
+      });
+    }
 
     const menuW = Math.min(300, Math.round(w * 0.32));
     this.drawLog(ctx, 16, panelTop, w - menuW - 48, h - panelTop - 16, battle);
@@ -221,12 +243,19 @@ export class BattleView {
     if (!yourTurn || battle.result) return;
 
     let rows: { label: string; enabled: boolean }[];
+    const improvTitles: Record<string, string> = {
+      improv: 'IMPROVISE  (ESC back)', prop: 'USE WHICH PROP?', verb: 'DO WHAT WITH IT?', jankA: 'COMBINE: FIRST ITEM', jankB: 'COMBINE: SECOND ITEM',
+    };
     let cursor: number;
     let title: string;
     if (menu.level === 'item') {
       rows = menu.itemRows(state);
       cursor = menu.itemCursor;
       title = 'ITEM  (ESC back)';
+    } else if (improvTitles[menu.level]) {
+      rows = menu.improvRows(state);
+      cursor = menu.sub;
+      title = improvTitles[menu.level];
     } else if (menu.level === 'target') {
       rows = [];
       cursor = -1;

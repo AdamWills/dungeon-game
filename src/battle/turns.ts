@@ -3,6 +3,7 @@
 // every roll comes from state.rng, every text variant from a stable hash.
 
 import { ABILITIES, HEX_TURNS } from '../data/abilities';
+import { PROPS } from '../data/props';
 import { BATTLE_TEXT as T, fill, variant } from '../data/battleText';
 import { CLASSES } from '../data/classes';
 import { ENEMIES } from '../data/enemies';
@@ -14,6 +15,7 @@ import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../
 import { playerResists, weaponOf } from '../game/equipment';
 import { rollItem } from '../game/loot';
 import { nextFloat } from '../game/rng';
+import { applyOutcome, applyRepeats, gatherArena, resolveImprov, validateOutcome } from './improvise';
 import type { BattleCommand, BattleState, Combatant, Encounter, GameState, LogLine, Vec } from '../game/types';
 
 const PLAYER_ID = 'player';
@@ -40,6 +42,8 @@ export function startBattle(state: GameState, encounter: Encounter): void {
     fx: [],
     fxSeq: 0,
     result: null,
+    props: gatherArena(state, encounter.tile),
+    badIdeaUsed: false,
   };
   state.battle = battle;
   const from = state.mode;
@@ -250,12 +254,52 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
       } else say(battle, variant(T.fleeFail, ...salt), 'bad');
       return true;
     }
+    case 'improvise':
+      return improvise(state, battle, me, cmd);
     case 'continue':
       return false;
   }
 }
 
-/** Item and (later) improvisation effects, applied to one target. */
+/** Props, item jank or the Bad Idea button. Returns false if it was not possible. */
+function improvise(state: GameState, battle: BattleState, me: Combatant, cmd: Extract<BattleCommand, { kind: 'improvise' }>): boolean {
+  const res = resolveImprov(state, battle, cmd);
+  if (!res) {
+    say(battle, cmd.channel === 'badIdea' ? T.badIdeaSpent : T.cantImprov, 'host');
+    return false;
+  }
+  const { names, ...raw } = res;
+  const times = state.improvCounts[raw.discoveryKey] ?? 0;
+  const outcome = applyRepeats(validateOutcome(raw), times);
+  state.improvCounts[raw.discoveryKey] = times + 1;
+
+  // Pay for it: the prop takes wear, the items are used up, the button is spent.
+  let wrecked: string | null = null;
+  if (cmd.channel === 'prop') {
+    const prop = battle.props.find((p) => p.id === cmd.propId)!;
+    if (--prop.usesLeft <= 0) wrecked = PROPS[prop.defId].name;
+  } else if (cmd.channel === 'jank') {
+    for (const slot of [...cmd.slots].sort((a, b) => b - a)) state.player.inventory.splice(slot, 1);
+  } else battle.badIdeaUsed = true;
+
+  const idx = battle.log.length;
+  say(battle, '', outcome.grade === 'disaster' ? 'bad' : outcome.grade === 'meh' ? 'info' : 'good');
+  battle.log[idx].text = applyOutcome(state, battle, outcome, names, {
+    say: (text, tone) => say(battle, text, tone),
+    apply: (target, { target: _t, ...effect }) => applyEffects(state, battle, me, target, [effect]),
+    selfHarm: (amount) => {
+      const dmg = Math.max(0, Math.min(amount, me.stats.hp - 1));
+      me.stats.hp -= dmg;
+      if (dmg) fx(battle, me.id, 'hit', dmg);
+      return dmg;
+    },
+  });
+  if (wrecked) say(battle, fill(T.propWrecked, { prop: wrecked }), 'info');
+  state.events.push({ type: 'improvised', key: outcome.discoveryKey, grade: outcome.grade, firstThisRun: times === 0 });
+  return true;
+}
+
+/** Item and improvisation effects, applied to one target. */
 export function applyEffects(state: GameState, battle: BattleState, user: Combatant, target: Combatant, effects: EffectRef[]): void {
   for (const eff of effects) {
     if (!target.alive) return;
@@ -410,6 +454,26 @@ function endBattle(state: GameState): void {
     }
   }
   if (battle.combatants.some((c) => c.side === 'enemy' && !c.alive)) addGore(state, battle.encounter.tile, 'blood');
+
+  // Props wrecked in battle stay wrecked on the map; the rest stay put.
+  for (const p of battle.props) {
+    const src = p.source;
+    if (src.kind === 'map') {
+      const mp = floor.props.find((m) => m.id === src.propId);
+      if (mp) mp.usesLeft = p.usesLeft;
+      if (mp && p.usesLeft <= 0) floor.props.splice(floor.props.indexOf(mp), 1);
+    } else if (p.usesLeft <= 0) {
+      const tile = floor.tiles[src.at.y][src.at.x];
+      const gibs = tile.gore.findIndex((g) => g.kind === 'gibs');
+      if (src.kind === 'corpse') {
+        if (gibs >= 0) tile.gore.splice(gibs, 1);
+      }
+      else {
+        tile.terrain = 'floor';
+        tile.hazard = undefined;
+      }
+    }
+  }
 
   const result = battle.result!;
   state.battle = null;

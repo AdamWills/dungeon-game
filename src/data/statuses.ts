@@ -21,7 +21,7 @@ export const STATUSES: Record<StatusKind, StatusDef> = {
   poison: { kind: 'poison', name: 'Poisoned', help: 'Loses 2 HP at the start of each turn.', dot: 2, tickLine: '{name} takes {dmg} from poison. Green is not a flattering colour.', youLine: 'You take {dmg} from poison. Green is not your colour, contestant.' },
   burning: { kind: 'burning', name: 'Burning', help: 'Loses 3 HP at the start of each turn.', dot: 3, tickLine: '{name} burns for {dmg}! Somebody fetch the extinguisher. Slowly.', youLine: 'You burn for {dmg}! Now THAT is a hot contestant!' },
   stunned: { kind: 'stunned', name: 'Stunned', help: 'Loses its turn.', tickLine: '{name} is stunned and just stands there. Riveting television.', youLine: 'You are stunned and just stand there. Riveting television.' },
-  charmed: { kind: 'charmed', name: 'Charmed', help: 'Will not attack.', tickLine: '{name} is too charmed to fight. Aww!' },
+  charmed: { kind: 'charmed', name: 'Charmed', help: 'Will not attack.', tickLine: '{name} is too charmed to fight. Aww!', youLine: 'You are too charmed to fight. Aww!' },
   hexed: { kind: 'hexed', name: 'Hexed', help: 'Takes double damage.' },
   hasted: { kind: 'hasted', name: 'Hasted', help: 'Acts twice each round.' },
 };

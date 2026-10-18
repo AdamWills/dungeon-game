@@ -4,7 +4,9 @@
 import { ABILITIES, HEX_TURNS } from '../data/abilities';
 import { fill } from '../data/battleText';
 import { CLASSES } from '../data/classes';
+import { ITEM_TAGS, VERBS, type PropVerb } from '../data/improv';
 import { ITEMS } from '../data/items';
+import { PROPS } from '../data/props';
 import { UI_TEXT } from '../data/uiText';
 import { currentActor, enemiesOf, hasStatus } from '../battle/turns';
 import { baseDamage, hitChance } from '../game/combat';
@@ -12,14 +14,22 @@ import { weaponOf } from '../game/equipment';
 import type { BattleCommand, BattleState, GameState } from '../game/types';
 import type { MenuKey } from './input';
 
-export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
+export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'improvise' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
+
+export type Row = { label: string; enabled: boolean; help: string };
+
+const VERB_ORDER: PropVerb[] = ['shove', 'kick', 'throw', 'eat', 'hide', 'ignite'];
 
 /** What a target choice is for. */
 type Pending = { kind: 'attack' } | { kind: 'ability'; abilityId: string } | { kind: 'item'; slot: number };
 
 export class BattleMenu {
-  level: 'main' | 'target' | 'item' = 'main';
+  level: 'main' | 'target' | 'item' | 'improv' | 'prop' | 'verb' | 'jankA' | 'jankB' = 'main';
   cursor = 0;
+  /** Cursor for the improvise sub-menus. */
+  sub = 0;
+  propId = '';
+  jankA = -1;
   target = 0;
   itemCursor = 0;
   pending: Pending = { kind: 'attack' };
@@ -37,6 +47,7 @@ export class BattleMenu {
       { id: 'attack', label: `Attack (${weapon.name})`, enabled: true, help: fill(H.attack, { weapon: weapon.name }) },
       { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0, help: abilityHelp },
       { id: 'item', label: `Item (${usable})`, enabled: usable > 0, help: usable > 0 ? H.item : H.noItems },
+      { id: 'improvise', label: 'Improvise', enabled: true, help: H.improvise },
       { id: 'defend', label: 'Defend', enabled: true, help: H.defend },
       { id: 'flee', label: 'Flee', enabled: true, help: H.flee },
     ];
@@ -74,6 +85,9 @@ export class BattleMenu {
       return null;
     }
 
+    if (this.level === 'improv' || this.level === 'prop' || this.level === 'verb' || this.level === 'jankA' || this.level === 'jankB')
+      return this.handleImprov(key, state);
+
     if (this.level === 'item') {
       const n = state.player.inventory.length;
       if (key === 'up') this.itemCursor = (this.itemCursor + n - 1) % Math.max(1, n);
@@ -109,10 +123,88 @@ export class BattleMenu {
           this.level = 'item';
           this.itemCursor = Math.max(0, state.player.inventory.findIndex((i) => ITEMS[i.defId]?.use));
           return null;
+        case 'improvise':
+          this.level = 'improv';
+          this.sub = 0;
+          return null;
         case 'defend':
           return { kind: 'defend' };
         case 'flee':
           return { kind: 'flee' };
+      }
+    }
+    return null;
+  }
+
+  /** Rows for whichever improvise sub-menu is open. */
+  improvRows(state: GameState): Row[] {
+    const b = state.battle!;
+    const H = UI_TEXT.help;
+    const inv = state.player.inventory;
+    switch (this.level) {
+      case 'improv': {
+        const props = b.props.filter((p) => p.usesLeft > 0).length;
+        return [
+          { label: `Use a prop (${props})`, enabled: props > 0, help: props > 0 ? H.improvProps : H.improvNoProps },
+          { label: 'Combine two items', enabled: inv.length >= 2, help: inv.length >= 2 ? H.improvJank : H.improvNoJank },
+          { label: 'Bad Idea button', enabled: !b.badIdeaUsed, help: b.badIdeaUsed ? H.improvBadIdeaUsed : H.improvBadIdea },
+        ];
+      }
+      case 'prop':
+        return b.props.map((p) => {
+          const def = PROPS[p.defId];
+          return { label: `${def.name} (${p.usesLeft})`, enabled: p.usesLeft > 0, help: `${def.help} ${fill(H.propTags, { tags: def.tags.join(', '), uses: p.usesLeft })}` };
+        });
+      case 'verb':
+        return VERB_ORDER.map((v) => ({ label: VERBS[v].name, enabled: true, help: VERBS[v].help }));
+      default: {
+        const tagsHelp = (id: string) => fill(H.jankTags, { tags: (ITEM_TAGS[id] ?? ['junk']).join(', ') });
+        return inv.map((it, i) => ({
+          label: ITEMS[it.defId]?.name ?? it.defId,
+          enabled: !(this.level === 'jankB' && i === this.jankA),
+          help: this.level === 'jankB' ? `${fill(H.jankFirst, { item: ITEMS[inv[this.jankA]?.defId]?.name ?? '' })} ${tagsHelp(it.defId)}` : tagsHelp(it.defId),
+        }));
+      }
+    }
+  }
+
+  private handleImprov(key: MenuKey, state: GameState): BattleCommand | null {
+    const rows = this.improvRows(state);
+    const n = Math.max(1, rows.length);
+    if (key === 'up') this.sub = (this.sub + n - 1) % n;
+    else if (key === 'down') this.sub = (this.sub + 1) % n;
+    else if (key === 'back') {
+      const up = { improv: 'main', prop: 'improv', verb: 'prop', jankA: 'improv', jankB: 'jankA' } as const;
+      this.level = up[this.level as keyof typeof up];
+      this.sub = 0;
+    } else if (key === 'confirm') {
+      const row = rows[this.sub];
+      if (!row?.enabled) return null;
+      switch (this.level) {
+        case 'improv':
+          if (this.sub === 2) {
+            this.level = 'main';
+            return { kind: 'improvise', channel: 'badIdea' };
+          }
+          this.level = this.sub === 0 ? 'prop' : 'jankA';
+          this.sub = 0;
+          return null;
+        case 'prop':
+          this.propId = state.battle!.props[this.sub].id;
+          this.level = 'verb';
+          this.sub = 0;
+          return null;
+        case 'verb':
+          this.level = 'main';
+          return { kind: 'improvise', channel: 'prop', propId: this.propId, verb: VERB_ORDER[this.sub] };
+        case 'jankA':
+          this.jankA = this.sub;
+          this.level = 'jankB';
+          this.sub = this.sub === 0 ? 1 : 0;
+          return null;
+        case 'jankB':
+          this.level = 'main';
+          return { kind: 'improvise', channel: 'jank', slots: [this.jankA, this.sub] };
       }
     }
     return null;
@@ -136,6 +228,7 @@ export class BattleMenu {
   help(state: GameState): string {
     const battle = state.battle;
     if (!battle) return '';
+    if (['improv', 'prop', 'verb', 'jankA', 'jankB'].includes(this.level)) return this.improvRows(state)[this.sub]?.help ?? '';
     if (this.level === 'item') {
       const inst = state.player.inventory[this.itemCursor];
       const def = inst && ITEMS[inst.defId];

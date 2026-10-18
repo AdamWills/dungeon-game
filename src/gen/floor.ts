@@ -89,6 +89,7 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
       entities: [],
       chests: [],
       items: [],
+      props: [],
       visible: new Array(width * height).fill(0),
     };
     placeFeatures(floor, rng, theme);

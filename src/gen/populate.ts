@@ -13,7 +13,7 @@ const FACINGS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 
 export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
   const entities: Entity[] = [];
-  const taken = new Set<string>([key(floor.start), key(floor.stairs), ...floor.chests.map((c) => key(c.pos))]);
+  const taken = new Set<string>([key(floor.start), key(floor.stairs), ...floor.chests.map((c) => key(c.pos)), ...floor.props.map((p) => key(p.pos))]);
   const counts: Record<string, number> = {};
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
 
@@ -57,7 +57,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
 function patrolRoute(floor: Floor, room: Room, start: Vec, rng: Rng, roamChance: number): Vec[] {
   const route: Vec[] = [start];
   const stops = nextInt(rng, 1, 2);
-  const chests = new Set(floor.chests.map((c) => key(c.pos)));
+  const chests = new Set([...floor.chests, ...floor.props].map((c) => key(c.pos)));
   for (let i = 0; i < stops; i++) {
     const p = randomTileIn(room, rng);
     if (!chests.has(key(p))) route.push(p);

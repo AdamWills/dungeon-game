@@ -45,6 +45,7 @@ export function createGameState(seed: number, raceId = 'human', classId = 'brawl
     grace: 0,
     battle: null,
     runEnd: null,
+    improvCounts: {},
     events: [],
   };
   enterFloor(state, floor);

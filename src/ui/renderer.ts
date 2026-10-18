@@ -11,7 +11,9 @@ import { TUNING } from '../data/tuning';
 import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
 import { hazardActive } from '../world/hazards';
-import { chestAt, facingTile, isClosedDoor } from '../world/interact';
+import { chestAt, facingTile, isClosedDoor, propAt } from '../world/interact';
+import { PROPS } from '../data/props';
+import { fill } from '../data/battleText';
 import type { Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
 import { PlayerAnimator } from './animation';
@@ -22,6 +24,7 @@ import type { EnemySprites } from './enemySprites';
 import type { InventoryMenu } from './inventory';
 import { buildItemIcons, type ItemIcons } from './itemIcons';
 import type { Picker } from './picker';
+import { buildPropSprites, type PropSprites } from './propSprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
 import { bar, centered, FONT, FONT_BIG, wrapText } from './text';
@@ -43,6 +46,7 @@ export class Renderer {
   readonly animator = new PlayerAnimator();
   private battleView: BattleView;
   readonly icons: ItemIcons;
+  private propSprites: PropSprites;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -51,7 +55,8 @@ export class Renderer {
     private enemySprites: EnemySprites,
   ) {
     this.ctx = canvas.getContext('2d')!;
-    this.battleView = new BattleView(playerSprites, enemySprites, (ctx, x, y) => atlas.draw(ctx, floorVariant(x, y), 0, 0));
+    this.propSprites = buildPropSprites();
+    this.battleView = new BattleView(playerSprites, enemySprites, this.propSprites, (ctx, x, y) => atlas.draw(ctx, floorVariant(x, y), 0, 0));
     this.icons = buildItemIcons(atlas);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -221,6 +226,10 @@ export class Renderer {
       draw: () => this.drawEnemy(state, e, Math.round(e.pos.x * TILE) - camX, Math.round(e.pos.y * TILE) - camY),
     }));
     actors.push({ y: player.pos.y, draw: () => this.drawPlayer(state, px - camX, py - camY) });
+    for (const p of floor.props) {
+      if (!floor.tiles[p.pos.y][p.pos.x].explored) continue;
+      actors.push({ y: p.pos.y, draw: () => ctx.drawImage(this.propSprites(p.defId), p.pos.x * TILE - camX + TILE / 2 - SPRITE / 2, p.pos.y * TILE - camY + TILE - SPRITE) });
+    }
     actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
     ctx.restore();
   }
@@ -362,6 +371,8 @@ export class Renderer {
     const chest = chestAt(state, f.x, f.y);
     if (chest && !chest.opened) return P.chest;
     if (isClosedDoor(state, f.x, f.y)) return P.door;
+    const prop = propAt(state, f.x, f.y);
+    if (prop) return fill(P.prop, { prop: PROPS[prop.defId].name });
     const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.inventory, NOTICES.dash, NOTICES.stairs, NOTICES.pause];
     return cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
   }

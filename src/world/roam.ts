@@ -12,7 +12,7 @@ import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
 import { updateFov } from './fov';
 import { updateHazards } from './hazards';
-import { chestAt, eatRemains, facingTile, isClosedDoor, openChest, openDoor, pickUp } from './interact';
+import { chestAt, eatRemains, facingTile, isClosedDoor, openChest, openDoor, pickUp, propAt } from './interact';
 import { advanceMotion, FACING, startMotion, tileOf } from './motion';
 
 const DELTA: Record<Dir, Vec> = {
@@ -84,7 +84,7 @@ function tryMove(state: GameState, dir: Dir): void {
     openChest(state, to.x, to.y);
     return;
   }
-  if (!isWalkable(state.floor, to.x, to.y)) return;
+  if (!isWalkable(state.floor, to.x, to.y) || propAt(state, to.x, to.y)) return;
   startMotion(p, to, state.dash.active > 0 ? TUNING.dash.ticksPerTile : TUNING.playerTicksPerTile);
   // Look from the destination so the view opens up as the step begins.
   updateFov(state.floor, to, TUNING.fovRadius);
@@ -97,8 +97,9 @@ function facingDir(facing: number): Dir {
   return y >= 0 ? 'down' : 'up';
 }
 
+/** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return ['attack', 'ability', 'item', 'defend', 'flee', 'continue'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */

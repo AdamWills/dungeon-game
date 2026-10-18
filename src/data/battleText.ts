@@ -48,6 +48,9 @@ export const BATTLE_TEXT = {
   statusOff: '{target} is no longer {status}.',
   cantUseHere: 'That is not something you can use in a fight, contestant!',
   hasteExtra: 'You are moving so fast the cameras can barely keep up!',
+  cantImprov: 'That is not going to work right now, contestant. Pick something else!',
+  badIdeaSpent: 'One Bad Idea per fight, contestant! House rules!',
+  propWrecked: 'The {prop} is wrecked. Somebody bill the contestant.',
 } as const;
 
 /** Stable variant pick from a few integers, independent of the game RNG. */

@@ -3,8 +3,11 @@
 
 import type { FloorTheme } from '../data/floors';
 import type { HazardKind } from '../data/hazards';
+import { PROP_RULES, PROPS } from '../data/props';
+import { weightedPick } from '../game/combat';
 import { nextInt, pick, type Rng } from '../game/rng';
 import type { Floor, Room, Vec } from '../game/types';
+import { bfsDistances, isWalkable } from './reach';
 
 const key = (p: Vec) => `${p.x},${p.y}`;
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -25,18 +28,45 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): void {
   // Every doorway starts closed.
   for (const row of tiles) for (const t of row) if (t.terrain === 'door') t.door = { open: false };
 
-  // Chests sit against room walls, where they never cut a room in two.
-  const chestCount = nextInt(rng, theme.chests[0], theme.chests[1]);
-  for (let i = 0; i < chestCount && otherRooms.length; i++) {
+  // Chests and props sit against room walls and block movement, so each one is
+  // only placed if every walkable tile can still be reached afterwards.
+  const blockers = new Set<string>();
+  let walkable = 0;
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (isWalkable(floor, x, y)) walkable++;
+  const keepsEverythingReachable = (pos: Vec) => {
+    const trial = new Set(blockers).add(key(pos));
+    const dist = bfsDistances(floor, floor.start, (x, y) => trial.has(`${x},${y}`));
+    let reached = 0;
+    for (const d of dist) if (d >= 0) reached++;
+    return reached === walkable - trial.size;
+  };
+  const edgeSpot = (): Vec | null => {
     const room = pick(rng, otherRooms);
     const edge: Vec[] = [];
     for (let y = room.y1; y <= room.y2; y++)
       for (let x = room.x1; x <= room.x2; x++)
         if ((x === room.x1 || x === room.x2 || y === room.y1 || y === room.y2) && free(x, y)) edge.push({ x, y });
-    if (!edge.length) continue;
-    const pos = pick(rng, edge);
-    taken.add(key(pos));
-    floor.chests.push({ id: `chest-${floor.chests.length}`, pos, opened: false });
+    while (edge.length) {
+      const pos = edge.splice(nextInt(rng, 0, edge.length - 1), 1)[0];
+      if (!keepsEverythingReachable(pos)) continue;
+      taken.add(key(pos));
+      blockers.add(key(pos));
+      return pos;
+    }
+    return null;
+  };
+  const chestCount = nextInt(rng, theme.chests[0], theme.chests[1]);
+  for (let i = 0; i < chestCount && otherRooms.length; i++) {
+    const pos = edgeSpot();
+    if (pos) floor.chests.push({ id: `chest-${floor.chests.length}`, pos, opened: false });
+  }
+  const placeable = Object.values(PROPS).filter((p) => p.placed);
+  const propCount = nextInt(rng, PROP_RULES.perFloor[0], PROP_RULES.perFloor[1]);
+  for (let i = 0; i < propCount && otherRooms.length; i++) {
+    const pos = edgeSpot();
+    if (!pos) continue;
+    const def = weightedPick(rng, placeable);
+    floor.props.push({ id: `prop-${floor.props.length}`, defId: def.id, pos, usesLeft: def.uses });
   }
 
   const setHazard = (p: Vec, kind: HazardKind) => {

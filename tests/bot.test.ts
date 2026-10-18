@@ -9,19 +9,22 @@ import { NO_INPUT } from '../src/game/types';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
 import { step } from '../src/world/roam';
 
+const VERB_LIST = ['shove', 'kick', 'throw', 'eat', 'hide', 'ignite'] as const;
+
 const DIRS: [Dir, number, number][] = [['right', 1, 0], ['left', -1, 0], ['down', 0, 1], ['up', 0, -1]];
 
 function playRun(seed: number, maxTicks = 40_000) {
   const state = createGameState(seed, seed % 2 ? 'human' : 'gutterfolk', seed % 3 ? 'brawler' : 'hexer');
   const bot = createRng(seed ^ 0x5eed);
   let target: Vec = state.floor.stairs;
-  let dist = bfsDistances(state.floor, target);
+  const blocked = (x: number, y: number) => state.floor.props.some((p) => p.pos.x === x && p.pos.y === y);
+  let dist = bfsDistances(state.floor, target, blocked);
   let battles = 0;
   let steps = 0;
 
   const newTarget = () => {
     target = nextFloat(bot) < 0.15 ? state.floor.stairs : pick(bot, state.floor.rooms).center;
-    dist = bfsDistances(state.floor, target);
+    dist = bfsDistances(state.floor, target, blocked);
   };
 
   for (; steps < maxTicks && (state.mode === 'roaming' || state.mode === 'battle'); steps++) {
@@ -38,6 +41,9 @@ function playRun(seed: number, maxTicks = 40_000) {
             { kind: 'item', slot: nextInt(bot, 0, 5), targetId: pick(bot, foes)?.id },
             { kind: 'defend' },
             { kind: 'flee' },
+            { kind: 'improvise', channel: 'badIdea' },
+            { kind: 'improvise', channel: 'jank', slots: [nextInt(bot, 0, 4), nextInt(bot, 0, 4)] },
+            ...b.props.map((p) => ({ kind: 'improvise', channel: 'prop', propId: p.id, verb: pick(bot, VERB_LIST) }) as BattleCommand),
           ];
       input = { ...NO_INPUT, command: pick(bot, options) };
     } else if (!state.player.motion) {
@@ -61,7 +67,7 @@ function playRun(seed: number, maxTicks = 40_000) {
     if (!wasBattle && state.mode === 'battle') battles++;
     checkInvariants(state);
   }
-  return { mode: state.mode, battles, steps };
+  return { mode: state.mode, battles, steps, state };
 }
 
 function checkInvariants(state: GameState) {
@@ -86,7 +92,11 @@ describe('random-play bot', () => {
       tally.battles += r.battles;
       if (r.mode === 'dead') tally.dead++;
       else if (r.mode === 'won') tally.won++;
-      else tally.other++;
+      else {
+        tally.other++;
+        const st = r.state;
+        console.log('unfinished', seed * 7907, st.mode, JSON.stringify(st.player.pos), st.battle ? JSON.stringify({ round: st.battle.round, result: st.battle.result, order: st.battle.order, turn: st.battle.turn, log: st.battle.log.slice(-3) }) : '', 'hp', st.player.stats.hp);
+      }
     }
     console.log('bot tally', JSON.stringify(tally));
     expect(tally.battles).toBeGreaterThan(40);

@@ -44,9 +44,23 @@
 - Plain prompts in the bottom bar for what is underfoot or in front of you; short messages for pickups, equipping and hazard damage.
 - Tests: 75, including a test file for all of the above and a bot that now plays both races and classes, uses items and presses E (last run: 20 deaths, 20 escapes, 84 battles, no crashes).
 
+### M3 second half: the Improvise menu
+- Props on the map (`src/data/props.ts`): Barrel, Vending Machine, Fire Extinguisher and Folding Chair are placed 6 to 10 per floor; Remains (from gore) and a Sludge Puddle (from sludge hazards) join too. Up to 4 props within 2 tiles of a fight make its arena, shown on the battle screen.
+- Improvise in the battle menu, three channels, all costing your turn:
+  - **Props:** shove, kick, throw, eat, hide in or ignite. Generic tag rules make every prop and verb work; 7 hand-written combos override them (tipping the Vending Machine onto someone, lighting the Sludge Puddle, the Folding Chair classic). Props wear out, and wrecked ones stay wrecked on the map.
+  - **Item jank:** combine two pocket items, both used up. 10 named combos (Squeaky Shrapnel, Inferno Hoagie, Glitterpocalypse, ...), generic tag rules, a mild random fallback, and a 15% backfire onto you.
+  - **Bad Idea button:** once per fight, 12 outcomes from disaster to legendary; Charm nudges the odds.
+- One validator for every outcome, whatever its source: known effects and targets only, clamped damage, healing and durations, nothing that creates items or ends a fight, and self-harm never kills. Repeating the same trick in a run is 30% weaker each time.
+- Plain help for every row of the Improvise menus; Chet narrates the results.
+- Fixed while building it: (1) chests and props could block the only way to the stairs on some seeds (corridors sometimes join rooms through gaps rot.js does not mark as doors); every chest and prop is now only placed if the whole floor stays reachable, and a test checks 60 seeds. (2) Improvise commands were dropped by the game loop; a test now sends one through it.
+- Tests: 91. The bot now also improvises (last run: 26 deaths, 14 escapes, 72 battles, no crashes, every run finished).
+- Checked in the browser with real keys: shoved a barrel onto a Feral Intern (stunned it), then combined a Pipe Bomb and a Rubber Chicken into Squeaky Shrapnel to finish it.
+
 ## Next
 
-M3 second half: the Improvise menu (props, item jank, Bad Idea button). Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
+M4: Party and host. 3 recruitable allies with stances and loyalty, scripted host lines for routine events, the death screen with a full elimination report, XP and the level-up screen.
+
+Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). Improvisation already records discovery keys and raises an `improvised` event for them. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
 
 ## Decisions from the user
 
