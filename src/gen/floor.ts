@@ -6,6 +6,7 @@ import { Map as RotMap, RNG as RotRNG } from 'rot-js';
 import { FLOOR_THEMES } from '../data/floors';
 import { createRng, deriveSeed, pick } from '../game/rng';
 import type { Floor, Room, Tile, Vec } from '../game/types';
+import { placeFeatures } from './features';
 import { populate } from './populate';
 import { bfsDistances } from './reach';
 
@@ -86,8 +87,11 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
       start: { ...start },
       stairs: { ...stairs },
       entities: [],
+      chests: [],
+      items: [],
       visible: new Array(width * height).fill(0),
     };
+    placeFeatures(floor, rng, theme);
     floor.entities = populate(floor, rng, theme);
     return floor;
   }

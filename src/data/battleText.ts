@@ -42,6 +42,12 @@ export const BATTLE_TEXT = {
   fleeFail: ['You try to flee and trip over your own feet. Classic television!', 'Escape denied! Ooh, the door is a painting. Who put that there?'],
   victory: ['VICTORY! And the crowd goes WILD!', 'Our contestant survives! Nobody had that on the board, folks!'],
   defeat: ['The contestant is DOWN! Folks, that is TELEVISION!'],
+  statusOn: '{target} is now {status}!',
+  statusOnYou: 'You are now {status}!',
+  resisted: '{target} shrugs off being {status}. Show-off.',
+  statusOff: '{target} is no longer {status}.',
+  cantUseHere: 'That is not something you can use in a fight, contestant!',
+  hasteExtra: 'You are moving so fast the cameras can barely keep up!',
 } as const;
 
 /** Stable variant pick from a few integers, independent of the game RNG. */

@@ -10,7 +10,8 @@ export function isWalkable(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, x: 
 }
 
 /** Steps from `from` to every tile (4-way), -1 where unreachable. Flat y * width + x. */
-export function bfsDistances(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, from: Vec): Int32Array {
+/** `avoid` marks tiles to route around (e.g. hazards); the start is never avoided. */
+export function bfsDistances(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, from: Vec, avoid?: (x: number, y: number) => boolean): Int32Array {
   const { width, height } = floor;
   const dist = new Int32Array(width * height).fill(-1);
   if (!isWalkable(floor, from.x, from.y)) return dist;
@@ -23,7 +24,7 @@ export function bfsDistances(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, f
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx;
       const ny = y + dy;
-      if (!isWalkable(floor, nx, ny)) continue;
+      if (!isWalkable(floor, nx, ny) || avoid?.(nx, ny)) continue;
       const ni = ny * width + nx;
       if (dist[ni] !== -1) continue;
       dist[ni] = dist[i] + 1;

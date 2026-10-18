@@ -1,14 +1,18 @@
-// One fixed-timestep update: roaming movement, dash, enemy AI and contact,
-// or the battle command when a fight is on. Holding a direction chains
-// tile-to-tile steps with no pause between them.
+// One fixed-timestep update: roaming movement, dash, doors, chests, pickups,
+// hazards, enemy AI and contact; the battle command when a fight is on; the
+// inventory command while paused. Holding a direction chains tile-to-tile
+// steps with no pause between them.
 
 import { TUNING } from '../data/tuning';
 import { battleCommand, startBattle } from '../battle/turns';
 import { updateEnemy } from '../game/ai';
-import type { Dir, GameState, InputFrame, Mode, Vec } from '../game/types';
+import { inventoryCommand } from '../game/equipment';
+import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
 import { updateFov } from './fov';
+import { updateHazards } from './hazards';
+import { chestAt, eatRemains, facingTile, isClosedDoor, openChest, openDoor, pickUp } from './interact';
 import { advanceMotion, FACING, startMotion, tileOf } from './motion';
 
 const DELTA: Record<Dir, Vec> = {
@@ -24,7 +28,11 @@ export function step(state: GameState, input: InputFrame): void {
     else if (state.mode === 'menu') setMode(state, 'roaming');
   }
   if (state.mode === 'battle') {
-    if (input.command) battleCommand(state, input.command);
+    if (input.command && isBattleCommand(input.command)) battleCommand(state, input.command);
+    return;
+  }
+  if (state.mode === 'menu') {
+    if (input.command && !isBattleCommand(input.command)) inventoryCommand(state, input.command);
     return;
   }
   if (state.mode !== 'roaming') return; // time only passes while roaming
@@ -34,7 +42,7 @@ export function step(state: GameState, input: InputFrame): void {
   if (state.dash.cooldown > 0) state.dash.cooldown--;
   if (state.dash.active > 0) state.dash.active--;
 
-  advanceMotion(state.player);
+  if (advanceMotion(state.player)) pickUp(state);
   if (!state.player.motion) {
     if (input.interact && interact(state)) return;
     if (input.dash && state.dash.cooldown === 0) {
@@ -46,6 +54,9 @@ export function step(state: GameState, input: InputFrame): void {
   }
 
   for (const e of state.floor.entities) if (e.kind === 'enemy') updateEnemy(state, e);
+
+  updateHazards(state);
+  if (state.mode !== 'roaming') return; // a hazard finished you off
 
   const contact = findContact(state);
   if (contact) startBattle(state, buildEncounter(state, contact));
@@ -67,6 +78,12 @@ function tryMove(state: GameState, dir: Dir): void {
   const d = DELTA[dir];
   p.facing = FACING[dir];
   const to = { x: Math.round(p.pos.x) + d.x, y: Math.round(p.pos.y) + d.y };
+  // Bumping a closed door opens it; bumping a chest opens that.
+  if (isClosedDoor(state, to.x, to.y)) return openDoor(state, to);
+  if (chestAt(state, to.x, to.y)) {
+    openChest(state, to.x, to.y);
+    return;
+  }
   if (!isWalkable(state.floor, to.x, to.y)) return;
   startMotion(p, to, state.dash.active > 0 ? TUNING.dash.ticksPerTile : TUNING.playerTicksPerTile);
   // Look from the destination so the view opens up as the step begins.
@@ -80,10 +97,23 @@ function facingDir(facing: number): Dir {
   return y >= 0 ? 'down' : 'up';
 }
 
+function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
+  return ['attack', 'ability', 'item', 'defend', 'flee', 'continue'].includes(cmd.kind);
+}
+
 /** Returns true if the interact key did something. */
 function interact(state: GameState): boolean {
   const { x, y } = playerTile(state);
-  if (state.floor.tiles[y][x].terrain !== 'stairs') return false;
+  if (state.floor.tiles[y][x].terrain !== 'stairs') {
+    if (eatRemains(state)) return true;
+    const f = facingTile(state);
+    if (openChest(state, f.x, f.y)) return true;
+    if (isClosedDoor(state, f.x, f.y)) {
+      openDoor(state, f);
+      return true;
+    }
+    return false;
+  }
   // Prototype rule (user decision): the stairs end the run as a win. The
   // mini-boss that guards them arrives in M5.
   state.events.push({ type: 'stairsTaken', floor: state.floor.index, tick: state.tick });

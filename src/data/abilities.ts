@@ -8,7 +8,7 @@ export type AbilityDef = {
   description: string;
   /** Plain menu help. */
   help: string;
-  /** Battle log line when used. */
+  /** Battle log line when used; {target} is filled in for one-enemy abilities. */
   useLine: string;
 };
 
@@ -22,5 +22,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     help: 'Hit every enemy at once. Then it recharges for 8 of your turns.',
     useLine: 'You RAMPAGE! Folks, we are going to need a new set!',
   },
-  // Hex arrives with the Hexer in M3.
+  hex: {
+    id: 'hex',
+    name: 'Hex',
+    cooldown: 6,
+    target: 'one_enemy',
+    description: 'Mark an enemy so everything hurts twice as much. Very therapeutic.',
+    help: 'Mark one enemy: it takes double damage for 5 turns. Then it recharges for 6 of your turns.',
+    useLine: 'You HEX {target}! Ooh, that is going to sting. Twice!',
+  },
 };
+
+/** How long Hex lasts on its target. */
+export const HEX_TURNS = 5;

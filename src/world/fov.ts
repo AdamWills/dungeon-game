@@ -8,7 +8,7 @@ export function updateFov(floor: Floor, from: Vec, radius: number): void {
   const { width, height, tiles, visible } = floor;
   visible.fill(0);
   const lightPasses = (x: number, y: number) =>
-    x >= 0 && y >= 0 && x < width && y < height && tiles[y][x].terrain !== 'wall';
+    x >= 0 && y >= 0 && x < width && y < height && tiles[y][x].terrain !== 'wall' && !(tiles[y][x].door && !tiles[y][x].door!.open);
   const fov = new FOV.PreciseShadowcasting(lightPasses, { topology: 8 });
   fov.compute(from.x, from.y, radius, (x, y, _r, vis) => {
     if (vis <= 0 || x < 0 || y < 0 || x >= width || y >= height) return;

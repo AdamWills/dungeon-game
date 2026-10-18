@@ -4,10 +4,14 @@
 
 import { CLASSES } from '../data/classes';
 import { FLOOR_THEMES } from '../data/floors';
+import { HAZARDS } from '../data/hazards';
+import { RACES } from '../data/races';
 import { NOTICES } from '../data/notices';
 import { TUNING } from '../data/tuning';
 import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
+import { hazardActive } from '../world/hazards';
+import { chestAt, facingTile, isClosedDoor } from '../world/interact';
 import type { Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
 import { PlayerAnimator } from './animation';
@@ -15,9 +19,17 @@ import { type Atlas, SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import { BattleView } from './battleView';
 import type { EnemySprites } from './enemySprites';
+import type { InventoryMenu } from './inventory';
+import { buildItemIcons, type ItemIcons } from './itemIcons';
+import type { Picker } from './picker';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
 import { bar, centered, FONT, FONT_BIG, wrapText } from './text';
+
+export type Toast = { text: string; until: number };
+
+/** UI-side screens and messages the renderer draws on top of the game. */
+export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; toasts: Toast[] };
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
@@ -30,6 +42,7 @@ export class Renderer {
   private worldH = 0; // device pixels
   readonly animator = new PlayerAnimator();
   private battleView: BattleView;
+  readonly icons: ItemIcons;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -39,6 +52,7 @@ export class Renderer {
   ) {
     this.ctx = canvas.getContext('2d')!;
     this.battleView = new BattleView(playerSprites, enemySprites, (ctx, x, y) => atlas.draw(ctx, floorVariant(x, y), 0, 0));
+    this.icons = buildItemIcons(atlas);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -59,23 +73,57 @@ export class Renderer {
     );
   }
 
-  render(state: GameState, menu: BattleMenu, now: number): void {
-    const { ctx, canvas, dpr } = this;
+  private clear(): void {
+    const { ctx, canvas } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
+  renderPicker(picker: Picker, now: number): void {
+    const { ctx, canvas, dpr } = this;
+    this.clear();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    picker.draw(ctx, canvas.width / dpr, canvas.height / dpr, this.playerSprites, now);
+  }
+
+  render(state: GameState, ui: Overlays, now: number): void {
+    const { ctx, canvas, dpr } = this;
+    this.clear();
     if (state.battle) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.battleView.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, menu, now);
+      this.battleView.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, ui.menu, now);
       return;
     }
     this.drawWorld(state);
     this.drawHud(state);
-    if (state.mode === 'menu') this.drawOverlay([NOTICES.paused], '#d9b310');
+    this.drawToasts(ui.toasts, now);
+    if (state.mode === 'menu') {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ui.inventory.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, this.icons);
+    }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state);
+  }
+
+  private drawToasts(toasts: Toast[], now: number): void {
+    const { ctx, dpr } = this;
+    const live = toasts.filter((t) => t.until > now).slice(-4);
+    if (!live.length) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = FONT;
+    const h = this.worldH / dpr;
+    live.forEach((t, i) => {
+      const y = h - 12 - (live.length - i) * 24;
+      const w = ctx.measureText(t.text).width + 16;
+      ctx.globalAlpha = Math.min(1, (t.until - now) / 400);
+      ctx.fillStyle = 'rgba(10, 14, 12, 0.85)';
+      ctx.fillRect(12, y, w, 22);
+      ctx.fillStyle = '#e8e4da';
+      ctx.fillText(t.text, 20, y + 4);
+      ctx.globalAlpha = 1;
+    });
   }
 
   // --- map ------------------------------------------------------------------
@@ -119,13 +167,32 @@ export class Renderer {
           case 'stairs':
             atlas.draw(ctx, MAP_SPRITES.stairs, sx, sy);
             break;
-          default: // floor, and doors (open archways for now)
+          case 'door':
+            atlas.draw(ctx, floorVariant(x, y), sx, sy);
+            drawDoor(ctx, sx, sy, !!tile.door?.open);
+            break;
+          case 'hazard':
+            atlas.draw(ctx, floorVariant(x, y), sx, sy);
+            this.drawHazard(state, tile.hazard!, x, y, sx, sy);
+            break;
+          default:
             atlas.draw(ctx, floorVariant(x, y), sx, sy);
             if (y > 0 && floor.tiles[y - 1][x].terrain === 'wall' && wallFaceVariant(x, y - 1) === 'goo' && isFace(floor, x, y - 1))
               atlas.draw(ctx, MAP_SPRITES.wallGooBase, sx, sy);
         }
         for (let i = 0; i < tile.gore.length; i++) drawGore(ctx, tile.gore[i].kind, sx, sy, x * 31 + y * 17 + i);
       }
+    }
+
+    // Chests and loot lying around, wherever you have explored.
+    for (const c of floor.chests) {
+      if (!floor.tiles[c.pos.y][c.pos.x].explored) continue;
+      atlas.draw(ctx, c.opened ? 'chest_empty_open_anim_f2' : 'chest_full_open_anim_f0', c.pos.x * TILE - camX, c.pos.y * TILE - camY);
+    }
+    for (const it of floor.items) {
+      if (!floor.tiles[it.pos.y][it.pos.x].explored) continue;
+      const bob = Math.floor(state.tick / 30) % 2;
+      this.icons(ctx, it.item.defId, it.pos.x * TILE - camX, it.pos.y * TILE - camY - bob);
     }
 
     // Vision cones of enemies you can see, so sneaking is readable.
@@ -178,6 +245,29 @@ export class Renderer {
     if (open(1, 0) || (!face && open(1, 1))) atlas.draw(ctx, MAP_SPRITES.wallRimEast, sx, sy);
     // Bottom rim: the cap sprite's rim sits in its lowest rows, so lift it to this tile's top.
     if (open(0, -1)) atlas.draw(ctx, MAP_SPRITES.wallTop, sx, sy - 12);
+  }
+
+  private drawHazard(state: GameState, kind: keyof typeof HAZARDS, x: number, y: number, sx: number, sy: number): void {
+    const { ctx, atlas } = this;
+    if (kind === 'spikes') {
+      atlas.draw(ctx, `floor_spikes_anim_f${Math.floor(state.tick / 15 + x + y) % 4}`, sx, sy);
+    } else if (kind === 'sludge') {
+      ctx.fillStyle = 'rgba(90, 140, 40, 0.75)';
+      ctx.fillRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
+      ctx.fillStyle = 'rgba(150, 200, 60, 0.9)';
+      const t = Math.floor(state.tick / 20);
+      ctx.fillRect(sx + 3 + ((x * 5 + t) % 9), sy + 4 + ((y * 7 + t) % 7), 2, 2);
+      ctx.fillRect(sx + 9 - ((x * 3 + t) % 5), sy + 10 - ((y + t) % 4), 2, 2);
+    } else {
+      atlas.draw(ctx, 'hole', sx, sy);
+      if (hazardActive(kind, x, y, state.tick)) {
+        ctx.fillStyle = 'rgba(120, 200, 80, 0.45)';
+        const r = 5 + (state.tick % 20) / 4;
+        ctx.beginPath();
+        ctx.arc(sx + TILE / 2, sy + TILE / 2 - 3, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
   private drawEnemy(state: GameState, e: Entity, sx: number, sy: number): void {
@@ -255,15 +345,25 @@ export class Renderer {
     const right = `SEED ${state.seed}`;
     ctx.fillText(right, w - 14 - ctx.measureText(right).width, 12);
 
-    const { x: tx, y: ty } = playerTile(state);
-    let notice: string;
-    if (state.floor.tiles[ty][tx].terrain === 'stairs') notice = NOTICES.onStairs;
-    else {
-      const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.dash, NOTICES.stairs, NOTICES.pause];
-      notice = cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
-    }
+    const notice = this.prompt(state);
     ctx.fillStyle = '#c8d0c4';
     wrapText(ctx, notice, 14, 36, w - 28, 18);
+  }
+
+  /** What the bottom bar says: a plain prompt for what is here, else a House Rule. */
+  private prompt(state: GameState): string {
+    const P = UI_TEXT.prompts;
+    const { x, y } = playerTile(state);
+    const tile = state.floor.tiles[y][x];
+    if (tile.terrain === 'stairs') return NOTICES.onStairs;
+    if (tile.hazard) return HAZARDS[tile.hazard].help;
+    if (tile.gore.some((g) => g.kind === 'gibs')) return P.eat.replace('{effect}', RACES[state.race].eatsCorpses ? P.eatGood : P.eatBad);
+    const f = facingTile(state);
+    const chest = chestAt(state, f.x, f.y);
+    if (chest && !chest.opened) return P.chest;
+    if (isClosedDoor(state, f.x, f.y)) return P.door;
+    const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.inventory, NOTICES.dash, NOTICES.stairs, NOTICES.pause];
+    return cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
   }
 
   private drawOverlay(lines: string[], color: string, title?: string, subtitle?: string): void {
@@ -314,6 +414,20 @@ function isWallAt(floor: GameState['floor'], x: number, y: number): boolean {
 /** A wall tile with walkable ground directly below shows its brick face. */
 function isFace(floor: GameState['floor'], x: number, y: number): boolean {
   return isWallAt(floor, x, y) && !isWallAt(floor, x, y + 1);
+}
+
+/** Doors in code: wooden planks when shut, an empty frame when open. */
+function drawDoor(ctx: CanvasRenderingContext2D, sx: number, sy: number, open: boolean): void {
+  ctx.fillStyle = '#3a2a1a';
+  ctx.fillRect(sx, sy, 2, TILE);
+  ctx.fillRect(sx + TILE - 2, sy, 2, TILE);
+  if (open) return;
+  ctx.fillStyle = '#7a4a24';
+  ctx.fillRect(sx + 2, sy, TILE - 4, TILE);
+  ctx.fillStyle = '#5a3418';
+  for (let i = 0; i < 3; i++) ctx.fillRect(sx + 4 + i * 4, sy, 1, TILE);
+  ctx.fillStyle = '#d9b310';
+  ctx.fillRect(sx + TILE - 5, sy + 8, 2, 2);
 }
 
 function clamp(v: number, lo: number, hi: number): number {

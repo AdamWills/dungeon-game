@@ -116,7 +116,12 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
   const { floor } = state;
   const here = tileOf(e);
   if (here.x === target.x && here.y === target.y) return false;
-  const dist = bfsDistances(floor, target);
+  // Smart residents route around hazards when there is another way.
+  let dist = bfsDistances(floor, target);
+  if (ENEMIES[e.defId].roam.smart) {
+    const careful = bfsDistances(floor, target, (x, y) => !!floor.tiles[y][x].hazard && !(x === here.x && y === here.y));
+    if (careful[here.y * floor.width + here.x] >= 0) dist = careful;
+  }
   const d0 = dist[here.y * floor.width + here.x];
   const blocked = occupiedBy(state, e);
   for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -125,6 +130,12 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
     if (!isWalkable(floor, nx, ny) || blocked.has(`${nx},${ny}`)) continue;
     const d = dist[ny * floor.width + nx];
     if (d >= 0 && (d0 < 0 || d < d0)) {
+      const door = floor.tiles[ny][nx].door;
+      if (door && !door.open) {
+        // Residents open doors as they come through them.
+        door.open = true;
+        state.events.push({ type: 'doorOpened', at: { x: nx, y: ny } });
+      }
       startMotion(e, { x: nx, y: ny }, ticks);
       return true;
     }
@@ -132,9 +143,9 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
   return false;
 }
 
-/** Tiles other enemies stand on or are moving into. */
+/** Tiles other enemies stand on or are moving into, plus chests. */
 function occupiedBy(state: GameState, self: Entity): Set<string> {
-  const s = new Set<string>();
+  const s = new Set<string>(state.floor.chests.map((c) => `${c.pos.x},${c.pos.y}`));
   for (const o of state.floor.entities) {
     if (o === self) continue;
     const t = tileOf(o);

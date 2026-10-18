@@ -1,0 +1,133 @@
+// The contestant's stats, gear and pockets: stats are class + race + worn
+// items; the inventory screen equips, uses and drops things while time is
+// paused.
+
+import { CLASSES, FISTS } from '../data/classes';
+import { INVENTORY_CAP, ITEMS, type ItemDef, type StatKey } from '../data/items';
+import { RACES } from '../data/races';
+import type { StatusKind } from '../data/statuses';
+import type { Entity, Equipment, GameState, InvCommand, ItemInstance, Stats } from './types';
+
+export const SLOTS = ['weapon', 'armor', 'trinket'] as const;
+export type Slot = (typeof SLOTS)[number];
+
+/** Stats from class, race and equipment. `hp` is the max; callers keep current HP. */
+export function computeStats(raceId: string, clsId: string, equipment: Equipment): Stats {
+  const base = CLASSES[clsId].base;
+  const race = RACES[raceId];
+  const s: Stats = { ...base, maxHp: base.hp };
+  s.maxHp += race.mods.maxHp ?? 0;
+  s.charm += race.mods.charm ?? 0;
+  for (const slot of SLOTS) {
+    const inst = equipment[slot];
+    const mods = inst ? ITEMS[inst.defId]?.mods : undefined;
+    if (!mods) continue;
+    for (const [k, v] of Object.entries(mods) as [StatKey, number][]) s[k] += v;
+  }
+  s.maxHp = Math.max(1, s.maxHp);
+  s.hp = s.maxHp;
+  return s;
+}
+
+/** Recompute the player's stats after gear changes, keeping damage taken. */
+export function refreshPlayerStats(state: GameState): void {
+  const p = state.player;
+  const lost = p.stats.maxHp - p.stats.hp;
+  const next = computeStats(state.race, state.cls, p.equipment ?? {});
+  next.hp = Math.max(1, Math.min(next.maxHp, next.maxHp - lost));
+  if (p.stats.hp <= 0) next.hp = 0;
+  p.stats = next;
+}
+
+export function weaponOf(player: Entity): { name: string; damage: number; onHit?: NonNullable<ItemDef['weapon']>['onHit'] } {
+  const inst = player.equipment?.weapon;
+  const def = inst && ITEMS[inst.defId];
+  return def?.weapon ? { name: def.name, ...def.weapon } : FISTS;
+}
+
+export function playerResists(state: GameState): StatusKind[] {
+  const out = [...RACES[state.race].resists];
+  for (const slot of SLOTS) {
+    const inst = state.player.equipment?.[slot];
+    if (inst) out.push(...(ITEMS[inst.defId]?.resists ?? []));
+  }
+  return out;
+}
+
+export function carriedCount(player: Entity): number {
+  return player.inventory.length + SLOTS.filter((s) => player.equipment?.[s]).length;
+}
+
+/** Add to the pockets if there is room. */
+export function addItem(state: GameState, item: ItemInstance, from: 'chest' | 'floor'): boolean {
+  if (carriedCount(state.player) >= INVENTORY_CAP) {
+    state.events.push({ type: 'inventoryFull', defId: item.defId });
+    return false;
+  }
+  state.player.inventory.push(item);
+  state.events.push({ type: 'itemPicked', defId: item.defId, from });
+  return true;
+}
+
+export function inventoryCommand(state: GameState, cmd: InvCommand): void {
+  const p = state.player;
+  p.equipment ??= {};
+  switch (cmd.kind) {
+    case 'equip': {
+      const inst = p.inventory[cmd.slot];
+      const def = inst && ITEMS[inst.defId];
+      if (!def?.slot) return;
+      const worn = p.equipment[def.slot];
+      if (worn && ITEMS[worn.defId]?.cursed) {
+        state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
+        return;
+      }
+      p.inventory.splice(cmd.slot, 1);
+      if (worn) p.inventory.push(worn);
+      p.equipment[def.slot] = inst;
+      refreshPlayerStats(state);
+      state.events.push({ type: 'itemEquipped', defId: inst.defId, slot: def.slot });
+      return;
+    }
+    case 'unequip': {
+      const worn = p.equipment[cmd.slot];
+      if (!worn) return;
+      if (ITEMS[worn.defId]?.cursed) {
+        state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
+        return;
+      }
+      p.equipment[cmd.slot] = undefined;
+      p.inventory.push(worn);
+      refreshPlayerStats(state);
+      return;
+    }
+    case 'use': {
+      const inst = p.inventory[cmd.slot];
+      const def = inst && ITEMS[inst.defId];
+      if (!def) return;
+      if (!def.use) {
+        state.events.push({ type: 'itemRefused', defId: def.id, reason: 'notUsable' });
+        return;
+      }
+      if (def.use.battleOnly || def.use.target !== 'self') {
+        state.events.push({ type: 'itemRefused', defId: def.id, reason: 'battleOnly' });
+        return;
+      }
+      for (const eff of def.use.effects) {
+        if (eff.kind === 'heal') p.stats.hp = Math.min(p.stats.maxHp, p.stats.hp + eff.amount);
+        // Statuses only exist in battle, so cleanse has nothing to do out here.
+      }
+      if (def.use.consumable) p.inventory.splice(cmd.slot, 1);
+      state.events.push({ type: 'itemUsed', defId: def.id });
+      return;
+    }
+    case 'drop': {
+      const inst = p.inventory[cmd.slot];
+      if (!inst) return;
+      p.inventory.splice(cmd.slot, 1);
+      const at = { x: Math.round(p.pos.x), y: Math.round(p.pos.y) };
+      state.floor.items.push({ id: `drop-${state.tick}-${state.floor.items.length}`, pos: at, item: inst });
+      return;
+    }
+  }
+}

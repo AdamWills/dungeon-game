@@ -34,9 +34,19 @@
 - Tests: walking up behind each of the five enemies opens with your ambush; a heard enemy does turn round if you dawdle; a dash is heard from further away than a walk. Bot check: 11 deaths and 29 escapes in 40 runs, so enemies still kill.
 - Checked in the browser with real keys: walked up behind a Feral Intern, it showed "heard you" while still facing away, and the fight opened as your ambush.
 
+### M3 first half: classes, loot and the map
+- Contestant picker before each run (race and class, remembered between runs). Hexer with Hex (one enemy takes double damage for 5 turns, 6-turn cooldown) and 3 Hex Scrolls; Brawler starts with the Rusted Pipe and Velour Tracksuit equipped. Gutterfolk: +4 max HP, -1 Charm, immune to poison, eat remains to heal (Humans can try; it costs 2 HP).
+- 30 items (`src/data/items.ts`): 7 weapons, 6 armour, 10 consumables, 4 junk, 3 cursed, 1 Host's Pick, written jokes-first, each with a plain help line. Weapons can cause statuses on hit; gear changes stats; cursed gear will not come off.
+- Inventory screen (ESC or I, time paused): worn gear and pockets, equip, take off, use, drop, item details and stats. Carry limit 12.
+- Status effects in battle: bleed, poison, burning, stunned, charmed, hexed, hasted; stacking by duration, ticking at the start of the holder's turn, with badges on the battle screen. Two enemy moves inflict them (Sludge Hopper poison, Pipe Leech bleed).
+- Map: 3 to 5 chests (walk into one or press E), enemies drop loot 30% of the time, items on the floor are picked up by walking over them. Doors start closed and block movement and sight; walk into one or press E to open it; residents open them too.
+- Hazards: sludge pools, floor spikes in corridors and gas vents that puff on and off. They hurt anyone standing on them; residents can die to them and their wounds carry into battle; smart residents (Feral Intern, Grudge Gator) route around them.
+- Plain prompts in the bottom bar for what is underfoot or in front of you; short messages for pickups, equipping and hazard damage.
+- Tests: 75, including a test file for all of the above and a bot that now plays both races and classes, uses items and presses E (last run: 20 deaths, 20 escapes, 84 battles, no crashes).
+
 ## Next
 
-M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
+M3 second half: the Improvise menu (props, item jank, Bad Idea button). Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
 
 ## Decisions from the user
 

@@ -1,6 +1,8 @@
 // Core shapes, following docs/GDD.md "Data models". Later milestones extend
 // these rather than replace them.
 
+import type { HazardKind } from '../data/hazards';
+import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
 
 export type Vec = { x: number; y: number };
@@ -9,7 +11,20 @@ export type Terrain = 'floor' | 'wall' | 'stairs' | 'door' | 'hazard';
 
 export type GoreMark = { kind: 'blood' | 'gibs' };
 
-export type Tile = { terrain: Terrain; explored: boolean; gore: GoreMark[] };
+export type Tile = {
+  terrain: Terrain;
+  explored: boolean;
+  gore: GoreMark[];
+  /** Doors only: closed doors block movement and sight. */
+  door?: { open: boolean };
+  /** Hazard tiles only. */
+  hazard?: HazardKind;
+};
+
+export type Chest = { id: string; pos: Vec; opened: boolean };
+
+/** An item lying on the floor, waiting to be picked up. */
+export type FloorItem = { id: string; pos: Vec; item: ItemInstance };
 
 export type Room = { id: number; x1: number; y1: number; x2: number; y2: number; center: Vec };
 
@@ -25,6 +40,8 @@ export type Floor = {
   stairs: Vec;
   /** Enemies (and later allies, props) living on this floor. */
   entities: Entity[];
+  chests: Chest[];
+  items: FloorItem[];
   /** 1 where the player can currently see, flat index y * width + x. */
   visible: number[];
 };
@@ -64,11 +81,11 @@ export type EnemyMind = {
   stunned: number;
 };
 
-export type EffectRef =
-  | { kind: 'heal'; amount: number }
-  | { kind: 'damage'; amount: number };
-
 export type ItemInstance = { defId: string; charges?: number; identified: boolean };
+
+export type Status = { kind: StatusKind; turnsLeft: number; then?: { status: StatusKind; turns: number } };
+
+export type Equipment = { weapon?: ItemInstance; armor?: ItemInstance; trinket?: ItemInstance };
 
 export type Entity = {
   id: string;
@@ -80,8 +97,11 @@ export type Entity = {
   stats: Stats;
   cooldowns: Record<string, number>; // abilityId -> player turns left
   inventory: ItemInstance[];
+  equipment?: Equipment; // player only for now
   patrol?: Patrol; // enemies only
   mind?: EnemyMind; // enemies only
+  /** Which hazard tile it stands on and for how long, for damage timing. */
+  onHazard?: { key: string; ticks: number };
 };
 
 export type Mode = 'roaming' | 'battle' | 'menu' | 'dead' | 'won';
@@ -95,7 +115,7 @@ export type Encounter = {
 export type LogLine = { text: string; tone: 'info' | 'good' | 'bad' | 'host' };
 
 /** A visible thing that happened in battle, for the UI to animate. */
-export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend'; amount?: number };
+export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend' | 'status'; amount?: number };
 
 export type Combatant = {
   id: string;
@@ -105,15 +125,23 @@ export type Combatant = {
   stats: Stats; // snapshot; HP carries in and is written back afterwards
   defending: boolean;
   alive: boolean;
+  statuses: Status[];
 };
 
 export type BattleCommand =
   | { kind: 'attack'; targetId: string }
   | { kind: 'ability'; abilityId: string; targetId?: string }
-  | { kind: 'item'; slot: number }
+  | { kind: 'item'; slot: number; targetId?: string }
   | { kind: 'defend' }
   | { kind: 'flee' }
   | { kind: 'continue' }; // acknowledge the result screen
+
+/** Inventory screen commands (time is paused). Slots index player.inventory. */
+export type InvCommand =
+  | { kind: 'equip'; slot: number }
+  | { kind: 'unequip'; slot: 'weapon' | 'armor' | 'trinket' }
+  | { kind: 'use'; slot: number }
+  | { kind: 'drop'; slot: number };
 
 export type BattleState = {
   encounter: Encounter;
@@ -141,10 +169,21 @@ export type GameEvent =
   | { type: 'battleStarted'; enemyIds: string[]; start: Encounter['start'] }
   | { type: 'entityDied'; id: string; defId: string; killerId: string }
   | { type: 'battleEnded'; result: 'won' | 'fled' | 'lost' }
-  | { type: 'runEnded'; end: RunEnd };
+  | { type: 'runEnded'; end: RunEnd }
+  | { type: 'itemPicked'; defId: string; from: 'chest' | 'floor' }
+  | { type: 'inventoryFull'; defId: string }
+  | { type: 'chestOpened'; id: string }
+  | { type: 'doorOpened'; at: Vec }
+  | { type: 'itemUsed'; defId: string }
+  | { type: 'itemEquipped'; defId: string; slot: 'weapon' | 'armor' | 'trinket' }
+  | { type: 'itemRefused'; defId: string; reason: 'cursed' | 'battleOnly' | 'notUsable' }
+  | { type: 'hazardHurt'; id: string; kind: HazardKind; dmg: number }
+  | { type: 'corpseEaten'; hp: number };
 
 export type GameState = {
   seed: number;
+  race: string;
+  cls: string;
   rng: Rng;
   tick: number;
   mode: Mode;
@@ -166,7 +205,7 @@ export type InputFrame = {
   interact: boolean;
   pause: boolean;
   dash: boolean;
-  command: BattleCommand | null;
+  command: BattleCommand | InvCommand | null;
 };
 
 export const NO_INPUT: InputFrame = { move: null, interact: false, pause: false, dash: false, command: null };

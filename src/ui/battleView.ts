@@ -9,6 +9,7 @@ import { SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
+import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
@@ -180,6 +181,13 @@ export class BattleView {
     bar(ctx, cx - bw / 2, top + size + 26, bw, 8, c.stats.hp / c.stats.maxHp, c.side === 'player' ? '#5fbf4a' : '#c9473a');
     ctx.fillStyle = '#9a9a90';
     centered(ctx, `${c.stats.hp}/${c.stats.maxHp}`, cx, top + size + 38);
+    // Status badges, in plain words with turns left.
+    if (c.statuses.length) {
+      ctx.font = '12px ui-monospace, Menlo, Consolas, monospace';
+      ctx.fillStyle = '#e0b84a';
+      centered(ctx, c.statuses.map((s) => `${STATUSES[s.kind].name.toUpperCase()} ${s.turnsLeft}`).join('  '), cx, top + size + 56);
+      ctx.font = FONT;
+    }
 
     for (const { f, t } of fx) {
       if (t >= 1 || (f.kind !== 'hit' && f.kind !== 'miss' && f.kind !== 'heal')) continue;
@@ -216,13 +224,13 @@ export class BattleView {
     let cursor: number;
     let title: string;
     if (menu.level === 'item') {
-      rows = menu.itemLabels(state).map((label) => ({ label, enabled: true }));
+      rows = menu.itemRows(state);
       cursor = menu.itemCursor;
       title = 'ITEM  (ESC back)';
     } else if (menu.level === 'target') {
       rows = [];
       cursor = -1;
-      title = 'ATTACK: CHOOSE A TARGET';
+      title = menu.pending.kind === 'attack' ? 'ATTACK: CHOOSE A TARGET' : menu.pending.kind === 'ability' ? 'HEX: CHOOSE A TARGET' : 'ITEM: CHOOSE A TARGET';
     } else {
       rows = menu.options(state);
       cursor = menu.cursor;

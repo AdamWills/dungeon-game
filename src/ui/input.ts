@@ -10,11 +10,12 @@ const MOVE_KEYS: Record<string, Dir> = {
   ArrowRight: 'right', KeyD: 'right',
 };
 const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
-const PAUSE_KEYS = new Set(['Escape', 'KeyP']);
+const PAUSE_KEYS = new Set(['Escape', 'KeyP', 'KeyI']);
+const DROP_KEYS = new Set(['KeyX', 'Delete']);
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 const BACK_KEYS = new Set(['Escape', 'Backspace']);
 
-export type MenuKey = Dir | 'confirm' | 'back';
+export type MenuKey = Dir | 'confirm' | 'back' | 'drop';
 
 export class Keyboard {
   private held: Dir[] = []; // most recently pressed last
@@ -36,6 +37,8 @@ export class Keyboard {
         }
       } else if (DASH_KEYS.has(e.code)) {
         if (!e.repeat) this.dashPressed = true;
+      } else if (DROP_KEYS.has(e.code)) {
+        if (!e.repeat) this.menu.push('drop');
       } else if (!PAUSE_KEYS.has(e.code) && !BACK_KEYS.has(e.code)) return;
       if (PAUSE_KEYS.has(e.code) && !e.repeat) this.pausePressed = true;
       if (BACK_KEYS.has(e.code) && !e.repeat) this.menu.push('back');

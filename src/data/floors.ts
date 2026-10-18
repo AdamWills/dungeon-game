@@ -15,6 +15,11 @@ export type FloorTheme = {
   /** Chance an enemy's patrol route leads out to a neighbouring room. */
   roamChance: number;
   enemies: { id: string; weight: number; maxPerFloor?: number }[];
+  /** Chests per floor, and the chance a slain enemy drops an item. */
+  chests: [number, number];
+  dropChance: number;
+  /** Sludge pools (clusters), spike tiles and gas vents per floor. */
+  hazards: { sludgePools: [number, number]; spikes: [number, number]; gasVents: [number, number] };
 };
 
 export const FLOOR_THEMES: Record<string, FloorTheme> = {
@@ -36,5 +41,8 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
       { id: 'pipe_leech', weight: 2 },
       { id: 'grudge_gator', weight: 1, maxPerFloor: 2 },
     ],
+    chests: [3, 5],
+    dropChance: 0.3,
+    hazards: { sludgePools: [2, 4], spikes: [3, 5], gasVents: [1, 3] },
   },
 };

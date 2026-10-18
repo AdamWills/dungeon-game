@@ -1,4 +1,4 @@
-// Tile line of sight (Bresenham). Walls block; doors are open archways for now.
+// Tile line of sight (Bresenham). Walls and closed doors block.
 
 import type { Floor, Vec } from '../game/types';
 
@@ -24,6 +24,7 @@ export function lineOfSight(floor: Floor, a: Vec, b: Vec): boolean {
       y0 += sy;
     }
     if (x0 === x1 && y0 === y1) return true;
-    if (floor.tiles[y0]?.[x0]?.terrain === 'wall' || floor.tiles[y0]?.[x0] === undefined) return false;
+    const t = floor.tiles[y0]?.[x0];
+    if (!t || t.terrain === 'wall' || (t.door && !t.door.open)) return false;
   }
 }

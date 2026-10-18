@@ -1,14 +1,18 @@
 // Turn-based battles: Speed order, the player's menu command, enemy moves,
-// and writing the outcome back to the map. Deterministic: every roll comes
-// from state.rng, every text variant from a stable hash.
+// status effects, and writing the outcome back to the map. Deterministic:
+// every roll comes from state.rng, every text variant from a stable hash.
 
-import { ABILITIES } from '../data/abilities';
+import { ABILITIES, HEX_TURNS } from '../data/abilities';
 import { BATTLE_TEXT as T, fill, variant } from '../data/battleText';
 import { CLASSES } from '../data/classes';
 import { ENEMIES } from '../data/enemies';
-import { ITEMS } from '../data/items';
+import { FLOOR_THEMES } from '../data/floors';
+import { type EffectRef, ITEMS } from '../data/items';
+import { STATUSES, type StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../game/combat';
+import { playerResists, weaponOf } from '../game/equipment';
+import { rollItem } from '../game/loot';
 import { nextFloat } from '../game/rng';
 import type { BattleCommand, BattleState, Combatant, Encounter, GameState, LogLine, Vec } from '../game/types';
 
@@ -18,12 +22,12 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   const { player, floor } = state;
   snapToTile(player);
   const combatants: Combatant[] = [
-    { id: PLAYER_ID, side: 'player', defId: player.defId, name: 'You', stats: { ...player.stats }, defending: false, alive: true },
+    { id: PLAYER_ID, side: 'player', defId: player.defId, name: 'You', stats: { ...player.stats }, defending: false, alive: true, statuses: [] },
   ];
   for (const id of encounter.enemyIds) {
     const e = floor.entities.find((x) => x.id === id)!;
     snapToTile(e);
-    combatants.push({ id, side: 'enemy', defId: e.defId, name: ENEMIES[e.defId].name, stats: { ...e.stats }, defending: false, alive: true });
+    combatants.push({ id, side: 'enemy', defId: e.defId, name: ENEMIES[e.defId].name, stats: { ...e.stats }, defending: false, alive: true, statuses: [] });
   }
   const battle: BattleState = {
     encounter,
@@ -48,7 +52,7 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   combatants.slice(2).forEach((c, i) => say(battle, fill(variant(T.joined, salt, i), { name: c.name }), 'info'));
 
   beginRound(battle);
-  runEnemies(state);
+  runTurns(state);
 }
 
 /** The combatant whose turn it is, or null once the battle is decided. */
@@ -61,6 +65,10 @@ export function enemiesOf(battle: BattleState): Combatant[] {
   return battle.combatants.filter((c) => c.side === 'enemy');
 }
 
+export function hasStatus(c: Combatant, kind: StatusKind): boolean {
+  return c.statuses.some((s) => s.kind === kind);
+}
+
 export function battleCommand(state: GameState, cmd: BattleCommand): void {
   const battle = state.battle;
   if (!battle) return;
@@ -70,10 +78,10 @@ export function battleCommand(state: GameState, cmd: BattleCommand): void {
   }
   const actor = currentActor(battle);
   if (!actor || actor.side !== 'player') return;
-  if (!playerAct(state, battle, actor, cmd)) return; // invalid choice: still your turn
+  if (!playerAct(state, battle, actor, cmd)) return; // refused: still your turn
   if (!checkOver(state, battle)) {
     advance(battle);
-    runEnemies(state);
+    runTurns(state);
   }
 }
 
@@ -85,12 +93,15 @@ function beginRound(battle: BattleState): void {
   const bySpeed = (a: Combatant, b: Combatant) =>
     b.stats.speed - a.stats.speed || (a.side === 'player' ? -1 : b.side === 'player' ? 1 : a.id.localeCompare(b.id));
   alive.sort(bySpeed);
+  let order: Combatant[];
   if (battle.round === 1 && battle.ambushSide) {
     // The ambushing side takes the whole opening round first.
-    const first = alive.filter((c) => c.side === battle.ambushSide);
-    const rest = alive.filter((c) => c.side !== battle.ambushSide);
-    battle.order = [...first, ...rest].map((c) => c.id);
-  } else battle.order = alive.map((c) => c.id);
+    order = [...alive.filter((c) => c.side === battle.ambushSide), ...alive.filter((c) => c.side !== battle.ambushSide)];
+  } else order = alive;
+  const ids = order.map((c) => c.id);
+  // Hasted combatants get a second turn at the end of the round.
+  for (const c of order) if (hasStatus(c, 'hasted')) ids.push(c.id);
+  battle.order = ids;
   battle.turn = 0;
 }
 
@@ -103,26 +114,61 @@ function advance(battle: BattleState): void {
   }
 }
 
-/** Resolve enemy turns until it is the player's turn or the battle ends. */
-function runEnemies(state: GameState): void {
+/**
+ * Resolve turns until the player has a choice to make or the battle ends.
+ * Each turn starts with its holder's statuses ticking.
+ */
+function runTurns(state: GameState): void {
   const battle = state.battle!;
-  for (let guard = 0; guard < 100; guard++) {
+  for (let guard = 0; guard < 200; guard++) {
     if (battle.result) return;
     const actor = currentActor(battle)!;
-    if (actor.side === 'player') {
-      startPlayerTurn(state, actor);
-      return;
-    }
-    enemyAct(state, battle, actor);
+    const canAct = startTurn(state, battle, actor);
     if (checkOver(state, battle)) return;
+    if (canAct) {
+      if (actor.side === 'player') return; // wait for the menu
+      enemyAct(state, battle, actor);
+      if (checkOver(state, battle)) return;
+    }
     advance(battle);
   }
 }
 
-function startPlayerTurn(state: GameState, me: Combatant): void {
-  me.defending = false;
-  const cds = state.player.cooldowns;
-  for (const k of Object.keys(cds)) cds[k] = Math.max(0, cds[k] - 1);
+/** Tick statuses at the start of a turn. Returns false if the turn is lost. */
+function startTurn(state: GameState, battle: BattleState, c: Combatant): boolean {
+  const isYou = c.side === 'player';
+  if (isYou) {
+    c.defending = false;
+    const cds = state.player.cooldowns;
+    for (const k of Object.keys(cds)) cds[k] = Math.max(0, cds[k] - 1);
+  }
+  let skip = false;
+  for (const s of [...c.statuses]) {
+    const def = STATUSES[s.kind];
+    if (def.dot && c.alive) {
+      const dmg = def.dot;
+      c.stats.hp = Math.max(0, c.stats.hp - dmg);
+      say(battle, fill((isYou ? def.youLine : def.tickLine) ?? '', { name: c.name, dmg }), isYou ? 'bad' : 'good');
+      fx(battle, c.id, 'hit', dmg);
+      if (c.stats.hp === 0) {
+        if (isYou) battle.killedBy = { enemy: def.name.toLowerCase(), move: 'a lingering condition' };
+        kill(state, battle, c, c);
+        return false;
+      }
+    }
+    if (s.kind === 'stunned' || (s.kind === 'charmed' && !isYou)) {
+      skip = true;
+      say(battle, fill((isYou ? def.youLine : def.tickLine) ?? '', { name: c.name }), 'info');
+    }
+    s.turnsLeft--;
+    if (s.turnsLeft <= 0) {
+      c.statuses.splice(c.statuses.indexOf(s), 1);
+      say(battle, fill(T.statusOff, { target: c.name, status: def.name.toLowerCase() }), 'info');
+      if (s.then) applyStatus(state, battle, c, s.then.status, s.then.turns);
+    }
+  }
+  if (!skip && isYou && hasStatus(c, 'hasted') && battle.order.indexOf(c.id) !== battle.turn) say(battle, T.hasteExtra, 'host');
+  return !skip;
 }
 
 function ambushActive(battle: BattleState, side: 'player' | 'enemy'): boolean {
@@ -133,13 +179,14 @@ function ambushActive(battle: BattleState, side: 'player' | 'enemy'): boolean {
 
 /** Returns false if the command was refused and the turn is not spent. */
 function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: BattleCommand): boolean {
-  const cls = CLASSES[state.player.defId];
+  const cls = CLASSES[state.cls];
   const salt = [battle.round, battle.turn, battle.log.length];
+  const aliveEnemy = (id?: string) => battle.combatants.find((c) => c.id === id && c.side === 'enemy' && c.alive);
   switch (cmd.kind) {
     case 'attack': {
-      const target = battle.combatants.find((c) => c.id === cmd.targetId && c.side === 'enemy' && c.alive);
+      const target = aliveEnemy(cmd.targetId);
       if (!target) return false;
-      playerStrike(state, battle, me, target, cls.weapon, salt);
+      playerStrike(state, battle, me, target, salt);
       return true;
     }
     case 'ability': {
@@ -150,8 +197,15 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
         say(battle, fill(T.cooldown, { ability: ability.name, turns: cd }), 'host');
         return false;
       }
-      say(battle, ability.useLine, 'good');
-      for (const target of enemiesOf(battle).filter((c) => c.alive)) playerStrike(state, battle, me, target, cls.weapon, [...salt, target.id.length]);
+      if (ability.target === 'one_enemy') {
+        const target = aliveEnemy(cmd.targetId);
+        if (!target) return false;
+        say(battle, fill(ability.useLine, { target: target.name }), 'good');
+        if (ability.id === 'hex') applyStatus(state, battle, target, 'hexed', HEX_TURNS);
+      } else {
+        say(battle, ability.useLine, 'good');
+        for (const target of enemiesOf(battle).filter((c) => c.alive)) playerStrike(state, battle, me, target, [...salt, target.id.length]);
+      }
       // +1 because the countdown ticks at the start of each of your turns.
       state.player.cooldowns[ability.id] = ability.cooldown + 1;
       return true;
@@ -163,16 +217,24 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
         say(battle, T.noItems, 'host');
         return false;
       }
-      for (const eff of def.effects) {
-        if (eff.kind === 'heal') {
-          const before = me.stats.hp;
-          me.stats.hp = Math.min(me.stats.maxHp, me.stats.hp + eff.amount);
-          const healed = me.stats.hp - before;
-          say(battle, fill(def.useLine ?? 'You use the {item}.', { amount: healed, item: def.name }), 'good');
-          fx(battle, me.id, 'heal', healed);
-        }
+      if (!def.use) {
+        say(battle, T.cantUseHere, 'host');
+        return false;
       }
-      if (def.consumable) state.player.inventory.splice(cmd.slot, 1);
+      let targets: Combatant[];
+      if (def.use.target === 'self') targets = [me];
+      else if (def.use.target === 'all_enemies') targets = enemiesOf(battle).filter((c) => c.alive);
+      else {
+        const t = aliveEnemy(cmd.targetId);
+        if (!t) return false;
+        targets = [t];
+      }
+      const amount = def.use.effects.find((e) => e.kind === 'heal' || e.kind === 'damage');
+      const healed = amount?.kind === 'heal' ? Math.min(amount.amount, me.stats.maxHp - me.stats.hp) : (amount?.amount ?? 0);
+      say(battle, fill(def.useLine ?? 'You use the {item}.', { item: def.name, target: targets[0]?.name ?? '', amount: healed }), 'good');
+      for (const t of targets) applyEffects(state, battle, me, t, def.use.effects);
+      if (def.use.consumable) state.player.inventory.splice(cmd.slot, 1);
+      state.events.push({ type: 'itemUsed', defId: def.id });
       return true;
     }
     case 'defend':
@@ -193,18 +255,84 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
   }
 }
 
-function playerStrike(state: GameState, battle: BattleState, me: Combatant, target: Combatant, weapon: { name: string; damage: number }, salt: number[]) {
+/** Item and (later) improvisation effects, applied to one target. */
+export function applyEffects(state: GameState, battle: BattleState, user: Combatant, target: Combatant, effects: EffectRef[]): void {
+  for (const eff of effects) {
+    if (!target.alive) return;
+    switch (eff.kind) {
+      case 'heal': {
+        const before = target.stats.hp;
+        target.stats.hp = Math.min(target.stats.maxHp, target.stats.hp + eff.amount);
+        if (target.stats.hp > before) fx(battle, target.id, 'heal', target.stats.hp - before);
+        break;
+      }
+      case 'damage': {
+        const raw = eff.pierce ? eff.amount : Math.max(1, eff.amount - target.stats.armor);
+        hurt(state, battle, target, user, raw);
+        break;
+      }
+      case 'status':
+        applyStatus(state, battle, target, eff.status, eff.turns, eff.then);
+        break;
+      case 'cleanse':
+        target.statuses = [];
+        break;
+    }
+  }
+}
+
+/** Add a status, stacking by duration. Respects the player's resistances. */
+export function applyStatus(
+  state: GameState,
+  battle: BattleState,
+  target: Combatant,
+  kind: StatusKind,
+  turns: number,
+  then?: { status: StatusKind; turns: number },
+): boolean {
+  const name = STATUSES[kind].name.toLowerCase();
+  if (target.side === 'player' && playerResists(state).includes(kind)) {
+    say(battle, fill(T.resisted, { target: target.name, status: name }), 'good');
+    return false;
+  }
+  const existing = target.statuses.find((s) => s.kind === kind);
+  if (existing) existing.turnsLeft += turns;
+  else target.statuses.push({ kind, turnsLeft: turns, then });
+  say(battle, fill(target.side === 'player' ? T.statusOnYou : T.statusOn, { target: target.name, status: name }), target.side === 'player' ? 'bad' : 'good');
+  fx(battle, target.id, 'status');
+  return true;
+}
+
+/** Final damage after Hex and bracing; kills if HP hits 0. */
+function hurt(state: GameState, battle: BattleState, target: Combatant, source: Combatant, raw: number): number {
+  let dmg = raw;
+  if (hasStatus(target, 'hexed')) dmg *= 2;
+  if (target.defending) dmg = Math.ceil(dmg * TUNING.combat.defendMultiplier);
+  dmg = Math.max(1, dmg);
+  target.stats.hp = Math.max(0, target.stats.hp - dmg);
+  fx(battle, target.id, 'hit', dmg);
+  if (target.stats.hp === 0) kill(state, battle, target, source);
+  return dmg;
+}
+
+function playerStrike(state: GameState, battle: BattleState, me: Combatant, target: Combatant, salt: (number | string)[]) {
+  const weapon = weaponOf(state.player);
+  const s = salt.map((x) => (typeof x === 'number' ? x : x.length));
   if (!rollHit(state.rng, target.stats.evasion)) {
-    say(battle, fill(variant(T.playerMiss, ...salt), { target: target.name }), 'info');
+    say(battle, fill(variant(T.playerMiss, ...s), { target: target.name }), 'info');
     fx(battle, target.id, 'miss');
     return;
   }
   const ambush = ambushActive(battle, 'player');
-  const dmg = modifyDamage(baseDamage(weapon.damage, me.stats.str, target.stats.armor), { ambush, defending: target.defending });
-  target.stats.hp = Math.max(0, target.stats.hp - dmg);
-  say(battle, fill(variant(T.playerHit, ...salt), { target: target.name, weapon: weapon.name, dmg }) + (ambush ? T.bonus : ''), 'good');
-  fx(battle, target.id, 'hit', dmg);
-  if (target.stats.hp === 0) kill(state, battle, target, me);
+  const raw = modifyDamage(baseDamage(weapon.damage, me.stats.str, target.stats.armor), { ambush, defending: false });
+  const hexed = hasStatus(target, 'hexed');
+  const line = fill(variant(T.playerHit, ...s), { target: target.name, weapon: weapon.name, dmg: '{dmg}' });
+  const idx = battle.log.length;
+  say(battle, line, 'good');
+  const dmg = hurt(state, battle, target, me, raw);
+  battle.log[idx].text = line.replace('{dmg}', String(dmg)) + (ambush ? T.bonus : '') + (hexed ? ' (Hexed: double damage.)' : '');
+  if (target.alive && weapon.onHit && nextFloat(state.rng) < weapon.onHit.chance)
+    applyStatus(state, battle, target, weapon.onHit.status, weapon.onHit.turns);
 }
 
 function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void {
@@ -218,14 +346,16 @@ function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void
     return;
   }
   const ambush = ambushActive(battle, 'enemy');
-  const dmg = modifyDamage(baseDamage(def.weapon + move.bonus, actor.stats.str, me.stats.armor), { ambush, defending: me.defending });
-  me.stats.hp = Math.max(0, me.stats.hp - dmg);
-  const line = fill(variant(move.hit, ...salt), { actor: actor.name, dmg });
-  say(battle, line + (ambush ? T.bonus : '') + (me.defending ? T.braced : ''), 'bad');
-  fx(battle, me.id, 'hit', dmg);
-  if (me.stats.hp === 0) {
-    battle.killedBy = { enemy: actor.name, move: move.name };
-    kill(state, battle, me, actor);
+  const raw = modifyDamage(baseDamage(def.weapon + move.bonus, actor.stats.str, me.stats.armor), { ambush, defending: false });
+  const braced = me.defending;
+  const idx = battle.log.length;
+  say(battle, '', 'bad');
+  battle.killedBy = { enemy: actor.name, move: move.name };
+  const dmg = hurt(state, battle, me, actor, raw);
+  battle.log[idx].text = fill(variant(move.hit, ...salt), { actor: actor.name, dmg }) + (ambush ? T.bonus : '') + (braced ? T.braced : '');
+  if (me.alive) {
+    battle.killedBy = undefined;
+    if (move.status && nextFloat(state.rng) < move.status.chance) applyStatus(state, battle, me, move.status.kind, move.status.turns);
   }
 }
 
@@ -257,6 +387,7 @@ function endBattle(state: GameState): void {
   const { floor, player } = state;
   const me = battle.combatants.find((c) => c.side === 'player')!;
   player.stats.hp = me.stats.hp;
+  const theme = FLOOR_THEMES[floor.theme];
 
   for (const c of enemiesOf(battle)) {
     const idx = floor.entities.findIndex((e) => e.id === c.id);
@@ -265,6 +396,8 @@ function endBattle(state: GameState): void {
     if (!c.alive) {
       addGore(state, e.pos, 'gibs');
       floor.entities.splice(idx, 1);
+      if (nextFloat(state.rng) < theme.dropChance)
+        floor.items.push({ id: `loot-${c.id}`, pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) }, item: rollItem(state.rng) });
     } else {
       e.stats.hp = c.stats.hp;
       if (battle.result === 'fled' && e.patrol && e.mind) {
@@ -291,7 +424,7 @@ function endBattle(state: GameState): void {
   setMode(state, 'roaming');
 }
 
-function addGore(state: GameState, at: Vec, kind: 'blood' | 'gibs'): void {
+export function addGore(state: GameState, at: Vec, kind: 'blood' | 'gibs'): void {
   const tile = state.floor.tiles[Math.round(at.y)]?.[Math.round(at.x)];
   if (tile && tile.terrain !== 'wall' && tile.gore.length < 3) tile.gore.push({ kind });
 }

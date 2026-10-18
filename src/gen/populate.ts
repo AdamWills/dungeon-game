@@ -13,7 +13,7 @@ const FACINGS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 
 export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
   const entities: Entity[] = [];
-  const taken = new Set<string>([key(floor.start), key(floor.stairs)]);
+  const taken = new Set<string>([key(floor.start), key(floor.stairs), ...floor.chests.map((c) => key(c.pos))]);
   const counts: Record<string, number> = {};
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
 
@@ -24,7 +24,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
       const table = theme.enemies.filter((t) => t.maxPerFloor === undefined || (counts[t.id] ?? 0) < t.maxPerFloor);
       if (!table.length) break;
       const def = ENEMIES[weightedPick(rng, table).id];
-      const pos = freeTileIn(room, rng, taken);
+      const pos = freeTileIn(room, rng, taken, floor);
       if (!pos) break;
       taken.add(key(pos));
       counts[def.id] = (counts[def.id] ?? 0) + 1;
@@ -57,7 +57,11 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
 function patrolRoute(floor: Floor, room: Room, start: Vec, rng: Rng, roamChance: number): Vec[] {
   const route: Vec[] = [start];
   const stops = nextInt(rng, 1, 2);
-  for (let i = 0; i < stops; i++) route.push(randomTileIn(room, rng));
+  const chests = new Set(floor.chests.map((c) => key(c.pos)));
+  for (let i = 0; i < stops; i++) {
+    const p = randomTileIn(room, rng);
+    if (!chests.has(key(p))) route.push(p);
+  }
   if (nextFloat(rng) < roamChance) {
     const dist = bfsDistances(floor, room.center);
     const near = floor.rooms.filter((r) => {
@@ -69,10 +73,10 @@ function patrolRoute(floor: Floor, room: Room, start: Vec, rng: Rng, roamChance:
   return route;
 }
 
-function freeTileIn(room: Room, rng: Rng, taken: Set<string>): Vec | null {
+function freeTileIn(room: Room, rng: Rng, taken: Set<string>, floor: Floor): Vec | null {
   for (let tries = 0; tries < 20; tries++) {
     const p = randomTileIn(room, rng);
-    if (!taken.has(key(p))) return p;
+    if (!taken.has(key(p)) && floor.tiles[p.y][p.x].terrain === 'floor') return p;
   }
   return null;
 }
