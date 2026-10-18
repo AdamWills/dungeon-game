@@ -27,9 +27,10 @@ function playRun(seed: number, maxTicks = 40_000) {
     dist = bfsDistances(state.floor, target, blocked);
   };
 
-  for (; steps < maxTicks && (state.mode === 'roaming' || state.mode === 'battle'); steps++) {
+  for (; steps < maxTicks && state.mode !== 'dead' && state.mode !== 'won'; steps++) {
     let input: InputFrame = NO_INPUT;
-    if (state.mode === 'battle') {
+    if (state.mode === 'menu') input = { ...NO_INPUT, command: { kind: 'dismiss' } };
+    else if (state.mode === 'battle') {
       const b = state.battle!;
       const foes = b.combatants.filter((c) => c.side === 'enemy' && c.alive);
       const options: BattleCommand[] = b.result

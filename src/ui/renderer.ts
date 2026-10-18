@@ -24,6 +24,7 @@ import type { EnemySprites } from './enemySprites';
 import type { InventoryMenu } from './inventory';
 import { buildItemIcons, type ItemIcons } from './itemIcons';
 import type { Picker } from './picker';
+import { drawPrizeCard } from './prizeCard';
 import { buildPropSprites, type PropSprites } from './propSprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
@@ -107,7 +108,9 @@ export class Renderer {
     this.drawToasts(ui.toasts, now);
     if (state.mode === 'menu') {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ui.inventory.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, this.icons);
+      const [w, h] = [canvas.width / dpr, canvas.height / dpr];
+      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now);
+      else ui.inventory.draw(ctx, w, h, state, this.icons);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state);
   }

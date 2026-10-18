@@ -2,7 +2,7 @@
 // Everything here is DOM-side; the game logic it drives is not.
 
 import { HAZARDS } from './data/hazards';
-import { INVENTORY_CAP, ITEMS, RARITY_NAMES } from './data/items';
+import { INVENTORY_CAP, ITEMS } from './data/items';
 import { UI_TEXT } from './data/uiText';
 import { fill } from './data/battleText';
 import { EventBus } from './game/events';
@@ -34,12 +34,11 @@ let renderer!: Renderer;
 let state: GameState | null = null;
 let pendingCommand: BattleCommand | InvCommand | null = null;
 
-const toast = (text: string) => toasts.push({ text, until: performance.now() + 3200 });
+const toast = (text: string) => toasts.push({ text, until: performance.now() + 5000 });
 const itemName = (id: string) => ITEMS[id]?.name ?? id;
 const T = UI_TEXT.toasts;
 
 bus.on('floorEntered', () => renderer?.animator.reset());
-bus.on('itemPicked', (e) => toast(fill(T.picked, { item: itemName(e.defId), rarity: RARITY_NAMES[ITEMS[e.defId].rarity] })));
 bus.on('inventoryFull', () => toast(fill(T.full, { cap: INVENTORY_CAP })));
 bus.on('itemEquipped', (e) => toast(fill(T.equipped, { item: itemName(e.defId) })));
 bus.on('itemUsed', (e) => state?.mode !== 'battle' && toast(fill(T.used, { item: itemName(e.defId) })));
@@ -82,7 +81,9 @@ function frame(now: number) {
     const s = state;
     for (const key of keys) {
       if (s.mode === 'battle') pendingCommand = menu.handle(key, s) ?? pendingCommand;
-      else if (s.mode === 'menu') pendingCommand = inventory.handle(key, s) ?? pendingCommand;
+      else if (s.mode === 'menu' && s.reveals.length) {
+        if (key === 'confirm') pendingCommand = { kind: 'dismiss' };
+      } else if (s.mode === 'menu') pendingCommand = inventory.handle(key, s) ?? pendingCommand;
       else if (key === 'confirm') {
         state = null; // back to the picker for a new run
         break;

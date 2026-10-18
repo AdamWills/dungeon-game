@@ -136,6 +136,22 @@ describe('chests, doors and remains', () => {
     expect(s.player.inventory.length).toBe(n + 1);
   });
 
+  it('pauses on a prize card for each new item until you close it', () => {
+    const s = cleanRun();
+    s.floor.chests.push({ id: 'c', pos: nearPlayer(s, 1, 0), opened: false });
+    step(s, { ...NO_INPUT, move: 'right' });
+    expect(s.mode).toBe('menu');
+    expect(s.reveals).toHaveLength(1);
+    const tick = s.tick;
+    for (let i = 0; i < 30; i++) step(s, { ...NO_INPUT, move: 'left' });
+    expect(s.tick).toBe(tick); // time stands still behind the card
+    step(s, { ...NO_INPUT, command: { kind: 'equip', slot: 0 } }); // ignored while the card is up
+    expect(s.reveals).toHaveLength(1);
+    step(s, { ...NO_INPUT, command: { kind: 'dismiss' } });
+    expect(s.mode).toBe('roaming');
+    expect(s.reveals).toHaveLength(0);
+  });
+
   it('blocks movement and sight with a closed door until opened', () => {
     const s = cleanRun();
     const d = nearPlayer(s, 1, 0);

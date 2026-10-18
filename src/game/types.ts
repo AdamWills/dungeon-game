@@ -166,7 +166,8 @@ export type InvCommand =
   | { kind: 'equip'; slot: number }
   | { kind: 'unequip'; slot: 'weapon' | 'armor' | 'trinket' }
   | { kind: 'use'; slot: number }
-  | { kind: 'drop'; slot: number };
+  | { kind: 'drop'; slot: number }
+  | { kind: 'dismiss' }; // close the prize card for a new item
 
 export type BattleState = {
   encounter: Encounter;
@@ -228,6 +229,8 @@ export type GameState = {
   runEnd: RunEnd | null;
   /** How often each improvisation has been done this run (repeats get weaker). */
   improvCounts: Record<string, number>;
+  /** New items waiting to be shown on a prize card; time is paused while any are. */
+  reveals: ItemInstance[];
   /** Events raised during the current step; the shell drains them onto the bus. */
   events: GameEvent[];
 };

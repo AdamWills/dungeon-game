@@ -55,8 +55,15 @@ export const UI_TEXT = {
     door: 'A closed door. Press E (or walk into it) to open it.',
     prop: 'A {prop}. Start a fight near it and you can use it from Improvise.',
   },
+  prize: {
+    heading: 'NEW ITEM! It is yours to keep!',
+    equipHint: 'Wear it from the inventory (I or ESC).',
+    useHint: 'Use it any time from the inventory (I or ESC), or in a fight.',
+    fightHint: 'Use it in a fight, from the Item menu.',
+    carryHint: 'It does not do anything much. You can combine it with something in a fight.',
+    prompt: 'Press ENTER to continue',
+  },
   toasts: {
-    picked: 'Picked up: {item} ({rarity}).',
     full: 'Your pockets are full ({cap}). Drop something in the inventory (ESC).',
     equipped: 'Equipped: {item}.',
     used: 'Used: {item}.',

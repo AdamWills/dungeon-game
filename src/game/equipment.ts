@@ -66,13 +66,31 @@ export function addItem(state: GameState, item: ItemInstance, from: 'chest' | 'f
   }
   state.player.inventory.push(item);
   state.events.push({ type: 'itemPicked', defId: item.defId, from });
+  // Pause on a prize card so the player can see what they got.
+  state.reveals.push(item);
+  if (state.mode === 'roaming') {
+    state.mode = 'menu';
+    state.events.push({ type: 'modeChanged', from: 'roaming', to: 'menu' });
+  }
   return true;
 }
 
 export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   const p = state.player;
   p.equipment ??= {};
+  if (state.reveals.length) {
+    // While a prize card is up, the only thing to do is close it.
+    if (cmd.kind !== 'dismiss') return;
+    state.reveals.shift();
+    if (!state.reveals.length) {
+      state.mode = 'roaming';
+      state.events.push({ type: 'modeChanged', from: 'menu', to: 'roaming' });
+    }
+    return;
+  }
   switch (cmd.kind) {
+    case 'dismiss':
+      return;
     case 'equip': {
       const inst = p.inventory[cmd.slot];
       const def = inst && ITEMS[inst.defId];

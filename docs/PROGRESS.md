@@ -61,6 +61,11 @@
 - Fix: only the enemy that caught you strikes first with the bonus, as the GDD says; the rest act by Speed. Plus a new rule: you always get a first turn (nothing, damage over time included, can take you below 1 HP before you have acted). Now 0 deaths before acting for either class, even against four enemies.
 - Tests for both rules (100 seeds, both classes, four enemies, starting at 3 HP). GDD updated.
 
+### Prize cards (after playtesting)
+- Problem: a 3-second corner message was the only sign of what you picked up, and the game kept moving.
+- Fix: every new item (chest or floor) pauses the game on a prize card in the middle of the screen, showing the icon, name, rarity, what it does, the joke and how to use it. ENTER closes it; several pickups at once queue up. Other messages now stay up for 5 seconds.
+- Test: the card pauses time, blocks other inventory commands, and closes back to roaming.
+
 ## Next
 
 M4: Party and host. 3 recruitable allies with stances and loyalty, scripted host lines for routine events, the death screen with a full elimination report, XP and the level-up screen.

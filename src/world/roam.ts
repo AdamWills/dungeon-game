@@ -25,7 +25,10 @@ const DELTA: Record<Dir, Vec> = {
 export function step(state: GameState, input: InputFrame): void {
   if (input.pause) {
     if (state.mode === 'roaming') setMode(state, 'menu');
-    else if (state.mode === 'menu') setMode(state, 'roaming');
+    else if (state.mode === 'menu') {
+      state.reveals = []; // leaving the pause also closes any prize cards
+      setMode(state, 'roaming');
+    }
   }
   if (state.mode === 'battle') {
     if (input.command && isBattleCommand(input.command)) battleCommand(state, input.command);
@@ -52,6 +55,8 @@ export function step(state: GameState, input: InputFrame): void {
     const dir = input.move ?? (state.dash.active > 0 ? facingDir(state.player.facing) : null);
     if (dir) tryMove(state, dir);
   }
+
+  if (state.mode !== 'roaming') return; // a prize card just went up; the world waits
 
   for (const e of state.floor.entities) if (e.kind === 'enemy') updateEnemy(state, e);
 
@@ -99,7 +104,7 @@ function facingDir(facing: number): Dir {
 
 /** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return !['equip', 'unequip', 'use', 'drop'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop', 'dismiss'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */
