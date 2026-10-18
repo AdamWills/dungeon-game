@@ -1,5 +1,5 @@
 // The single source of truth for a run. Pure data plus constructors; the
-// world modules advance it.
+// world and battle modules advance it.
 
 import { CLASSES } from '../data/classes';
 import { TUNING } from '../data/tuning';
@@ -18,6 +18,8 @@ export function createPlayer(classId: string): Entity {
     pos: { x: 0, y: 0 },
     facing: Math.PI / 2,
     stats: { ...cls.base, maxHp: cls.base.hp },
+    cooldowns: {},
+    inventory: cls.startingItems.map((defId) => ({ defId, identified: true })),
   };
 }
 
@@ -31,6 +33,10 @@ export function createGameState(seed: number, classId = 'brawler'): GameState {
     mode: 'roaming',
     floor,
     player: createPlayer(classId),
+    dash: { active: 0, cooldown: 0 },
+    grace: 0,
+    battle: null,
+    runEnd: null,
     events: [],
   };
   enterFloor(state, floor);

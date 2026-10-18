@@ -64,8 +64,8 @@ A run is a descent through floors; each floor is a map of rooms explored in real
 **Ambushes**
 
 - **Player ambush:** touching an enemy that has not noticed you (from behind, outside its vision cone, or while it sleeps) starts the battle with you acting first for the whole opening round and dealing +50% damage that round.
-- **Enemy ambush:** if a chasing enemy catches you, or you walk into an alerted enemy's reach, it acts first and deals +50% damage for the opening round. Enemies that spot you flash a "!" over their head.
-- Touching an alerted enemy head-on is a normal battle, ordered by Speed.
+- **Enemy ambush:** if a chasing enemy runs into you (it moved into the contact, you did not move toward it), it acts first and deals +50% damage for the opening round. Enemies that spot you flash a "!" over their head.
+- Walking into an alerted enemy, or meeting it head-on, is a normal battle, ordered by Speed. In short: who moved decides.
 
 **Hazard pre-damage**
 
@@ -512,7 +512,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 | --- | --- | --- | --- |
 | M1: Walk and see | Saturday morning | Canvas, tile-smooth player movement with collision, FOV, seeded floor generation | You can walk a generated floor and stairs exist |
 | M2: Fight | Saturday afternoon | Patrolling enemies with vision cones, battle screen with Speed-based turns and an Attack, Ability, Item and Flee menu, 5 enemy types, HP and death, message log | You can kill rats and die to them |
-| M3: Loot and classes | Saturday evening | Items, inventory, Brawler and Hexer abilities, Human and Gutterfolk traits, Improvise menu (props, item jank, Bad Idea) | Two classes feel different in play |
+| M3: Loot and classes | Saturday evening | Items, inventory, Brawler and Hexer abilities, Human and Gutterfolk traits, Improvise menu (props, item jank, Bad Idea), map hazards (sludge, spikes, gas vent) | Two classes feel different in play |
 | M4: Party and Auditor | Sunday morning | 3 recruitable allies with stances and loyalty, scripted Auditor lines, death screen with incident report, XP and level-up screen | A run ends with a funny report |
 | M5: Meta and polish | Sunday afternoon | Credits, Intake Desk with 5 unlocks, 20 achievements, local save, mini-boss, gore pass | The second run differs from the first |
 

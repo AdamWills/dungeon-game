@@ -10,6 +10,11 @@ export type FloorTheme = {
   roomHeight: [number, number];
   /** Fraction of the map dug out as rooms before rot.js stops adding them. */
   roomDugPercentage: number;
+  /** Enemies per room (the start room stays empty) and who turns up. */
+  enemiesPerRoom: [number, number];
+  /** Chance an enemy's patrol route leads out to a neighbouring room. */
+  roamChance: number;
+  enemies: { id: string; weight: number; maxPerFloor?: number }[];
 };
 
 export const FLOOR_THEMES: Record<string, FloorTheme> = {
@@ -22,5 +27,14 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     roomWidth: [5, 12],
     roomHeight: [4, 8],
     roomDugPercentage: 0.18,
+    enemiesPerRoom: [0, 2],
+    roamChance: 0.35,
+    enemies: [
+      { id: 'intake_rat', weight: 5 },
+      { id: 'feral_intern', weight: 3 },
+      { id: 'sludge_hopper', weight: 3 },
+      { id: 'pipe_leech', weight: 2 },
+      { id: 'grudge_gator', weight: 1, maxPerFloor: 2 },
+    ],
   },
 };

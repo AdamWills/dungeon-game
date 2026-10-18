@@ -1,5 +1,5 @@
 // Keyboard sampling. The only place that reads key events; it turns them into
-// one InputFrame per fixed step.
+// one InputFrame per fixed step, plus a queue of menu key presses.
 
 import type { Dir, InputFrame } from '../game/types';
 
@@ -11,25 +11,35 @@ const MOVE_KEYS: Record<string, Dir> = {
 };
 const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
 const PAUSE_KEYS = new Set(['Escape', 'KeyP']);
+const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
+const BACK_KEYS = new Set(['Escape', 'Backspace']);
+
+export type MenuKey = Dir | 'confirm' | 'back';
 
 export class Keyboard {
   private held: Dir[] = []; // most recently pressed last
   private interactPressed = false;
   private pausePressed = false;
+  private dashPressed = false;
+  private menu: MenuKey[] = [];
 
   constructor(target: Window) {
     target.addEventListener('keydown', (e) => {
       const dir = MOVE_KEYS[e.code];
       if (dir) {
         if (!this.held.includes(dir)) this.held.push(dir);
-        e.preventDefault();
+        this.menu.push(dir);
       } else if (INTERACT_KEYS.has(e.code)) {
-        if (!e.repeat) this.interactPressed = true;
-        e.preventDefault();
-      } else if (PAUSE_KEYS.has(e.code)) {
-        if (!e.repeat) this.pausePressed = true;
-        e.preventDefault();
-      }
+        if (!e.repeat) {
+          this.interactPressed = true;
+          this.menu.push('confirm');
+        }
+      } else if (DASH_KEYS.has(e.code)) {
+        if (!e.repeat) this.dashPressed = true;
+      } else if (!PAUSE_KEYS.has(e.code) && !BACK_KEYS.has(e.code)) return;
+      if (PAUSE_KEYS.has(e.code) && !e.repeat) this.pausePressed = true;
+      if (BACK_KEYS.has(e.code) && !e.repeat) this.menu.push('back');
+      e.preventDefault();
     });
     target.addEventListener('keyup', (e) => {
       const dir = MOVE_KEYS[e.code];
@@ -46,9 +56,23 @@ export class Keyboard {
       move: this.held.length ? this.held[this.held.length - 1] : null,
       interact: this.interactPressed,
       pause: this.pausePressed,
+      dash: this.dashPressed,
+      command: null,
     };
     this.interactPressed = false;
     this.pausePressed = false;
+    this.dashPressed = false;
     return frame;
+  }
+
+  /** Drop pending interact and dash presses that a menu already used. */
+  clearActionEdges(): void {
+    this.interactPressed = false;
+    this.dashPressed = false;
+  }
+
+  /** Menu presses since the last call (battle menus, end screens). */
+  takeMenuKeys(): MenuKey[] {
+    return this.menu.splice(0);
   }
 }

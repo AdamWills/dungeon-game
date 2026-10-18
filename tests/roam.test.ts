@@ -48,6 +48,7 @@ describe('roaming', () => {
 
   it('moves one tile smoothly over the configured number of ticks', () => {
     const state = createGameState(11);
+    state.floor.entities = [];
     const { x, y } = state.player.pos;
     const dir = (['right', 'left', 'down', 'up'] as Dir[]).find((d) => {
       const dx = d === 'right' ? 1 : d === 'left' ? -1 : 0;
@@ -67,6 +68,7 @@ describe('roaming', () => {
 
   it('stops at walls', () => {
     const state = createGameState(11);
+    state.floor.entities = [];
     run(state, move('left'), 60 * 20);
     const { x, y } = state.player.pos;
     expect(Number.isInteger(x)).toBe(true);
@@ -84,23 +86,25 @@ describe('roaming', () => {
     if (state.floor.index === 1) expect(explored()).toBeGreaterThanOrEqual(before);
   });
 
-  it('takes the stairs with the interact key', () => {
+  it('ends the run as a win when taking the stairs', () => {
     const state = createGameState(31);
-    const { stairs } = state.floor;
-    state.player.pos = { ...stairs };
+    state.floor.entities = [];
+    state.player.pos = { ...state.floor.stairs };
     step(state, { ...NO_INPUT, interact: true });
-    expect(state.events.map((e) => e.type)).toEqual(['floorEntered', 'stairsTaken', 'floorEntered']);
-    expect(state.floor.index).toBe(2);
+    expect(state.events.map((e) => e.type)).toEqual(['floorEntered', 'stairsTaken', 'runEnded', 'modeChanged']);
+    expect(state.mode).toBe('won');
+    expect(state.runEnd).toEqual({ kind: 'escaped' });
   });
 
   it('does nothing on interact away from the stairs', () => {
     const state = createGameState(31);
     step(state, { ...NO_INPUT, interact: true });
-    expect(state.floor.index).toBe(1);
+    expect(state.mode).toBe('roaming');
   });
 
   it('freezes time while paused', () => {
     const state = createGameState(41);
+    state.floor.entities = [];
     step(state, { ...NO_INPUT, pause: true });
     expect(state.mode).toBe('menu');
     const before = JSON.stringify(state.player);

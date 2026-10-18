@@ -3,7 +3,7 @@
 // sewer floor. Replaced when real art arrives.
 
 import type { Frame, PlayerDir } from './animation';
-import { TILE } from './atlas';
+import { type Rect, renderRects } from './spriteKit';
 
 const C = {
   hair: '#4a2e1e',
@@ -19,10 +19,7 @@ const C = {
   badgeInk: '#2a2a2a',
   boot: '#2b2622',
   bootHi: '#4a423b',
-  outline: '#120d0a',
 };
-
-type Rect = [x: number, y: number, w: number, h: number, color: string];
 
 function down(frame: Frame, blink: boolean): Rect[] {
   const lUp = frame === 'stepA' ? 1 : 0; // raised leg / swung arm
@@ -98,27 +95,8 @@ function rects(dir: PlayerDir, frame: Frame, blink: boolean): Rect[] {
   return side(frame, blink);
 }
 
-/** Draw one pose to a fresh canvas, then wrap it in a 1px outline. */
 function render(dir: PlayerDir, frame: Frame, blink: boolean): HTMLCanvasElement {
-  const body = document.createElement('canvas');
-  body.width = body.height = TILE;
-  const g = body.getContext('2d')!;
-  for (const [x, y, w, h, color] of rects(dir, frame, blink)) {
-    g.fillStyle = color;
-    g.fillRect(x, y, w, h);
-  }
-  const alpha = g.getImageData(0, 0, TILE, TILE).data;
-  const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < TILE && y < TILE && alpha[(y * TILE + x) * 4 + 3] > 0;
-
-  const out = document.createElement('canvas');
-  out.width = out.height = TILE;
-  const o = out.getContext('2d')!;
-  o.fillStyle = C.outline;
-  for (let y = 0; y < TILE; y++)
-    for (let x = 0; x < TILE; x++)
-      if (!solid(x, y) && (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1))) o.fillRect(x, y, 1, 1);
-  o.drawImage(body, 0, 0);
-  return out;
+  return renderRects(rects(dir, frame, blink));
 }
 
 export type PlayerSprites = (dir: PlayerDir, frame: Frame, blink: boolean) => HTMLCanvasElement;

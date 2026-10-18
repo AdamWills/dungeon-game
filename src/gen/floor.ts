@@ -6,6 +6,7 @@ import { Map as RotMap, RNG as RotRNG } from 'rot-js';
 import { FLOOR_THEMES } from '../data/floors';
 import { createRng, deriveSeed, pick } from '../game/rng';
 import type { Floor, Room, Tile, Vec } from '../game/types';
+import { populate } from './populate';
 import { bfsDistances } from './reach';
 
 const MAX_ATTEMPTS = 50;
@@ -74,7 +75,7 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
     if (!stairs) continue;
     tiles[stairs.y][stairs.x].terrain = 'stairs';
 
-    return {
+    const floor: Floor = {
       index,
       theme: theme.id,
       seed,
@@ -84,8 +85,11 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
       rooms,
       start: { ...start },
       stairs: { ...stairs },
+      entities: [],
       visible: new Array(width * height).fill(0),
     };
+    floor.entities = populate(floor, rng, theme);
+    return floor;
   }
   throw new Error(`Floor generation failed for seed ${seed} after ${MAX_ATTEMPTS} attempts`);
 }
