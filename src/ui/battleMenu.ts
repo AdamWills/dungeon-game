@@ -87,7 +87,7 @@ export class BattleMenu {
           this.target = Math.min(this.target, Math.max(0, this.targets(state).length - 1));
           return null;
         case 'ability':
-          // Cooldown refusals go through anyway so the Auditor can comment.
+          // Cooldown refusals go through anyway so the host can comment.
           return { kind: 'ability', abilityId: CLASSES[state.player.defId].ability };
         case 'item':
           if (!opt.enabled) return { kind: 'item', slot: 0 };

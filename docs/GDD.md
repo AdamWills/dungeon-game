@@ -2,7 +2,7 @@
 
 Oct 17, 2026 · Adam Wills
 
-A browser-playable roguelike with real-time roaming and turn-based battles, where abducted humans descend a deadly, alien-run dungeon under a sarcastic AI auditor, with gleeful gore, absurd loot and a strong achievement system. Working title; scope is a weekend prototype.
+A browser-playable roguelike with real-time roaming and turn-based battles, where ordinary people are dragged onto a tacky underground game show and must descend a deadly dungeon while a hologram host cheers every death, with gleeful gore, absurd loot and a strong achievement system. Working title; scope is a weekend prototype.
 
 ## Pillars and tone
 
@@ -10,27 +10,30 @@ The game is a tight tactical roguelike wrapped in a mean, funny narrator. Four p
 
 1. **Roam live, fight by the book.** Movement, dodging and ambushes are real-time; every battle is a turn-based, menu-driven decision.
 2. **Death is the joke and the engine.** Runs end often, deaths are narrated, and each death pays out something.
-3. **The dungeon talks back.** The Auditor reacts to what you do, and the writing is a feature, not flavor.
+3. **The dungeon talks back.** The host reacts to what you do, and the writing is a feature, not flavor.
 4. **Bad ideas get rewarded.** Achievements and loot favor weird, reckless play over optimal play.
 
-**Tone:** gleefully gory, gallows humor, sarcastic. Violence is cartoonishly over the top (limbs, gibs, absurd death causes), played for laughs rather than realism. Humor comes from the Auditor's voice, item text and achievement names, not from random-quirky filler.
+**Tone:** gleefully gory, gallows humor, sarcastic. Violence is cartoonishly over the top (limbs, gibs, absurd death causes), played for laughs rather than realism. Humor comes from the host's voice, item text and achievement names, not from random-quirky filler.
 
-## Premise and the Auditor
+## Premise and the host
 
-Earth has been condemned. Humans are pulled out of their ordinary lives (mid-commute, mid-nap, mid-argument) and dumped on the first floor of the Descent, a hundred-floor alien dungeon that must be crossed to earn the right to keep existing. Nobody explains why. Everybody has paperwork.
+People are pulled out of their ordinary lives (mid-commute, mid-nap, mid-argument) and dropped onto the set of **DESCEND & WIN!**, a cheap 1970s-style daytime game show built in the tunnels under the city, a hundred floors deep. Nobody remembers applying. The sets are cardboard and duct tape, the prizes are terrible, and the only way out is down.
 
-The dungeon is run by **the Auditor**, an administrative AI that treats mass death as a compliance matter. It is bureaucratic, passive-aggressive, secretly delighted by suffering, and never wrong by its own account.
+The show is hosted by **Chet Valentine**, a too-tanned hologram in a velvet suit, all catchphrases and dazzling teeth, with no empathy whatsoever. Every death is great television to Chet. Nobody knows who produces the show.
 
-**Auditor voice rules**
+**Host voice rules**
 
-- Deadpan and specific. It cites your actual action, item or room, never generic insults.
-- Insults are earned: it mocks bad choices more than bad luck.
-- It narrates deaths as incident reports, with a cause of death, a filing code and a fake apology.
-- It is never helpful by accident. Hints are disguised as taunts.
-- It never breaks character or explains game mechanics in plain language; tutorials come as "policy notices".
-- The interface itself is plain: menus, help lines, headings and map labels say clearly what things do, and the Auditor's lines sit alongside them as flavour rather than replacing them.
+- Relentlessly upbeat and specific. Chet cites your actual action, item or room, never generic insults.
+- His digs are earned: he ribs bad choices more than bad luck, always with a smile.
+- He announces deaths as eliminations, with the cause, a useless "lovely parting gift" and a cheery sign-off.
+- He is never helpful by accident. Hints are disguised as showmanship.
+- He never breaks character or explains game mechanics in plain language; tutorials come as "House Rules".
+- He talks to an unseen "folks at home", but there is no audience, viewer count or sponsor system. That keeps the show its own thing and inside v1 scope.
+- The interface itself is plain: menus, help lines, headings and map labels say clearly what things do, and Chet's lines sit alongside them as flavour rather than replacing them.
 
-The tone is inspired by the book series but everything here is original: names, factions and the dungeon's rules are new, to keep the game its own thing.
+Floors and their creatures follow each floor's own theme, not the show: the first floor is the Intake Sewers, so its residents are sewer things.
+
+The tone is inspired by dark comic fiction about deadly dungeons, but everything here is original: names, characters, the show and the dungeon's rules are new, to keep the game its own thing.
 
 ## Core loop, roaming and battles
 
@@ -42,7 +45,7 @@ A run is a descent through floors; each floor is a map of rooms explored in real
 2. Enter a floor, explore rooms, fight, loot, and recruit allies.
 3. Find the stairs (guarded on boss floors) and descend.
 4. Die, or clear the final floor of the current build.
-5. Receive the incident report, spend meta currency, start a new run.
+5. Receive the elimination report, spend meta currency, start a new run.
 
 **Roaming (real time)**
 
@@ -129,26 +132,26 @@ Races adjust these: Human has no change; Gutterfolk gets +4 HP and −1 Charm. E
 - **Each level-up:** 3 stat points to spend, with the level-up screen shown right after the battle.
 - **Perks:** at levels 3, 6 and 9 you also pick 1 of 3 random perks from your class pool and a general pool. Examples: Thick Skull (Brawler: the first hit each battle is halved), Overdue Invoice (Hexer: Hex also deals 3 damage each turn), Scavenger (an extra junk item each floor), Bad Habits (use the Bad Idea button twice per battle).
 - **Allies** scale with your level automatically; they do not get points or perks.
-- **No respec** within a run. The Auditor will, however, sell you a reassignment at a safe room, at a price and with commentary.
+- **No respec** within a run. Chet will, however, sell you a "makeover" at a safe room, at a price and with commentary.
 
 **Prototype:** levels 1 to 5, 3 points per level, one perk pick at level 3 from a pool of 6.
 
 ## Recruitable party
 
-You start alone and can recruit up to 3 allies per run, found as captives, deserters or bribable monsters on each floor. Allies are what make the Auditor's cruelty personal.
+You start alone and can recruit up to 3 allies per run, found as captives, deserters or bribable monsters on each floor. Allies are what make the show's cruelty personal.
 
-- **Recruiting:** each potential ally has a condition: free them from a cell, pay a bribe, win a dumb contest, or spare them in a fight. Conditions are shown as a one-line Auditor "listing".
+- **Recruiting:** each potential ally has a condition: free them from a cell, pay a bribe, win a dumb contest, or spare them in a fight. Conditions are shown as a one-line "contestant profile" from Chet.
 - **Control:** on the map allies trail behind you; in battle they act automatically after you, following a stance you set per ally: Aggressive, Defensive or Support. No direct control in the prototype.
 - **Stats and abilities:** each ally has a simple stat block, one passive and one ability on a cooldown.
 - **Loyalty:** a hidden loyalty value rises when you share loot and falls when you leave them to die or use them as bait. At zero they quit, steal an item, or turn on you.
-- **Death:** allies die permanently within the run. The Auditor files an incident report for each one, and a small share of their gear drops.
-- **Cap:** the party is capped at 4 including you; recruiting a fifth means dismissing someone, which the Auditor narrates with relish.
+- **Death:** allies die permanently within the run. Chet announces each one's elimination, and a small share of their gear drops.
+- **Cap:** the party is capped at 4 including you; recruiting a fifth means dismissing someone, which Chet announces with relish.
 
 The prototype includes 3 hand-written allies, one per archetype: a bruiser, a healer and a coward with a gun.
 
 ## Floors
 
-Floors are hybrid: procedural room layouts with hand-authored set pieces and bosses slotted in. Each floor has a theme that sets its enemies, hazards, loot table and Auditor commentary.
+Floors are hybrid: procedural room layouts with hand-authored set pieces and bosses slotted in. Each floor has a theme that sets its enemies, hazards, loot table and host commentary.
 
 **Structure of a floor**
 
@@ -164,7 +167,7 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 | --- | --- | --- |
 | 1 to 4 | The Intake Sewers | Sludge pools, rats the size of dogs |
 | 5 to 9 | The Commissary | Roaming vending machines, spoiled food buffs and debuffs |
-| 10 to 14 | The Compliance Wing | Paperwork traps, audit beams |
+| 10 to 14 | The Backlot | Falling scenery, runaway spotlights |
 
 **Prototype floor:** one themed floor, The Intake Sewers, with a procedural layout, 5 enemy types, 2 set pieces, 1 safe room, and a hand-authored mini-boss guarding the stairs.
 
@@ -193,7 +196,7 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 | Standard | Common | Plain stat upgrades |
 | Special | Uncommon | One strong effect with a catch |
 | Cursed | Uncommon | Powerful, with a downside that changes how you play |
-| Auditor's Pick | Rare | Run-defining item with a mean description |
+| Host's Pick | Rare | Run-defining item with a mean description |
 
 **Absurd items (examples)**
 
@@ -224,12 +227,12 @@ Menus cover the sensible options; improvisation covers everything else. Every ba
 **Item jank**
 
 - Pick any two items and the game looks up their tag pair. Known combos give strong, specific effects (a pipe bomb plus a vending machine becomes a shrapnel snack dispenser that hits every enemy). Unknown pairs fall back to a generic tag result with a mild random effect.
-- 15% of the time it backfires on you or an ally, and a backfire always gets an Auditor line.
+- 15% of the time it backfires on you or an ally, and a backfire always gets a host line.
 - Combos are logged in a Findings page across runs; discovering a new one pays bonus Credits.
 
 **Bad Idea button**
 
-- Once per battle, draw from a weighted table of absurd actions ("do a backflip", "negotiate", "pretend to be management"). Each outcome has a grade (disaster, meh, brilliant or legendary) and an Auditor line.
+- Once per battle, draw from a weighted table of absurd actions ("do a backflip", "negotiate", "pretend to be management"). Each outcome has a grade (disaster, meh, brilliant or legendary) and a host line.
 - Charm nudges the weights slightly. Brilliant and legendary outcomes pay bonus Credits, and each outcome unlocks an achievement the first time it appears.
 - Disasters cost HP, a turn or ally loyalty, never an instant death.
 
@@ -237,7 +240,7 @@ Menus cover the sensible options; improvisation covers everything else. Every ba
 
 - Type any action. With the live narrator on, the serverless function sends the text plus context (props, inventory, enemies, class) to the model and gets back a structured outcome: a verb, targets, effects chosen from the game's own effect list with capped magnitudes, and a narration line.
 - The game validates everything: effects must exist, damage and healing are clamped, nothing can create items or end a battle outright, and the player's text is treated as untrusted (instructions hidden in it are ignored).
-- With the LLM off, offline, rate-limited or slower than 3 seconds, a verb-and-noun parser matches known verbs against props, items and enemies. If nothing matches, it rolls on the Bad Idea table and the Auditor files the attempt under "creative".
+- With the LLM off, offline, rate-limited or slower than 3 seconds, a verb-and-noun parser matches known verbs against props, items and enemies. If nothing matches, it rolls on the Bad Idea table and Chet scores the attempt as "creative".
 - Limit: 2 free-text improvs per battle and about 8 per run, sharing the narrator's rate limit.
 
 **Balance rules**
@@ -248,11 +251,11 @@ Menus cover the sensible options; improvisation covers everything else. Every ba
 
 ## Achievements
 
-Achievements are a strong side system: they never gate progress, but they feed meta-progression and give the Auditor material.
+Achievements are a strong side system: they never gate progress, but they feed meta-progression and give the host material.
 
 - **Trigger:** each achievement is a named condition checked after every turn (kill type, item combo, death cause, silly behavior).
 - **Naming:** punny and specific, e.g. "Workplace Safety Violation" (kill 3 enemies with one trap) or "Friendly Fire, Mostly" (kill an ally with an area attack).
-- **Reward:** every achievement grants Credits (the meta currency) and an Auditor reaction line; about 1 in 4 also unlocks an item, class perk or ally for future runs.
+- **Reward:** every achievement grants Credits (the meta currency) and a host reaction line; about 1 in 4 also unlocks an item, class perk or ally for future runs.
 - **Rarity:** achievements are common, odd or secret. Secret ones show as "[REDACTED]" until earned.
 - **Tracking:** an Achievements screen lists earned and visible-but-locked entries across all runs.
 
@@ -266,7 +269,7 @@ Each run is permadeath: you lose your character, gear and allies. What persists 
 
 - **Unlocks:** new races, classes, allies and items enter the pool for future runs.
 - **The Intake Desk (upgrade shop):** spend credits on small permanent boosts, such as +1 starting HP, an extra starting consumable slot or a better chance of a safe room.
-- **Incident archive:** a log of past deaths with the Auditor's reports, shown as a graveyard screen.
+- **Hall of Eliminations:** a log of past deaths with Chet's elimination reports, shown as a graveyard screen.
 - **Starting perks:** choose one unlocked perk before each run.
 
 **Balance rule:** permanent boosts stay small and capped. A run should always be winnable by a new player with no unlocks; meta-progression widens options more than it raises power.
@@ -275,7 +278,7 @@ Each run is permadeath: you lose your character, gear and allies. What persists 
 
 ## Hybrid narrator spec
 
-The Auditor speaks through two channels: fast scripted lines for routine events and live LLM generation for the moments that matter most.
+The host speaks through two channels: fast scripted lines for routine events and live LLM generation for the moments that matter most.
 
 | Event | Source | Example trigger |
 | --- | --- | --- |
@@ -289,7 +292,7 @@ The Auditor speaks through two channels: fast scripted lines for routine events 
 
 **Scripted lines:** a pool of 5 to 10 variants per event, with variables for the player's name, class, item and enemy. A no-repeat rule avoids the same line twice in a row.
 
-**LLM moments:** the game sends a compact context object (event type, floor, class and race, last 5 actions, killer, item list, ally names) plus the Auditor's voice rules and a length cap of 60 words. The response replaces the scripted line.
+**LLM moments:** the game sends a compact context object (event type, floor, class and race, last 5 actions, killer, item list, ally names) plus the host's voice rules and a length cap of 60 words. The response replaces the scripted line.
 
 **Fallbacks:** if the call fails, times out after 3 seconds or is rate-limited, the game plays a scripted line for that event instead. The game must be fully playable with the LLM off, which is also the default in local development.
 
@@ -297,7 +300,7 @@ The Auditor speaks through two channels: fast scripted lines for routine events 
 
 ## Weekend prototype scope
 
-The prototype proves one thing: a single floor is fun to play and the Auditor makes dying enjoyable. Everything else waits.
+The prototype proves one thing: a single floor is fun to play and the host makes dying enjoyable. Everything else waits.
 
 **In scope**
 
@@ -306,8 +309,8 @@ The prototype proves one thing: a single floor is fun to play and the Auditor ma
 - 1 floor (The Intake Sewers): procedural layout, 5 enemy types that patrol with vision cones, 2 set pieces, 1 safe room, 1 mini-boss, ambush bonuses and 3 hazard types (sludge, spikes, gas vent).
 - 3 recruitable allies with stances and loyalty.
 - About 30 items, 20 achievements, and Credits with a minimal Intake Desk of 5 unlocks.
-- Scripted Auditor lines for routine events (at least 5 variants each).
-- Death screen with an incident report, and local-save meta-progression.
+- Scripted host lines for routine events (at least 5 variants each).
+- Death screen with an elimination report, and local-save meta-progression.
 - Optional: the live LLM narrator for deaths only, behind a feature flag.
 - Improvise menu: 6 props, 10 item combos, 12 Bad Idea outcomes and a verb-and-noun parser; LLM free-text behind the same flag as the narrator.
 - XP and levels 1 to 5: 3 stat points per level and one perk pick at level 3 from 6 perks.
@@ -322,9 +325,9 @@ The prototype proves one thing: a single floor is fun to play and the Auditor ma
 
 **Definition of done**
 
-1. A new player can start a run, descend through the floor and fight the mini-boss without instructions beyond on-screen policy notices.
+1. A new player can start a run, descend through the floor and fight the mini-boss without instructions beyond on-screen House Rules.
 2. A run takes 10 to 20 minutes, ending in either death or stairs.
-3. Dying grants credits and an incident report, and the next run reflects an unlock.
+3. Dying grants credits and an elimination report, and the next run reflects an unlock.
 4. At least 5 achievements trigger in normal play.
 5. The game runs end to end with the LLM narrator disabled.
 
@@ -350,10 +353,10 @@ The game is a static single-page app: TypeScript, rot.js for field of view, path
 | `game/combat` | Damage, hit rolls, status effects, gore and overkill rules |
 | `game/ai` | Enemy and ally decisions: patrol, notice and chase on the map; pick actions in battle; allies follow their stance |
 | `gen/floor` | Seeded floor generator plus set-piece template stamping |
-| `data/*` | Pure data: races, classes, enemies, items, achievements, Auditor lines |
+| `data/*` | Pure data: races, classes, enemies, items, achievements, host lines |
 | `achievements` | Event bus subscribers that check conditions after each turn |
-| `auditor` | Picks a scripted line, or requests an LLM line for rare events, with fallback |
-| `meta` | Credits, unlocks, incident archive, save and load |
+| `host` | Picks a scripted line, or requests an LLM line for rare events, with fallback |
+| `meta` | Credits, unlocks, Hall of Eliminations, save and load |
 | `ui` | Canvas renderer, message log, inventory, party panel, death screen |
 | `world/roam` | Fixed-timestep loop: tile-smooth movement, collision, dash, patrol routes, vision cones, hazard damage |
 | `world/encounter` | Detects contact, picks ambush or normal start, gathers nearby enemies, hands off to battle and back |
@@ -363,10 +366,10 @@ The game is a static single-page app: TypeScript, rot.js for field of view, path
 
 - Game logic is deterministic given a seed and a list of timestamped inputs, advanced by a fixed-timestep loop, and never touches the DOM. That makes replays, tests and bug reports easy.
 - All content lives in data files, not code, so adding an item or achievement is a one-file change.
-- Systems talk through a small event bus (for example `entityDied`, `itemPicked`, `floorEntered`); the achievements and Auditor modules only listen.
+- Systems talk through a small event bus (for example `entityDied`, `itemPicked`, `floorEntered`); the achievements and host modules only listen.
 - Roaming and battle share one set of entity data. Entering a battle snapshots enemy HP, so hazard damage carries in, and leaving it writes deaths, loot and gore back to the map.
 
-**Narrator proxy:** one serverless function takes the event context, calls the model with the Auditor's voice rules, enforces a 60-word cap and a per-player rate limit, and returns text. The browser never sees the API key. Client timeout is 3 seconds, after which the scripted line plays.
+**Narrator proxy:** one serverless function takes the event context, calls the model with the host's voice rules, enforces a 60-word cap and a per-player rate limit, and returns text. The browser never sees the API key. Client timeout is 3 seconds, after which the scripted line plays.
 
 ## Data models
 
@@ -399,7 +402,7 @@ type Entity = {
 type ItemDef = {
   id: string;
   name: string;
-  rarity: 'junk' | 'standard' | 'special' | 'cursed' | 'auditors_pick';
+  rarity: 'junk' | 'standard' | 'special' | 'cursed' | 'hosts_pick';
   slot?: 'weapon' | 'armor' | 'trinket';
   effects: EffectRef[];     // data-driven, interpreted by combat
   description: string;      // the funny text
@@ -427,14 +430,14 @@ type MetaState = {
   credits: number;
   unlocks: { races: string[]; classes: string[]; allies: string[]; items: string[]; perks: string[] };
   achievements: Record<string, { earnedAt: number; count: number }>;
-  incidents: IncidentReport[];   // the graveyard
+  eliminations: EliminationReport[];   // the Hall of Eliminations
   findings: Record<string, { firstSeen: number; count: number }>;   // improv discoveries
   settings: { goreLevel: 0 | 1 | 2; llmNarrator: boolean };
 };
 
-type IncidentReport = {
-  runSeed: number; floor: number; causeOfDeath: string; filingCode: string;
-  auditorLine: string; source: 'scripted' | 'llm'; ts: number;
+type EliminationReport = {
+  runSeed: number; floor: number; causeOfDeath: string; partingGift: string;
+  hostLine: string; source: 'scripted' | 'llm'; ts: number;
 };
 ```
 
@@ -514,7 +517,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 | M1: Walk and see | Saturday morning | Canvas, tile-smooth player movement with collision, FOV, seeded floor generation | You can walk a generated floor and stairs exist |
 | M2: Fight | Saturday afternoon | Patrolling enemies with vision cones, battle screen with Speed-based turns and an Attack, Ability, Item and Flee menu, 5 enemy types, HP and death, message log | You can kill rats and die to them |
 | M3: Loot and classes | Saturday evening | Items, inventory, Brawler and Hexer abilities, Human and Gutterfolk traits, Improvise menu (props, item jank, Bad Idea), map hazards (sludge, spikes, gas vent) | Two classes feel different in play |
-| M4: Party and Auditor | Sunday morning | 3 recruitable allies with stances and loyalty, scripted Auditor lines, death screen with incident report, XP and level-up screen | A run ends with a funny report |
+| M4: Party and host | Sunday morning | 3 recruitable allies with stances and loyalty, scripted host lines, death screen with elimination report, XP and level-up screen | A run ends with a funny report |
 | M5: Meta and polish | Sunday afternoon | Credits, Intake Desk with 5 unlocks, 20 achievements, local save, mini-boss, gore pass | The second run differs from the first |
 
 **Cut list (drop from the top first)**
@@ -547,7 +550,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 - The remaining 4 classes and 2 races, and a larger ally roster.
 - Direct ally control and ally gear.
 - Daily seeded run with a shared leaderboard.
-- Sound, music and an Auditor text-to-speech voice.
+- Sound, music and a text-to-speech voice for the host.
 - Mobile and touch controls.
 - Optional audience-style mechanic (viewers, sponsors), which was deliberately dropped from v1.
 - Skills: a trainable skill system (for example lockpicking, haggling, cooking, scavenging) that levels through use and works both on the map and in battle. To be designed alongside perks so the two do not overlap.

@@ -1,35 +1,36 @@
-// On-screen policy notices. The Auditor never explains mechanics plainly;
-// it issues policy. Full Auditor line pools arrive in M4.
+// On-screen House Rules and end-of-run screens, in the voice of Chet
+// Valentine, host of DESCEND & WIN! Chet never explains mechanics plainly;
+// he announces House Rules. Full host line pools arrive in M4.
 
 export const NOTICES = {
   movement:
-    'POLICY NOTICE 1-A: Ambulation is permitted via ARROW KEYS or WASD. Walls are load-bearing and non-negotiable.',
+    'HOUSE RULE #1: Contestants move with the ARROW KEYS or WASD. The walls are real, folks. Mostly.',
   stairs:
-    'POLICY NOTICE 1-B: Descent is filed by standing on the stairwell and pressing E or SPACE. Hesitation is logged.',
-  pause: 'POLICY NOTICE 1-C: ESC suspends the passage of time. This is a privilege, not a right.',
-  dash: 'POLICY NOTICE 1-D: SHIFT authorizes a brief sprint, during which you may slip past residents. Sprinting is loud. Recharge is mandatory.',
-  sneak: 'POLICY NOTICE 1-E: Residents see in cones and hear footsteps. Approaching from behind is frowned upon and rewarded.',
-  paused: 'TIME SUSPENDED. Your continued existence has been placed on hold. Press ESC to resume.',
+    'HOUSE RULE #2: Find the stairwell, stand on it and press E or SPACE to finish the round. The clock is not running. Probably.',
+  pause: 'HOUSE RULE #3: ESC means a commercial break! Nothing moves until we are back on air.',
+  dash: 'HOUSE RULE #4: SHIFT for a quick sprint past the residents! Sprinting is loud, and the sneakers need a moment to recharge.',
+  sneak: 'HOUSE RULE #5: Residents see in cones and hear footsteps. Tiptoe up behind them for a big surprise bonus!',
+  paused: 'COMMERCIAL BREAK. Stay right where you are. Press ESC when you are ready to go back on air.',
   onStairs: 'You are on the stairs. Press E to take them and finish the run.',
 
   died: {
     title: 'YOU DIED',
-    subtitle: 'Incident report (preliminary)',
+    subtitle: 'Eliminated!',
     lines: [
-      'Subject: one (1) abductee, {class} classification.',
-      'Cause of death: {move}, administered by {enemy}.',
-      'Filing code: PENDING. The full report is being drafted with enthusiasm.',
-      'The Auditor regrets the inconvenience to the {enemy}.',
+      'Contestant: one (1) {class}, previously alive.',
+      'Eliminated by: {enemy}, with a lovely {move}.',
+      'Your parting gift: a commemorative DESCEND & WIN! mug, already chipped.',
+      'Chet says: "Tough break, kid! Let\'s hear it for the {enemy}, folks!"',
     ],
     prompt: 'Press ENTER to start a new run.',
   },
   escaped: {
     title: 'YOU ESCAPED',
-    subtitle: 'Descent filed.',
+    subtitle: 'Round 1 complete! Stay tuned!',
     lines: [
-      'Subject has located the stairwell and left the Intake Sewers.',
-      'This was not anticipated. A review of floor difficulty is under way.',
-      'Your survival has been noted, provisionally.',
+      'The contestant has found the stairwell and left the Intake Sewers!',
+      'Nobody had that on the board, folks. Nobody.',
+      'Chet says: "Don\'t go changing! Actually, do. You\'ll need to."',
     ],
     prompt: 'Press ENTER to start a new run.',
   },

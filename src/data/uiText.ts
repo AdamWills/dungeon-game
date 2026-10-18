@@ -1,5 +1,5 @@
-// Plain interface text: menu help, headings and labels. The Auditor's voice
-// lives in the log, notices and reports; this file says what things do.
+// Plain interface text: menu help, headings and labels. The host's voice
+// lives in the log, House Rules and reports; this file says what things do.
 
 export const UI_TEXT = {
   help: {
@@ -13,9 +13,9 @@ export const UI_TEXT = {
     targetKeys: 'Arrows choose, Enter attacks, Esc goes back.',
   },
   result: {
-    won: { title: 'VICTORY', sub: 'Dispute resolved.' },
-    fled: { title: 'YOU GOT AWAY', sub: 'Filed as a "strategic withdrawal". They will keep chasing you.' },
-    lost: { title: 'YOU DIED', sub: 'An incident report is being drafted.' },
+    won: { title: 'VICTORY', sub: 'And the crowd goes WILD!' },
+    fled: { title: 'YOU GOT AWAY', sub: 'Leaving so soon? They will keep chasing you.' },
+    lost: { title: 'YOU DIED', sub: 'Eliminated! Stay tuned for your parting gift.' },
     prompt: 'Press ENTER to continue',
   },
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep' } as Record<string, string>,

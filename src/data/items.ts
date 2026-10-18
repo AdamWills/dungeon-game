@@ -6,7 +6,7 @@ import type { EffectRef } from '../game/types';
 export type ItemDef = {
   id: string;
   name: string;
-  rarity: 'junk' | 'standard' | 'special' | 'cursed' | 'auditors_pick';
+  rarity: 'junk' | 'standard' | 'special' | 'cursed' | 'hosts_pick';
   slot?: 'weapon' | 'armor' | 'trinket';
   consumable?: boolean;
   effects: EffectRef[];

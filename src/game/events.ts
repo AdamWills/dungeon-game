@@ -1,5 +1,5 @@
 // A tiny event bus. Logic pushes events onto state.events; the shell drains
-// them here so listeners (Auditor, achievements, UI) never run inside a step.
+// them here so listeners (the host, achievements, UI) never run inside a step.
 
 import type { GameEvent } from './types';
 

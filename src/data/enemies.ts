@@ -42,7 +42,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 4,
     moves: [
       { id: 'gnaw', name: 'Gnaw', weight: 3, bonus: 0, hit: ['{actor} gnaws on your ankle for {dmg}.', '{actor} bites you for {dmg} and looks smug about it.'] },
-      { id: 'lanyard_whip', name: 'Lanyard Whip', weight: 1, bonus: 1, hit: ['{actor} whips you with its lanyard for {dmg}. Your access is revoked.'] },
+      { id: 'lanyard_whip', name: 'Lanyard Whip', weight: 1, bonus: 1, hit: ['{actor} whips you with its lanyard for {dmg}. Backstage access: revoked.'] },
     ],
     roam: { patrolTicksPerTile: 16, chaseTicksPerTile: 9, visionRange: 5, visionArcDeg: 100, hearingRadius: 2.5, sleepChance: 0.1, giveUpTicks: 180 },
   },

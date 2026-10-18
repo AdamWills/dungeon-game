@@ -34,4 +34,4 @@ export function bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
   ctx.fillRect(x + 1, y + 1, Math.max(0, Math.round((w - 2) * Math.max(0, Math.min(1, frac)))), h - 2);
 }
 
-export const TONE_COLOR = { info: '#c8d0c4', good: '#9fd68a', bad: '#f08a7a', auditor: '#d9b310' } as const;
+export const TONE_COLOR = { info: '#c8d0c4', good: '#9fd68a', bad: '#f08a7a', host: '#d9b310' } as const;

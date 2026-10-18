@@ -1,4 +1,4 @@
-// The abductee: orange intake jumpsuit, numbered badge, bad haircut. Drawn in
+// The contestant: orange intake jumpsuit, numbered badge, bad haircut. Drawn in
 // code at 24x24 art pixels per pose, with a dark outline so it reads on the
 // sewer floor. Replaced when real art arrives.
 

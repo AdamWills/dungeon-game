@@ -92,7 +92,7 @@ export type Encounter = {
   tile: Vec; // where gore and loot land afterwards
 };
 
-export type LogLine = { text: string; tone: 'info' | 'good' | 'bad' | 'auditor' };
+export type LogLine = { text: string; tone: 'info' | 'good' | 'bad' | 'host' };
 
 /** A visible thing that happened in battle, for the UI to animate. */
 export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend'; amount?: number };

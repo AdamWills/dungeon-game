@@ -1,46 +1,47 @@
-// Battle log lines. Variants are picked without touching the game RNG, so
-// adding a line never changes a fight's outcome.
+// Battle log lines, mostly Chet Valentine calling the action. Variants are
+// picked without touching the game RNG, so adding a line never changes a
+// fight's outcome.
 
 export const BATTLE_TEXT = {
   open: {
     player_ambush: [
-      'POLICY NOTICE 2-A: Unannounced violence detected. Bonus damage approved for one round.',
-      'You catch them unaware. The Auditor marks this as initiative.',
+      'OHHH, a sneak attack! The judges LOVE initiative! Bonus damage this round!',
+      'You caught them napping! Bonus round, folks, bonus round!',
     ],
     enemy_ambush: [
-      'POLICY NOTICE 2-B: You have been caught. Your assailant receives a punctuality bonus.',
-      'Ambushed. The Auditor notes you were looking the wrong way, again.',
+      'Ooh, ambushed! They get the first swing, and a little something extra. That is the game!',
+      'Caught from behind! Somebody check the contestant\'s peripheral vision.',
     ],
     normal: [
-      'A dispute has been opened. Please resolve it violently.',
-      'Hostilities commence. Please keep your limbs inside the incident at all times.',
+      'It\'s a SHOWDOWN! Contestant, come on down!',
+      'Fighters, take your marks! Keep it clean. No, don\'t, actually.',
     ],
   },
-  joined: ['{name} joins the fight. Nobody invited it.', '{name} wanders in, sensing paperwork.'],
+  joined: ['{name} joins the fight! Nobody invited it, and we love that.', '{name} wanders onto the set. Security? No? Great!'],
   playerHit: [
     'You hit {target} with the {weapon} for {dmg}.',
-    'You apply the {weapon} to {target}. {dmg} damage, receipt pending.',
+    'You apply the {weapon} to {target}. {dmg} damage! Big hand, folks!',
     'The {weapon} meets {target}. {dmg} damage. The pipe is fine.',
   ],
   playerMiss: [
-    'You swing at {target} and hit only air, which files no complaint.',
-    'You miss {target}. It noticed.',
+    'You swing at {target} and hit only air. Ooh, so close! Well, not that close.',
+    'You miss {target}. Let\'s see that again in slow motion. Actually, let\'s not.',
   ],
-  enemyMiss: ['{actor} tries {move} and misses.', "{actor}'s {move} goes wide. Embarrassing for everyone."],
+  enemyMiss: ['{actor} tries {move} and misses! The contestant lives to lose another day!', "{actor}'s {move} goes wide. Somebody get that on the highlight reel."],
   bonus: ' (Ambush bonus.)',
   braced: ' (Bracing halved it.)',
   kill: [
-    '{target} is no longer a going concern.',
-    '{target} dies. The paperwork will outlive it.',
-    '{target} is reduced to a mess the janitorial budget cannot cover.',
+    '{target} has been ELIMINATED! Let\'s hear it for violence!',
+    '{target} is down! And it is NOT getting back up! What a show!',
+    '{target} is reduced to a mess our cleaning crew will be talking about for weeks.',
   ],
-  defend: ['You brace yourself. It is mostly posture.', 'You assume a defensive stance, as taught by nobody.'],
-  cooldown: '{ability} is on cooldown for {turns} more turns. The Auditor has noted the attempt.',
-  noItems: 'Your pockets contain lint and regret.',
-  fleeOk: ['You flee. The Auditor records it as a strategic withdrawal, in quotes.', 'You run. It is the most athletic thing you have done this year.'],
-  fleeFail: ['You try to flee and trip over your own dignity.', 'Escape denied. They are faster, or you are slower. Both, really.'],
-  victory: ['Dispute resolved. All parties but you have been closed.', 'Victory. The Auditor files it under "unexpected".'],
-  defeat: ['You have died. The incident report is being drafted with enthusiasm.'],
+  defend: ['You brace yourself. Great posture! Terrible odds, great posture.', 'You raise your guard. The folks at home are on the edge of their seats.'],
+  cooldown: '{ability} is recharging for {turns} more turns. Patience, contestant! Patience!',
+  noItems: 'Your pockets contain lint and regret. Lint is not a usable prize.',
+  fleeOk: ['You run for it! Leaving so soon? Don\'t worry, they\'ll follow you. They always do!', 'You flee the scene! The fastest you have moved all season!'],
+  fleeFail: ['You try to flee and trip over your own feet. Classic television!', 'Escape denied! Ooh, the door is a painting. Who put that there?'],
+  victory: ['VICTORY! And the crowd goes WILD!', 'Our contestant survives! Nobody had that on the board, folks!'],
+  defeat: ['The contestant is DOWN! Folks, that is TELEVISION!'],
 } as const;
 
 /** Stable variant pick from a few integers, independent of the game RNG. */

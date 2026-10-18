@@ -84,7 +84,7 @@ describe('battle turns', () => {
     const turnBefore = [state.battle!.round, state.battle!.turn];
     battleCommand(state, { kind: 'ability', abilityId: 'rampage' });
     expect([state.battle!.round, state.battle!.turn]).toEqual(turnBefore);
-    expect(state.battle!.log.at(-1)!.text).toContain('cooldown');
+    expect(state.battle!.log.at(-1)!.text).toContain('recharging');
   });
 
   it('heals with an item, capped at max HP, and uses it up', () => {

@@ -44,7 +44,7 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   state.events.push({ type: 'battleStarted', enemyIds: [...encounter.enemyIds], start: encounter.start });
 
   const salt = state.tick;
-  say(battle, variant(T.open[encounter.start], salt), 'auditor');
+  say(battle, variant(T.open[encounter.start], salt), 'host');
   combatants.slice(2).forEach((c, i) => say(battle, fill(variant(T.joined, salt, i), { name: c.name }), 'info'));
 
   beginRound(battle);
@@ -147,7 +147,7 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
       if (!ability || cls.ability !== ability.id) return false;
       const cd = state.player.cooldowns[ability.id] ?? 0;
       if (cd > 0) {
-        say(battle, fill(T.cooldown, { ability: ability.name, turns: cd }), 'auditor');
+        say(battle, fill(T.cooldown, { ability: ability.name, turns: cd }), 'host');
         return false;
       }
       say(battle, ability.useLine, 'good');
@@ -160,7 +160,7 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
       const inst = state.player.inventory[cmd.slot];
       const def = inst && ITEMS[inst.defId];
       if (!def) {
-        say(battle, T.noItems, 'auditor');
+        say(battle, T.noItems, 'host');
         return false;
       }
       for (const eff of def.effects) {
@@ -242,10 +242,10 @@ function checkOver(state: GameState, battle: BattleState): boolean {
   const me = battle.combatants.find((c) => c.side === 'player')!;
   if (!me.alive) {
     battle.result = 'lost';
-    say(battle, variant(T.defeat, state.tick), 'auditor');
+    say(battle, variant(T.defeat, state.tick), 'host');
   } else if (enemiesOf(battle).every((c) => !c.alive)) {
     battle.result = 'won';
-    say(battle, variant(T.victory, state.tick, battle.round), 'auditor');
+    say(battle, variant(T.victory, state.tick, battle.round), 'host');
   }
   return battle.result !== null;
 }

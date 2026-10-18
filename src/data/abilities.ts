@@ -18,9 +18,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     name: 'Rampage',
     cooldown: 8,
     target: 'all_enemies',
-    description: 'Hit every enemy in the fight. Property damage is assessed separately.',
+    description: 'Hit every enemy in the fight. The set will need repainting.',
     help: 'Hit every enemy at once. Then it recharges for 8 of your turns.',
-    useLine: 'You RAMPAGE. Everything nearby is now evidence.',
+    useLine: 'You RAMPAGE! Folks, we are going to need a new set!',
   },
   // Hex arrives with the Hexer in M3.
 };
