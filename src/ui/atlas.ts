@@ -1,11 +1,12 @@
 // Placeholder tile atlas, drawn once at startup. Sewer palette: wet stone,
-// green-brown brick, a rusty door frame and a hole with a ladder.
+// green-brown brick, a rusty door frame and a hole with a ladder. The player
+// has its own animated sprites in playerSprite.ts.
 
 export const TILE = 24;
 
-export type SpriteId = 'floor0' | 'floor1' | 'floor2' | 'floor3' | 'wall' | 'wallTop' | 'door' | 'stairs' | 'player';
+export type SpriteId = 'floor0' | 'floor1' | 'floor2' | 'floor3' | 'wall' | 'wallTop' | 'door' | 'stairs';
 
-const ORDER: SpriteId[] = ['floor0', 'floor1', 'floor2', 'floor3', 'wall', 'wallTop', 'door', 'stairs', 'player'];
+const ORDER: SpriteId[] = ['floor0', 'floor1', 'floor2', 'floor3', 'wall', 'wallTop', 'door', 'stairs'];
 
 export type Atlas = { image: HTMLCanvasElement; draw: (ctx: CanvasRenderingContext2D, id: SpriteId, x: number, y: number) => void };
 
@@ -99,23 +100,6 @@ export function buildAtlas(): Atlas {
     g.fillRect(ox + 8, 4, 2, TILE - 8);
     g.fillRect(ox + 14, 4, 2, TILE - 8);
     for (let y = 7; y < TILE - 4; y += 4) g.fillRect(ox + 8, y, 8, 1);
-  }
-
-  // Player: an abductee in a regrettable orange jumpsuit.
-  {
-    const ox = at('player');
-    g.fillStyle = 'rgba(0,0,0,0.35)';
-    g.fillRect(ox + 6, 19, 12, 3);
-    g.fillStyle = '#e8762c';
-    g.fillRect(ox + 7, 9, 10, 10);
-    g.fillStyle = '#f2c9a0';
-    g.fillRect(ox + 8, 2, 8, 7);
-    g.fillStyle = '#1a1a1a';
-    g.fillRect(ox + 10, 5, 1, 1);
-    g.fillRect(ox + 13, 5, 1, 1);
-    g.fillStyle = '#c55a1a';
-    g.fillRect(ox + 7, 18, 4, 3);
-    g.fillRect(ox + 13, 18, 4, 3);
   }
 
   return {
