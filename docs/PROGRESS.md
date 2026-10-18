@@ -41,7 +41,7 @@ M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human a
 
 - **Ambushes:** who moved decides. Sneaking into an unaware or sleeping enemy gives you the first round; a chasing enemy running into you gives it the first round; anything else is a normal fight. (GDD updated.)
 - **Hazards** move to M3. (GDD build plan updated.)
-- **Tile art:** the 0x72 pack for the map (user's pick). Enemies stay hand-drawn until the user decides whether to map some onto 0x72 monsters.
+- **Tile art:** the 0x72 pack for the map (user's pick). Characters and enemies stay hand-drawn so they are consistent with each other; we do not use the pack's monsters.
 - **Plain interface, Auditor on top:** after playing M2 the joke vocabulary hid basic information (what Rampage does, what "Dispute Resolved" means). Menus now have a plain help line for the highlighted choice (target choice shows HP, hit chance and damage), headings are plain with the Auditor's line as a subtitle ("VICTORY" / "Dispute resolved.", "YOU ESCAPED" / "Descent filed."), and map bubbles are labelled ("spotted you", "heard you", "asleep"). (CLAUDE.md and GDD updated.)
 
 ## Decisions (no GDD change needed)
