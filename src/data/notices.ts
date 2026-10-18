@@ -10,25 +10,27 @@ export const NOTICES = {
   dash: 'POLICY NOTICE 1-D: SHIFT authorizes a brief sprint, during which you may slip past residents. Recharge is mandatory.',
   sneak: 'POLICY NOTICE 1-E: Residents see in cones and hear footsteps. Approaching from behind is frowned upon and rewarded.',
   paused: 'TIME SUSPENDED. Your continued existence has been placed on hold. Press ESC to resume.',
-  onStairs: 'You are standing on a stairwell. Press E to file your descent. The Auditor is waiting.',
+  onStairs: 'You are on the stairs. Press E to take them and finish the run.',
 
   died: {
-    title: 'INCIDENT REPORT (PRELIMINARY)',
+    title: 'YOU DIED',
+    subtitle: 'Incident report (preliminary)',
     lines: [
       'Subject: one (1) abductee, {class} classification.',
       'Cause of death: {move}, administered by {enemy}.',
       'Filing code: PENDING. The full report is being drafted with enthusiasm.',
       'The Auditor regrets the inconvenience to the {enemy}.',
     ],
-    prompt: 'Press ENTER to be re-abducted.',
+    prompt: 'Press ENTER to start a new run.',
   },
   escaped: {
-    title: 'DESCENT FILED',
+    title: 'YOU ESCAPED',
+    subtitle: 'Descent filed.',
     lines: [
       'Subject has located the stairwell and left the Intake Sewers.',
       'This was not anticipated. A review of floor difficulty is under way.',
       'Your survival has been noted, provisionally.',
     ],
-    prompt: 'Press ENTER to begin a new intake.',
+    prompt: 'Press ENTER to start a new run.',
   },
 };

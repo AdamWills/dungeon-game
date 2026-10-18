@@ -54,6 +54,7 @@ docs/GDD.md
 
 - Gleefully gory, sarcastic, cartoonish. Gore is sprite-based and played for laughs, with an intensity setting that can be lowered.
 - The Auditor is deadpan, specific and bureaucratic: it cites the player's actual action, item or room, narrates deaths as incident reports (cause, filing code, fake apology), and never explains mechanics in plain language (tutorials are "policy notices").
+- Interface text is plain, not the Auditor: menu labels, help lines, headings and map labels say clearly what things do. The Auditor's voice sits on top, in the log, notices, reports and as a subtitle under a plain heading ("VICTORY" / "Dispute resolved.").
 - Everything is original. Do not use names, characters or text from Dungeon Crawler Carl or any other existing work.
 
 ## Open questions (ask the user, do not decide silently)

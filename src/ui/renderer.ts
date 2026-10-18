@@ -6,6 +6,7 @@ import { CLASSES } from '../data/classes';
 import { FLOOR_THEMES } from '../data/floors';
 import { NOTICES } from '../data/notices';
 import { TUNING } from '../data/tuning';
+import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
 import type { Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
@@ -244,19 +245,25 @@ export class Renderer {
     wrapText(ctx, notice, 14, 36, w - 28, 18);
   }
 
-  private drawOverlay(lines: string[], color: string, title?: string): void {
+  private drawOverlay(lines: string[], color: string, title?: string, subtitle?: string): void {
     const { ctx, dpr } = this;
     const w = this.canvas.width / dpr;
     const h = this.worldH / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, w, h);
-    let y = h / 2 - (lines.length * 22 + (title ? 40 : 0)) / 2;
+    let y = h / 2 - (lines.length * 22 + (title ? 40 : 0) + (subtitle ? 30 : 0)) / 2;
     if (title) {
       ctx.font = FONT_BIG;
       ctx.fillStyle = color;
       centered(ctx, title, w / 2, y);
-      y += 44;
+      y += 40;
+    }
+    if (subtitle) {
+      ctx.font = FONT;
+      ctx.fillStyle = '#9aa89a';
+      centered(ctx, subtitle.toUpperCase(), w / 2, y);
+      y += 34;
     }
     ctx.font = FONT;
     lines.forEach((l, i) => {
@@ -271,10 +278,10 @@ export class Renderer {
       const d = NOTICES.died;
       const cls = CLASSES[state.player.defId].name;
       const lines = d.lines.map((l) => l.replaceAll('{enemy}', end.enemy).replaceAll('{move}', end.move).replaceAll('{class}', cls));
-      this.drawOverlay([...lines, '', d.prompt], '#f08a7a', d.title);
+      this.drawOverlay([...lines, '', d.prompt], '#f08a7a', d.title, d.subtitle);
     } else {
       const d = NOTICES.escaped;
-      this.drawOverlay([...d.lines, '', d.prompt], '#9fd68a', d.title);
+      this.drawOverlay([...d.lines, '', d.prompt], '#9fd68a', d.title, d.subtitle);
     }
   }
 }
@@ -298,6 +305,16 @@ function bubble(ctx: CanvasRenderingContext2D, sx: number, sy: number, ch: strin
   ctx.font = 'bold 9px ui-monospace, monospace';
   ctx.textBaseline = 'top';
   ctx.fillText(ch, sx + 16, sy - 7 - lift);
+  // Say what the symbol means, in plain words.
+  const label = UI_TEXT.bubbles[ch];
+  if (label) {
+    ctx.font = '6px ui-monospace, monospace';
+    const lw = ctx.measureText(label).width + 4;
+    ctx.fillStyle = 'rgba(12, 12, 12, 0.85)';
+    ctx.fillRect(sx + 24, sy - 6 - lift, lw, 8);
+    ctx.fillStyle = color;
+    ctx.fillText(label, sx + 26, sy - 5 - lift);
+  }
 }
 
 /** Cartoon gore, placed by a stable hash so it never shifts between frames. */

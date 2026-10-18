@@ -9,6 +9,7 @@ import { TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
+import { UI_TEXT } from '../data/uiText';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
 const FX_MS = 700;
@@ -219,9 +220,9 @@ export class BattleView {
       cursor = menu.itemCursor;
       title = 'ITEM  (ESC back)';
     } else if (menu.level === 'target') {
-      rows = [{ label: 'Choose a target with the arrow keys', enabled: false }];
+      rows = [];
       cursor = -1;
-      title = 'ATTACK  (ESC back)';
+      title = 'ATTACK: CHOOSE A TARGET';
     } else {
       rows = menu.options(state);
       cursor = menu.cursor;
@@ -240,21 +241,32 @@ export class BattleView {
       ctx.fillStyle = r.enabled ? (i === cursor ? '#f4ecd0' : '#c8d0c4') : '#5a5f58';
       ctx.fillText(r.label, x + 30, ry);
     });
+
+    // Plain help for the highlighted choice, under the options.
+    const helpY = y + 40 + rows.length * 24 + 10;
+    ctx.fillStyle = '#3a4a3a';
+    ctx.fillRect(x + 12, helpY - 6, w - 24, 1);
+    ctx.fillStyle = '#9aa89a';
+    const lines = wrapLines(ctx, menu.help(state), w - 28);
+    const fit = Math.max(1, Math.floor((y + h - helpY - 8) / 18));
+    lines.slice(0, fit).forEach((l, i) => ctx.fillText(l, x + 14, helpY + i * 18));
   }
 
   private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState): void {
-    const title = battle.result === 'won' ? 'DISPUTE RESOLVED' : battle.result === 'fled' ? 'STRATEGIC WITHDRAWAL' : 'YOU HAVE DIED';
+    const text = UI_TEXT.result[battle.result!];
     const color = battle.result === 'lost' ? '#f08a7a' : battle.result === 'won' ? '#9fd68a' : '#d9b310';
-    const bw = Math.min(460, w - 40);
+    const bw = Math.min(560, w - 40);
     const bx = (w - bw) / 2;
     const by = Math.round(h * 0.3);
-    panel(ctx, bx, by, bw, 92);
+    panel(ctx, bx, by, bw, 112);
     ctx.font = FONT_BIG;
     ctx.fillStyle = color;
-    centered(ctx, title, w / 2, by + 18);
+    centered(ctx, text.title, w / 2, by + 18);
     ctx.font = FONT;
-    ctx.fillStyle = '#c8d0c4';
-    centered(ctx, 'Press ENTER to continue', w / 2, by + 58);
+    ctx.fillStyle = '#9aa89a';
+    centered(ctx, text.sub, w / 2, by + 52);
+    ctx.fillStyle = '#d9b310';
+    centered(ctx, UI_TEXT.result.prompt, w / 2, by + 80);
   }
 }
 

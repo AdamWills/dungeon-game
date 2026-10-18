@@ -28,6 +28,7 @@ The dungeon is run by **the Auditor**, an administrative AI that treats mass dea
 - It narrates deaths as incident reports, with a cause of death, a filing code and a fake apology.
 - It is never helpful by accident. Hints are disguised as taunts.
 - It never breaks character or explains game mechanics in plain language; tutorials come as "policy notices".
+- The interface itself is plain: menus, help lines, headings and map labels say clearly what things do, and the Auditor's lines sit alongside them as flavour rather than replacing them.
 
 The tone is inspired by the book series but everything here is original: names, factions and the dungeon's rules are new, to keep the game its own thing.
 

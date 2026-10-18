@@ -11,6 +11,8 @@ export type ItemDef = {
   consumable?: boolean;
   effects: EffectRef[];
   description: string;
+  /** Plain menu help. */
+  help: string;
   /** Battle log line when used; {amount} is filled in. */
   useLine?: string;
 };
@@ -23,6 +25,7 @@ export const ITEMS: Record<string, ItemDef> = {
     consumable: true,
     effects: [{ kind: 'heal', amount: 10 }],
     description: 'Pre-owned. The previous owner no longer needs it, or anything.',
+    help: 'Heals 10 HP. Used up when you use it.',
     useLine: 'You apply the Suspicious Bandage. +{amount} HP. Do not ask where it has been.',
   },
 };

@@ -3,12 +3,15 @@
 
 import { ABILITIES } from '../data/abilities';
 import { CLASSES } from '../data/classes';
+import { fill } from '../data/battleText';
 import { ITEMS } from '../data/items';
+import { UI_TEXT } from '../data/uiText';
+import { baseDamage, hitChance } from '../game/combat';
 import { currentActor, enemiesOf } from '../battle/turns';
 import type { BattleCommand, BattleState, GameState } from '../game/types';
 import type { MenuKey } from './input';
 
-export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'defend' | 'flee'; label: string; enabled: boolean };
+export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
 
 export class BattleMenu {
   level: 'main' | 'target' | 'item' = 'main';
@@ -22,12 +25,14 @@ export class BattleMenu {
     const ability = ABILITIES[cls.ability];
     const cd = state.player.cooldowns[cls.ability] ?? 0;
     const items = state.player.inventory.length;
+    const H = UI_TEXT.help;
+    const abilityHelp = !ability ? '' : cd > 0 ? fill(H.recharging, { name: ability.name, turns: cd }) : ability.help;
     return [
-      { id: 'attack', label: `Attack (${cls.weapon.name})`, enabled: true },
-      { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0 },
-      { id: 'item', label: `Item (${items})`, enabled: items > 0 },
-      { id: 'defend', label: 'Defend', enabled: true },
-      { id: 'flee', label: 'Flee', enabled: true },
+      { id: 'attack', label: `Attack (${cls.weapon.name})`, enabled: true, help: fill(H.attack, { weapon: cls.weapon.name }) },
+      { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0, help: abilityHelp },
+      { id: 'item', label: `Item (${items})`, enabled: items > 0, help: items > 0 ? H.item : H.noItems },
+      { id: 'defend', label: 'Defend', enabled: true, help: H.defend },
+      { id: 'flee', label: 'Flee', enabled: true, help: H.flee },
     ];
   }
 
@@ -100,5 +105,31 @@ export class BattleMenu {
 
   itemLabels(state: GameState): string[] {
     return state.player.inventory.map((i) => ITEMS[i.defId]?.name ?? i.defId);
+  }
+
+  /** Plain help for whatever the cursor is on. */
+  help(state: GameState): string {
+    const battle = state.battle;
+    if (!battle) return '';
+    if (this.level === 'item') {
+      const inst = state.player.inventory[this.itemCursor];
+      return inst ? (ITEMS[inst.defId]?.help ?? '') : UI_TEXT.help.noItems;
+    }
+    if (this.level === 'target') {
+      const id = this.targets(state)[this.target];
+      const foe = battle.combatants.find((c) => c.id === id);
+      const me = battle.combatants.find((c) => c.side === 'player');
+      if (!foe || !me) return UI_TEXT.help.targetKeys;
+      const weapon = CLASSES[state.player.defId].weapon.damage;
+      const line = fill(UI_TEXT.help.target, {
+        name: foe.name,
+        hp: foe.stats.hp,
+        max: foe.stats.maxHp,
+        chance: Math.round(hitChance(foe.stats.evasion) * 100),
+        dmg: baseDamage(weapon, me.stats.str, foe.stats.armor),
+      });
+      return `${line} ${UI_TEXT.help.targetKeys}`;
+    }
+    return this.options(state)[this.cursor]?.help ?? '';
   }
 }
