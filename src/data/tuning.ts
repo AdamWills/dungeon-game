@@ -20,6 +20,10 @@ export const TUNING = {
   ai: {
     alertBubbleTicks: 45,
     suspicionTicks: 120,
+    /** Ticks a hearing enemy stands puzzled ("?") before turning to the sound. */
+    hearReactTicks: 45,
+    /** Hearing range multiplier while the player dashes. */
+    dashNoise: 2,
     waypointWait: [20, 70] as [number, number],
   },
 

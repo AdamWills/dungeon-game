@@ -34,7 +34,7 @@ export function spawn(
       hearingRadius: def.roam.hearingRadius,
       alert: opts.alert ?? 'idle',
     },
-    mind: { routeIndex: 0, waitTicks: 0, asleep: !!opts.asleep, lostSight: 0, suspicion: 0, lastSeen: null, alertedAt: -1000, stunned: 0 },
+    mind: { routeIndex: 0, waitTicks: 0, asleep: !!opts.asleep, lostSight: 0, suspicion: 0, turnDelay: 0, lastSeen: null, alertedAt: -1000, stunned: 0 },
   };
   state.floor.entities.push(e);
   return e;

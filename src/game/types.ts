@@ -55,6 +55,8 @@ export type EnemyMind = {
   lostSight: number;
   /** Ticks left in the current suspicious spell. */
   suspicion: number;
+  /** Ticks before a suspicious enemy turns toward what it heard. */
+  turnDelay: number;
   lastSeen: Vec | null;
   /** Tick the enemy last became alerted, for the "!" over its head. */
   alertedAt: number;

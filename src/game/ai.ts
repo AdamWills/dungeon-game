@@ -63,13 +63,18 @@ function perceive(state: GameState, e: Entity): void {
     return;
   }
 
-  const hearing = mind.asleep ? patrol.hearingRadius / 2 : patrol.hearingRadius;
+  // Walking is quiet, dashing is loud; sleepers hear half as far.
+  let hearing = patrol.hearingRadius * (state.dash.active > 0 ? TUNING.ai.dashNoise : 1);
+  if (mind.asleep) hearing /= 2;
   if (player.motion && dist <= hearing) {
+    if (patrol.alert === 'idle') {
+      // It takes a moment to place a sound and turn: that moment is your opening.
+      mind.turnDelay = TUNING.ai.hearReactTicks;
+    }
     mind.asleep = false;
     patrol.alert = 'suspicious';
     mind.suspicion = TUNING.ai.suspicionTicks;
     mind.lastSeen = pTile;
-    if (!e.motion) e.facing = Math.atan2(player.pos.y - e.pos.y, player.pos.x - e.pos.x);
   }
 }
 
@@ -86,7 +91,8 @@ function decide(state: GameState, e: Entity): void {
   }
 
   if (patrol.alert === 'suspicious') {
-    if (mind.lastSeen) e.facing = Math.atan2(mind.lastSeen.y - e.pos.y, mind.lastSeen.x - e.pos.x);
+    if (mind.turnDelay > 0) mind.turnDelay--;
+    else if (mind.lastSeen) e.facing = Math.atan2(mind.lastSeen.y - e.pos.y, mind.lastSeen.x - e.pos.x);
     if (--mind.suspicion <= 0) patrol.alert = 'idle';
     return;
   }

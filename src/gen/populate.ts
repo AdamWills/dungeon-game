@@ -47,7 +47,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme): Entity[] {
           hearingRadius: def.roam.hearingRadius,
           alert: 'idle',
         },
-        mind: { routeIndex: 0, waitTicks: nextInt(rng, 0, 60), asleep, lostSight: 0, suspicion: 0, lastSeen: null, alertedAt: -1000, stunned: 0 },
+        mind: { routeIndex: 0, waitTicks: nextInt(rng, 0, 60), asleep, lostSight: 0, suspicion: 0, turnDelay: 0, lastSeen: null, alertedAt: -1000, stunned: 0 },
       });
     }
   }

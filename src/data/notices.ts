@@ -7,7 +7,7 @@ export const NOTICES = {
   stairs:
     'POLICY NOTICE 1-B: Descent is filed by standing on the stairwell and pressing E or SPACE. Hesitation is logged.',
   pause: 'POLICY NOTICE 1-C: ESC suspends the passage of time. This is a privilege, not a right.',
-  dash: 'POLICY NOTICE 1-D: SHIFT authorizes a brief sprint, during which you may slip past residents. Recharge is mandatory.',
+  dash: 'POLICY NOTICE 1-D: SHIFT authorizes a brief sprint, during which you may slip past residents. Sprinting is loud. Recharge is mandatory.',
   sneak: 'POLICY NOTICE 1-E: Residents see in cones and hear footsteps. Approaching from behind is frowned upon and rewarded.',
   paused: 'TIME SUSPENDED. Your continued existence has been placed on hold. Press ESC to resume.',
   onStairs: 'You are on the stairs. Press E to take them and finish the run.',

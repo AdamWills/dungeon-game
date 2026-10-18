@@ -28,6 +28,12 @@
 - Map tiles are 16 px; our hand-drawn characters keep their 24 px box and stand a little taller than a tile, like the pack's own heroes. The view zoom aims for about 22 by 13 tiles (4x at 1080p).
 - A test checks that every sprite name the map uses exists in the pack's tile list.
 
+### Sneaking fix (after playtesting M2)
+- Problem: enemies heard footsteps 3 to 5 tiles away and turned instantly, so they always saw you before you could touch them from behind; rats also out-ran a walking player. A new test confirmed no enemy could be snuck up on.
+- Fix: a hearing enemy shows "?" for 0.75 seconds before turning toward the sound; walking is quieter (hearing 2 to 3 tiles) and dashing doubles it; chasers are now no faster than a walking player (the rat matches you, the rest are slower), so dash or distance can lose them.
+- Tests: walking up behind each of the five enemies opens with your ambush; a heard enemy does turn round if you dawdle; a dash is heard from further away than a walk. Bot check: 11 deaths and 29 escapes in 40 runs, so enemies still kill.
+- Checked in the browser with real keys: walked up behind a Feral Intern, it showed "heard you" while still facing away, and the fight opened as your ambush.
+
 ## Next
 
 M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
