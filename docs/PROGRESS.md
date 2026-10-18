@@ -14,7 +14,14 @@
 
 ## Next
 
-M2: Fight (see the GDD build plan). Not started.
+M2: Fight (see the GDD build plan). In progress.
+
+## Decisions from the user
+
+- Work is committed directly to `main` and pushed; no branches or pull requests.
+- **Stairs:** in the one-floor prototype, taking the stairs (once the mini-boss is beaten) ends the run as a win.
+- **M2 battle menu:** Attack, Ability (the class signature, Rampage for the Brawler), Item (one healing consumable), Defend and Flee. Improvise and the full item list come in M3.
+- **Doors:** closed doors block both movement and sight.
 
 ## Decisions (no GDD change needed)
 

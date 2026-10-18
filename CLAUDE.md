@@ -43,7 +43,7 @@ docs/GDD.md
 ## Working agreements
 
 - Build the milestones in order (M1 to M5 in the GDD). Each ends with something playable; run the game and check it before moving on.
-- Commit at the end of each milestone with a short message. Ask before adding dependencies beyond Vite, TypeScript, rot.js and Vitest.
+- Commit at the end of each milestone with a short message, directly to `main`, and push. No branches or pull requests. Ask before adding dependencies beyond Vite, TypeScript, rot.js and Vitest.
 - If a milestone runs long, cut from the top of the GDD cut list; do not start the next milestone half-built.
 - Placeholder art is fine. Use simple generated or free tiles; do not stop to make art before M3.
 - Do not tune balance until M5. Aim for beatable, not balanced.
