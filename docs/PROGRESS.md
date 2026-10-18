@@ -23,9 +23,14 @@
 - Tests: 45 in total, including combat maths, battle turns, AI senses, the ambush rules, spawning over 59 seeds, and a bot that plays 40 full runs with random choices (last run: 21 deaths, 19 escapes, 108 battles, no crashes).
 - Checked in a real browser with real key presses: walked to an enemy, won a fight through the menu, carried on, then died to an Intake Rat's Gnaw. No console errors.
 
+### Tile art
+- The map now uses the 0x72 16x16 DungeonTileset II (CC0, v1.7, from the author's itch.io page), stored with a licence note in `src/assets/0x72/`. Floors with stable random cracks, brick wall faces with caps, stone rims along room sides and bottoms, sewer goo dripping down some walls, and the pack's stairs. The battle screen floor uses it too.
+- Map tiles are 16 px; our hand-drawn characters keep their 24 px box and stand a little taller than a tile, like the pack's own heroes. The view zoom aims for about 22 by 13 tiles (4x at 1080p).
+- A test checks that every sprite name the map uses exists in the pack's tile list.
+
 ## Next
 
-M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Swap in a real tile pack at the start (pack not chosen yet). Closed doors that block movement and sight also need a home; they fit with props in M3.
+M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
 
 ## Decisions from the user
 
@@ -36,6 +41,7 @@ M3: Loot and classes. Items and inventory (about 30), the Hexer and Hex, Human a
 
 - **Ambushes:** who moved decides. Sneaking into an unaware or sleeping enemy gives you the first round; a chasing enemy running into you gives it the first round; anything else is a normal fight. (GDD updated.)
 - **Hazards** move to M3. (GDD build plan updated.)
+- **Tile art:** the 0x72 pack for the map (user's pick). Enemies stay hand-drawn until the user decides whether to map some onto 0x72 monsters.
 - **Plain interface, Auditor on top:** after playing M2 the joke vocabulary hid basic information (what Rampage does, what "Dispute Resolved" means). Menus now have a plain help line for the highlighted choice (target choice shows HP, hit chance and damage), headings are plain with the Auditor's line as a subtitle ("VICTORY" / "Dispute resolved.", "YOU ESCAPED" / "Descent filed."), and map bubbles are labelled ("spotted you", "heard you", "asleep"). (CLAUDE.md and GDD updated.)
 
 ## Decisions (no GDD change needed)

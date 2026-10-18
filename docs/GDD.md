@@ -555,7 +555,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 **Open questions**
 
 - [x] Final title: Subpar Dungeon is the working title; confirm before art or branding.
-- [ ] Tile art source: free asset pack, commissioned, or hand-drawn placeholder?
+- [x] Tile art source: the free 0x72 16x16 DungeonTileset II (CC0) for the map; characters hand-drawn for now.
 - [ ] Should the live LLM narrator be on by default for players, or an opt-in setting?
 - [ ] Gore setting: one toggle, or separate sliders for gibs, blood and body parts?
 - [ ] How many floors define "winning" in v1: 5, 10 or 15?

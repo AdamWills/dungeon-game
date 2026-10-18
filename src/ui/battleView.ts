@@ -5,7 +5,7 @@
 
 import { currentActor } from '../battle/turns';
 import type { BattleState, Combatant, GameState } from '../game/types';
-import { TILE } from './atlas';
+import { SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
@@ -35,7 +35,7 @@ export class BattleView {
     const enemies = battle.combatants.filter((c) => c.side === 'enemy');
     const actor = currentActor(battle);
     const targetId = menu.level === 'target' ? menu.targets(state)[menu.target] : null;
-    const size = TILE * scale;
+    const size = SPRITE * scale;
     const gap = Math.min(size * 1.6, (w - 80) / Math.max(1, enemies.length));
     const rowY = Math.round(h * 0.18);
     enemies.forEach((c, i) => {
@@ -48,7 +48,7 @@ export class BattleView {
     });
 
     const me = battle.combatants.find((c) => c.side === 'player')!;
-    const meSize = TILE * (scale + 1);
+    const meSize = SPRITE * (scale + 1);
     this.drawCombatant(ctx, me, Math.round(w * 0.2), panelTop - meSize - 64, meSize, battle, now, {
       flip: false,
       highlight: false,

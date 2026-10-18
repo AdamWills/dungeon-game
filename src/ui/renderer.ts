@@ -11,15 +11,16 @@ import { canSee } from '../game/ai';
 import type { Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
 import { PlayerAnimator } from './animation';
-import { type Atlas, floorVariant, TILE } from './atlas';
+import { type Atlas, SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
 import { BattleView } from './battleView';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
+import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
 import { bar, centered, FONT, FONT_BIG, wrapText } from './text';
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
-const MIN_VIEW_TILES = { x: 18, y: 12 };
+const MIN_VIEW_TILES = { x: 22, y: 13 };
 const HUD_CSS_H = 76;
 
 export class Renderer {
@@ -112,19 +113,16 @@ export class Renderer {
         const sx = x * TILE - camX;
         const sy = y * TILE - camY;
         switch (tile.terrain) {
-          case 'wall': {
-            const below = y + 1 < floor.height ? floor.tiles[y + 1][x].terrain : 'wall';
-            atlas.draw(ctx, below === 'wall' ? 'wallTop' : 'wall', sx, sy);
-            break;
-          }
-          case 'door':
-            atlas.draw(ctx, 'door', sx, sy);
+          case 'wall':
+            this.drawWall(floor, x, y, sx, sy);
             break;
           case 'stairs':
-            atlas.draw(ctx, 'stairs', sx, sy);
+            atlas.draw(ctx, MAP_SPRITES.stairs, sx, sy);
             break;
-          default:
+          default: // floor, and doors (open archways for now)
             atlas.draw(ctx, floorVariant(x, y), sx, sy);
+            if (y > 0 && floor.tiles[y - 1][x].terrain === 'wall' && wallFaceVariant(x, y - 1) === 'goo' && isFace(floor, x, y - 1))
+              atlas.draw(ctx, MAP_SPRITES.wallGooBase, sx, sy);
         }
         for (let i = 0; i < tile.gore.length; i++) drawGore(ctx, tile.gore[i].kind, sx, sy, x * 31 + y * 17 + i);
       }
@@ -160,34 +158,57 @@ export class Renderer {
     ctx.restore();
   }
 
+  /**
+   * 0x72-style walls: a brick face where floor lies below, a stone rim on top
+   * of each face, and thin rims along the sides and bottoms of rooms. Wall
+   * tiles away from any floor stay dark.
+   */
+  private drawWall(floor: GameState['floor'], x: number, y: number, sx: number, sy: number): void {
+    const { ctx, atlas } = this;
+    const open = (dx: number, dy: number) => !isWallAt(floor, x + dx, y + dy);
+    if (open(0, 1)) {
+      const v = wallFaceVariant(x, y);
+      atlas.draw(ctx, v === 'hole1' ? MAP_SPRITES.wallFaceVariants[0] : v === 'hole2' ? MAP_SPRITES.wallFaceVariants[1] : MAP_SPRITES.wallFace, sx, sy);
+      if (v === 'goo') atlas.draw(ctx, MAP_SPRITES.wallGoo, sx, sy);
+    } else if (isFace(floor, x, y + 1)) atlas.draw(ctx, MAP_SPRITES.wallTop, sx, sy);
+    // Side rims run alongside the floor; at a room's top corners they carry on
+    // up past the end of the face row (but faces themselves get none).
+    const face = open(0, 1);
+    if (open(-1, 0) || (!face && open(-1, 1))) atlas.draw(ctx, MAP_SPRITES.wallRimWest, sx, sy);
+    if (open(1, 0) || (!face && open(1, 1))) atlas.draw(ctx, MAP_SPRITES.wallRimEast, sx, sy);
+    // Bottom rim: the cap sprite's rim sits in its lowest rows, so lift it to this tile's top.
+    if (open(0, -1)) atlas.draw(ctx, MAP_SPRITES.wallTop, sx, sy - 12);
+  }
+
   private drawEnemy(state: GameState, e: Entity, sx: number, sy: number): void {
     const { ctx } = this;
     const mind = e.mind!;
-    shadow(ctx, sx, sy, 7);
+    shadow(ctx, sx, sy, 6);
     const moving = !!e.motion;
     const bob = moving ? (Math.floor(e.motion!.tick / 4) % 2) : mind.asleep ? 0 : Math.floor(state.tick / 40) % 2;
     const flip = Math.cos(e.facing) < -0.01;
     ctx.save();
     ctx.translate(sx + TILE / 2, sy + TILE - bob);
     ctx.scale(flip ? -1 : 1, mind.asleep ? 0.85 : 1);
-    ctx.drawImage(this.enemySprites(e.defId), -TILE / 2, -TILE);
+    ctx.drawImage(this.enemySprites(e.defId), -SPRITE / 2, -SPRITE);
     ctx.restore();
 
-    if (mind.asleep) bubble(ctx, sx, sy, 'z', '#a0b8d8', state.tick);
-    else if (state.tick - mind.alertedAt < TUNING.ai.alertBubbleTicks) bubble(ctx, sx, sy, '!', '#ff5a40', 0);
-    else if (e.patrol!.alert === 'suspicious') bubble(ctx, sx, sy, '?', '#ffb040', 0);
+    const top = sy + TILE - SPRITE; // top of the sprite box
+    if (mind.asleep) bubble(ctx, sx, top, 'z', '#a0b8d8', state.tick);
+    else if (state.tick - mind.alertedAt < TUNING.ai.alertBubbleTicks) bubble(ctx, sx, top, '!', '#ff5a40', 0);
+    else if (e.patrol!.alert === 'suspicious') bubble(ctx, sx, top, '?', '#ffb040', 0);
     if (e.stats.hp < e.stats.maxHp) {
       ctx.fillStyle = '#1a1414';
-      ctx.fillRect(sx + 4, sy - 2, 16, 3);
+      ctx.fillRect(sx, top + 1, 16, 3);
       ctx.fillStyle = '#c9473a';
-      ctx.fillRect(sx + 5, sy - 1, Math.round(14 * (e.stats.hp / e.stats.maxHp)), 1);
+      ctx.fillRect(sx + 1, top + 2, Math.round(14 * (e.stats.hp / e.stats.maxHp)), 1);
     }
   }
 
   private drawPlayer(state: GameState, sx: number, sy: number): void {
     const { ctx } = this;
     const pose = this.animator.pose(state);
-    shadow(ctx, sx, sy, 7 + pose.squash);
+    shadow(ctx, sx, sy, 6 + pose.squash);
 
     const sprite = this.playerSprites(pose.dir, pose.frame, pose.blink);
     const sqX = 1 + 0.12 * pose.squash;
@@ -198,7 +219,7 @@ export class Renderer {
     // Anchor at the feet so squash and flip keep them planted.
     ctx.translate(sx + TILE / 2, sy + TILE - pose.bob);
     ctx.scale(pose.flip ? -sqX : sqX, sqY);
-    ctx.drawImage(sprite, -TILE / 2, -TILE);
+    ctx.drawImage(sprite, -SPRITE / 2, -SPRITE);
     ctx.restore();
   }
 
@@ -286,6 +307,15 @@ export class Renderer {
   }
 }
 
+function isWallAt(floor: GameState['floor'], x: number, y: number): boolean {
+  return x < 0 || y < 0 || x >= floor.width || y >= floor.height || floor.tiles[y][x].terrain === 'wall';
+}
+
+/** A wall tile with walkable ground directly below shows its brick face. */
+function isFace(floor: GameState['floor'], x: number, y: number): boolean {
+  return isWallAt(floor, x, y) && !isWallAt(floor, x, y + 1);
+}
+
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -293,27 +323,28 @@ function clamp(v: number, lo: number, hi: number): number {
 function shadow(ctx: CanvasRenderingContext2D, sx: number, sy: number, rx: number): void {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
   ctx.beginPath();
-  ctx.ellipse(sx + TILE / 2, sy + TILE - 2, rx, 2.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(sx + TILE / 2, sy + TILE - 2, rx, 2, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function bubble(ctx: CanvasRenderingContext2D, sx: number, sy: number, ch: string, color: string, tick: number): void {
+function bubble(ctx: CanvasRenderingContext2D, sx: number, top: number, ch: string, color: string, tick: number): void {
   const lift = ch === 'z' ? Math.floor(tick / 20) % 3 : 0;
+  const sy = top + 4; // a little above the head
   ctx.fillStyle = '#0c0c0c';
-  ctx.fillRect(sx + 14, sy - 8 - lift, 9, 10);
+  ctx.fillRect(sx + 10, sy - 8 - lift, 9, 10);
   ctx.fillStyle = color;
   ctx.font = 'bold 9px ui-monospace, monospace';
   ctx.textBaseline = 'top';
-  ctx.fillText(ch, sx + 16, sy - 7 - lift);
+  ctx.fillText(ch, sx + 12, sy - 7 - lift);
   // Say what the symbol means, in plain words.
   const label = UI_TEXT.bubbles[ch];
   if (label) {
     ctx.font = '6px ui-monospace, monospace';
     const lw = ctx.measureText(label).width + 4;
     ctx.fillStyle = 'rgba(12, 12, 12, 0.85)';
-    ctx.fillRect(sx + 24, sy - 6 - lift, lw, 8);
+    ctx.fillRect(sx + 20, sy - 6 - lift, lw, 8);
     ctx.fillStyle = color;
-    ctx.fillText(label, sx + 26, sy - 5 - lift);
+    ctx.fillText(label, sx + 22, sy - 5 - lift);
   }
 }
 
@@ -325,11 +356,11 @@ function drawGore(ctx: CanvasRenderingContext2D, kind: 'blood' | 'gibs', sx: num
     return ((h >>> 0) % 1000) / 1000;
   };
   ctx.fillStyle = '#7a1414';
-  for (let i = 0; i < 5; i++) ctx.fillRect(sx + 3 + Math.floor(r(i) * 16), sy + 4 + Math.floor(r(i + 9) * 14), 3 + Math.floor(r(i + 3) * 4), 2 + Math.floor(r(i + 5) * 3));
+  for (let i = 0; i < 5; i++) ctx.fillRect(sx + 2 + Math.floor(r(i) * 10), sy + 3 + Math.floor(r(i + 9) * 9), 2 + Math.floor(r(i + 3) * 3), 1 + Math.floor(r(i + 5) * 2));
   if (kind === 'gibs') {
     ctx.fillStyle = '#b02a2a';
-    for (let i = 0; i < 3; i++) ctx.fillRect(sx + 4 + Math.floor(r(i + 20) * 14), sy + 6 + Math.floor(r(i + 30) * 12), 3, 2);
+    for (let i = 0; i < 3; i++) ctx.fillRect(sx + 3 + Math.floor(r(i + 20) * 9), sy + 4 + Math.floor(r(i + 30) * 8), 2, 2);
     ctx.fillStyle = '#e8e0d0';
-    ctx.fillRect(sx + 6 + Math.floor(r(40) * 10), sy + 8 + Math.floor(r(41) * 8), 3, 1);
+    ctx.fillRect(sx + 4 + Math.floor(r(40) * 7), sy + 6 + Math.floor(r(41) * 6), 3, 1);
   }
 }

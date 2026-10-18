@@ -5,7 +5,7 @@ import { EventBus } from './game/events';
 import { FixedStepLoop } from './game/loop';
 import { createGameState } from './game/state';
 import type { BattleCommand, GameState } from './game/types';
-import { buildAtlas } from './ui/atlas';
+import { type Atlas, loadAtlas } from './ui/atlas';
 import { BattleMenu } from './ui/battleMenu';
 import { buildEnemySprites } from './ui/enemySprites';
 import { Keyboard } from './ui/input';
@@ -21,14 +21,9 @@ let state: GameState = createGameState(Number(params.get('seed')) || randomSeed(
 const keyboard = new Keyboard(window);
 const bus = new EventBus();
 const menu = new BattleMenu();
-const renderer = new Renderer(
-  document.getElementById('game') as HTMLCanvasElement,
-  buildAtlas(),
-  buildPlayerSprites(),
-  buildEnemySprites(),
-);
+let renderer!: Renderer;
 
-bus.on('floorEntered', () => renderer.animator.reset());
+bus.on('floorEntered', () => renderer?.animator.reset());
 bus.onAny((e) => console.debug('[event]', e));
 bus.drain(state.events);
 
@@ -62,7 +57,11 @@ function frame(now: number) {
   renderer.render(state, menu, now);
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+function start(atlas: Atlas): void {
+  renderer = new Renderer(document.getElementById('game') as HTMLCanvasElement, atlas, buildPlayerSprites(), buildEnemySprites());
+  requestAnimationFrame(frame);
+}
+loadAtlas().then(start);
 
 // Handy for poking at state from the console during development.
 (window as unknown as { game: GameState }).game = state;
