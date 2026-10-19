@@ -1,3 +1,4 @@
+import { TUNING } from '../src/data/tuning';
 import { describe, expect, it } from 'vitest';
 import { type Dir, NO_INPUT } from '../src/game/types';
 import { isWalkable } from '../src/gen/reach';
@@ -77,13 +78,13 @@ describe('encounters (who moved decides)', () => {
     expect(state.battle!.encounter.start).toBe('normal');
   });
 
-  it('pulls nearby enemies into the fight, up to four', () => {
+  it('pulls nearby enemies into the fight, up to the cap', () => {
     const state = emptyRun();
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]])
       spawn(state, 'intake_rat', nearPlayer(state, dx, dy), { asleep: true });
     for (let i = 0; i < 30 && state.mode === 'roaming'; i++) step(state, { ...NO_INPUT, move: 'right' });
     expect(state.mode).toBe('battle');
-    expect(state.battle!.encounter.enemyIds).toHaveLength(4);
+    expect(state.battle!.encounter.enemyIds).toHaveLength(TUNING.maxEnemiesPerBattle);
   });
 
   it('lets a dash slip past an enemy without a fight', () => {

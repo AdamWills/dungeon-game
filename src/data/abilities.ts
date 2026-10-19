@@ -25,10 +25,10 @@ export const ABILITIES: Record<string, AbilityDef> = {
   hex: {
     id: 'hex',
     name: 'Hex',
-    cooldown: 6,
+    cooldown: 4,
     target: 'one_enemy',
     description: 'Mark an enemy so everything hurts twice as much. Very therapeutic.',
-    help: 'Mark one enemy: it takes double damage for 5 turns. Then it recharges for 6 of your turns.',
+    help: 'Mark one enemy: it takes double damage for 5 turns. Then it recharges for 4 of your turns.',
     useLine: 'You HEX {target}! Ooh, that is going to sting. Twice!',
   },
 };

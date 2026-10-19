@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { battleCommand, startBattle } from '../src/battle/turns';
+
 import { ALLIES, bribePrice, LOYALTY } from '../src/data/allies';
 import { HOST_LINES } from '../src/data/hostLines';
 import { PERKS } from '../src/data/perks';
@@ -14,7 +14,7 @@ import { generateFloor } from '../src/gen/floor';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
 import { Host } from '../src/host/host';
 import { step } from '../src/world/roam';
-import { nearPlayer, spawn } from './helpers';
+import { battleCommand, nearPlayer, spawn, startBattle } from './helpers';
 
 /** A run with nothing on the floor but you, so tests can stage things. */
 function cleanRun(seed = 11, cls = 'brawler'): GameState {

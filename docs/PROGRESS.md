@@ -83,6 +83,10 @@
 - **Elimination report** (`src/game/report.ts`, `src/data/report.ts`): the death screen lists class, race and level, the killer and move, fights, Bad Ideas and allies, your last words (from your last action), a useless parting gift and Chet's sign-off.
 - Tests: `tests/m4.test.ts` (placement and reachability, the three ways to recruit, following, fights started through an ally, allies acting and being targeted, ally death, flee costs, Second Opinion, loyalty and betrayals, XP thresholds, favored points, perks, Thick Skull, Bad Habits, spoils, the report, host lines). The bot now plays level-ups and tries sparing. 120 tests pass.
 
+### Pacing and a first difficulty pass (after playtesting M4)
+- User: "things move way too fast", "dead by the second enemy". Battles now play out one turn at a time: after your move, every other turn (enemy or ally) resolves a beat apart (50 fixed steps, about 0.8 s) and the result banner waits for the last hit to land. The menu says whose turn it is; Flee shows your actual chance and warns that a failed try lets them all hit you. Logic stays deterministic: the pause is counted in fixed steps (`battleTick`).
+- Measured with a sensible-player bot (`tests/difficulty.test.ts`, run with `SIM=1`): before, Brawler runs died 58% of the time and Hexer runs 98% (usually in the 2nd fight). Changes: at most 3 enemies per fight and a smaller join radius; you and your allies regain 1 HP every 1.5 s while exploring; chasing enemies are a little slower than you; the Grudge Gator hits softer (Death Roll and Drink Deep too); the Hexer has 26 HP, 1 Armor, 3 Strength, a 3-damage clipboard and Hex every 4 turns. After: Brawler wins 80% and dies 5%; Hexer still dies 57% and needs more work.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

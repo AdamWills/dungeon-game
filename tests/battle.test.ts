@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { battleCommand, currentActor, startBattle } from '../src/battle/turns';
+import { currentActor } from '../src/battle/turns';
 import type { BattleCommand, Encounter, GameState } from '../src/game/types';
-import { emptyRun, nearPlayer, spawn } from './helpers';
+import { battleCommand, emptyRun, nearPlayer, spawn, startBattle } from './helpers';
 
 function fight(seed: number, enemies: string[], start: Encounter['start'] = 'normal'): GameState {
   const state = emptyRun(seed);

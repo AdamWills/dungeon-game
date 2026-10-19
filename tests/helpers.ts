@@ -1,6 +1,7 @@
 import { ENEMIES } from '../src/data/enemies';
 import { createGameState } from '../src/game/state';
-import type { Entity, GameState, Vec } from '../src/game/types';
+import { battleCommand as realCommand, battleTick, startBattle as realStart } from '../src/battle/turns';
+import type { BattleCommand, Encounter, Entity, GameState, Vec } from '../src/game/types';
 import { isWalkable } from '../src/gen/reach';
 
 /** A fresh run with the floor's enemies removed, so tests can place their own. */
@@ -45,4 +46,22 @@ export function nearPlayer(state: GameState, dx: number, dy: number): Vec {
   const p = { x: state.player.pos.x + dx, y: state.player.pos.y + dy };
   if (!isWalkable(state.floor, p.x, p.y)) throw new Error(`not walkable: ${dx},${dy}`);
   return p;
+}
+
+/** Play out battle pauses until it is your turn again (or the fight is decided). */
+export function settle(state: GameState): void {
+  for (let i = 0; i < 100_000 && state.battle && state.battle.wait > 0; i++) battleTick(state);
+}
+
+/** Start a fight and fast-forward to your first turn, as if the pauses had played out. */
+export function startBattle(state: GameState, encounter: Encounter): void {
+  realStart(state, encounter);
+  settle(state);
+}
+
+/** Send a battle command after any pause, then play out everyone else's turns. */
+export function battleCommand(state: GameState, cmd: BattleCommand): void {
+  settle(state);
+  realCommand(state, cmd);
+  settle(state);
 }

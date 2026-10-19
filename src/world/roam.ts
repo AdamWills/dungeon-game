@@ -4,7 +4,7 @@
 // steps with no pause between them.
 
 import { TUNING } from '../data/tuning';
-import { battleCommand, startBattle } from '../battle/turns';
+import { battleCommand, battleTick, startBattle } from '../battle/turns';
 import { updateEnemy } from '../game/ai';
 import { inventoryCommand } from '../game/equipment';
 import { captiveAt, leaveTrail, spotCaptives, tryRecruit, updateParty } from '../game/party';
@@ -32,6 +32,7 @@ export function step(state: GameState, input: InputFrame): void {
     }
   }
   if (state.mode === 'battle') {
+    battleTick(state);
     if (input.command && isBattleCommand(input.command)) battleCommand(state, input.command);
     return;
   }
@@ -43,6 +44,9 @@ export function step(state: GameState, input: InputFrame): void {
 
   state.tick++;
   if (state.grace > 0) state.grace--;
+  // Catching your breath between fights.
+  if (state.tick % TUNING.regenTicks === 0)
+    for (const e of [state.player, ...state.party]) e.stats.hp = Math.min(e.stats.maxHp, e.stats.hp + (e.stats.hp > 0 ? 1 : 0));
   if (state.dash.cooldown > 0) state.dash.cooldown--;
   if (state.dash.active > 0) state.dash.active--;
 

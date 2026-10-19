@@ -55,9 +55,9 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   cursed_clipboard: {
     id: 'cursed_clipboard', name: 'Cursed Clipboard', rarity: 'standard', slot: 'weapon', noLoot: true,
-    weapon: { damage: 2 }, mods: { charm: 1 },
+    weapon: { damage: 3 }, mods: { charm: 1 },
     description: 'Every page is a waiver you already signed.',
-    help: 'Weapon. 2 damage, +1 Charm.',
+    help: 'Weapon. 3 damage, +1 Charm.',
   },
   mop_of_reckoning: {
     id: 'mop_of_reckoning', name: 'Mop of Reckoning', rarity: 'standard', slot: 'weapon',

@@ -35,7 +35,7 @@ export const CLASSES: Record<string, ClassDef> = {
     name: 'Hexer',
     blurb: 'Curses people for a living. Previously in middle management.',
     help: 'Fragile and fast. Hex makes one enemy take double damage. Starts with 3 Hex Scrolls.',
-    base: { hp: 18, str: 2, speed: 4, evasion: 3, armor: 0, charm: 3 },
+    base: { hp: 26, str: 3, speed: 4, evasion: 3, armor: 1, charm: 3 },
     ability: 'hex',
     favored: ['speed', 'charm'],
     kit: { weapon: 'cursed_clipboard' },

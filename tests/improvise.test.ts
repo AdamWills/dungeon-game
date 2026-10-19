@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { gatherArena, resolveImprov, validateOutcome } from '../src/battle/improvise';
-import { battleCommand, startBattle } from '../src/battle/turns';
+
 import { BAD_IDEAS, IMPROV_LIMITS, JANK_COMBOS, PROP_COMBOS, type PropVerb, VERBS } from '../src/data/improv';
 import { ITEMS } from '../src/data/items';
 import { PROPS } from '../src/data/props';
 import { createGameState } from '../src/game/state';
 import { type GameState, type ImprovOutcome, NO_INPUT } from '../src/game/types';
 import { step } from '../src/world/roam';
-import { nearPlayer, spawn } from './helpers';
+import { battleCommand, nearPlayer, spawn, startBattle } from './helpers';
 
 function cleanRun(seed = 11, race = 'human'): GameState {
   const s = createGameState(seed, race, 'brawler');

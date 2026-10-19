@@ -12,7 +12,7 @@ import { badIdeaLimit } from '../battle/improvise';
 import { currentActor, enemiesOf, hasStatus, hexTurns } from '../battle/turns';
 import { SPARE } from '../data/allies';
 import { ENEMIES } from '../data/enemies';
-import { baseDamage, hitChance } from '../game/combat';
+import { baseDamage, fleeChance, hitChance } from '../game/combat';
 import { weaponOf } from '../game/equipment';
 import type { BattleCommand, BattleState, GameState } from '../game/types';
 import type { MenuKey } from './input';
@@ -57,7 +57,7 @@ export class BattleMenu {
       { id: 'item', label: `Item (${usable})`, enabled: usable > 0, help: usable > 0 ? H.item : H.noItems },
       { id: 'improvise', label: 'Improvise', enabled: true, help: H.improvise },
       { id: 'defend', label: 'Defend', enabled: true, help: H.defend },
-      { id: 'flee', label: 'Flee', enabled: true, help: state.party.length ? `${H.flee} ${H.fleeAllies}` : H.flee },
+      { id: 'flee', label: 'Flee', enabled: true, help: `${fill(H.fleeChance, { chance: this.fleePercent(state) })} ${H.flee}${state.party.length ? ` ${H.fleeAllies}` : ''}` },
     ];
     // Spare only shows up when there is someone you could spare.
     const spareable = this.spareable(state);
@@ -67,6 +67,14 @@ export class BattleMenu {
       opts.splice(4, 0, { id: 'spare', label: `Spare ${name}`, enabled: ready, help: fill(ready ? H.spare : H.spareNotYet, { name }) });
     }
     return opts;
+  }
+
+  /** Your chance to get away right now, as a whole percentage. */
+  fleePercent(state: GameState): number {
+    const b = state.battle;
+    if (!b) return 0;
+    const me = b.combatants.find((c) => c.id === 'player')!;
+    return Math.round(fleeChance(me.stats.speed, enemiesOf(b).filter((c) => c.alive).map((c) => c.stats.speed)) * 100);
   }
 
   /** Alive enemies that could switch sides if spared. */
@@ -91,8 +99,8 @@ export class BattleMenu {
       this.level = 'main';
       this.cursor = 0;
     }
-    if (battle.result) return key === 'confirm' ? { kind: 'continue' } : null;
-    if (currentActor(battle)?.id !== 'player') return null;
+    if (battle.result) return key === 'confirm' && battle.wait === 0 ? { kind: 'continue' } : null;
+    if (!battle.yourTurn || battle.wait > 0 || currentActor(battle)?.id !== 'player') return null;
 
     if (this.level === 'target') {
       const ids = this.targets(state);

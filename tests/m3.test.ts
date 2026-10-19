@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { battleCommand, startBattle, applyStatus } from '../src/battle/turns';
+import { applyStatus } from '../src/battle/turns';
 import { ITEMS } from '../src/data/items';
 import { inventoryCommand } from '../src/game/equipment';
 import { rollItem } from '../src/game/loot';
@@ -11,7 +11,7 @@ import { inRoom } from '../src/gen/features';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
 import { step } from '../src/world/roam';
 import { updateFov } from '../src/world/fov';
-import { nearPlayer, spawn } from './helpers';
+import { battleCommand, nearPlayer, spawn, startBattle } from './helpers';
 
 /** A run with the floor emptied of enemies, chests, hazards and closed doors. */
 function cleanRun(seed = 11, race = 'human', cls = 'brawler'): GameState {
@@ -50,7 +50,7 @@ function fight(state: GameState, enemies: string[]) {
 describe('races and classes', () => {
   it('builds a Gutterfolk Hexer from class, race and kit', () => {
     const s = createGameState(3, 'gutterfolk', 'hexer');
-    expect(s.player.stats.maxHp).toBe(22); // 18 + 4
+    expect(s.player.stats.maxHp).toBe(30); // 26 + 4
     expect(s.player.stats.charm).toBe(3); // 3 - 1 + 1 (clipboard)
     expect(s.player.equipment?.weapon?.defId).toBe('cursed_clipboard');
     expect(s.player.inventory.filter((i) => i.defId === 'hex_scroll')).toHaveLength(3);

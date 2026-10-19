@@ -106,7 +106,7 @@ export class BattleView {
       ctx.fillStyle = battle.ambushSide === 'player' ? '#d9b310' : '#f08a7a';
       centered(ctx, battle.ambushSide === 'player' ? 'AMBUSH: YOU STRIKE FIRST, +50% DAMAGE THIS ROUND' : 'AMBUSHED: THEY STRIKE FIRST, +50% DAMAGE THIS ROUND', w / 2, 52);
     }
-    if (battle.result) this.drawResult(ctx, w, h, battle, now, pixel);
+    if (battle.result && battle.wait === 0) this.drawResult(ctx, w, h, battle, now, pixel);
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, w: number, floorBottom: number, scale: number): void {
@@ -257,8 +257,15 @@ export class BattleView {
     panel(ctx, x, y, w, h);
     const battle = state.battle!;
     ctx.font = FONT;
-    const yourTurn = currentActor(battle)?.id === 'player';
-    if (!yourTurn || battle.result) return;
+    const yourTurn = battle.yourTurn && battle.wait === 0 && currentActor(battle)?.id === 'player';
+    if (battle.result) return;
+    if (!yourTurn) {
+      // Someone else is acting: say who, so the pause reads as their turn.
+      const who = currentActor(battle);
+      ctx.fillStyle = '#9aa89a';
+      ctx.fillText(who && who.id !== 'player' ? `${who.name.toUpperCase()}'S TURN...` : 'GET READY...', x + 14, y + 12);
+      return;
+    }
 
     let rows: { label: string; enabled: boolean }[];
     const improvTitles: Record<string, string> = {

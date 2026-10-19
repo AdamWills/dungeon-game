@@ -56,7 +56,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { id: 'gnaw', name: 'Gnaw', weight: 3, bonus: 0, hit: ['{actor} gnaws on your ankle for {dmg}.', '{actor} bites you for {dmg} and looks smug about it.'] },
       { id: 'lanyard_whip', name: 'Lanyard Whip', weight: 1, bonus: 1, hit: ['{actor} whips you with its lanyard for {dmg}. Backstage access: revoked.'] },
     ],
-    roam: { patrolTicksPerTile: 16, chaseTicksPerTile: 9, visionRange: 5, visionArcDeg: 100, hearingRadius: 2.5, sleepChance: 0.1, giveUpTicks: 180, smart: false },
+    roam: { patrolTicksPerTile: 16, chaseTicksPerTile: 12, visionRange: 5, visionArcDeg: 100, hearingRadius: 2.5, sleepChance: 0.1, giveUpTicks: 180, smart: false },
   },
   feral_intern: {
     id: 'feral_intern',
@@ -70,7 +70,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { id: 'staple', name: 'Staple', weight: 3, bonus: 0, hit: ['{actor} staples you for {dmg}. It is collating you.', '{actor} staples you to the present moment for {dmg}.'] },
       { id: 'reply_all', name: 'Reply-All', weight: 1, bonus: 2, hit: ['{actor} screams a reply-all at you. {dmg} psychic damage.'] },
     ],
-    roam: { patrolTicksPerTile: 14, chaseTicksPerTile: 11, visionRange: 6, visionArcDeg: 90, hearingRadius: 2.5, sleepChance: 0.15, giveUpTicks: 240, smart: true },
+    roam: { patrolTicksPerTile: 14, chaseTicksPerTile: 15, visionRange: 6, visionArcDeg: 90, hearingRadius: 2.5, sleepChance: 0.15, giveUpTicks: 240, smart: true },
   },
   sludge_hopper: {
     id: 'sludge_hopper',
@@ -84,7 +84,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { id: 'splat', name: 'Splat', weight: 2, bonus: 0, hit: ['{actor} lands on you. {dmg} damage and a smell that will outlive you.'], status: { kind: 'poison', turns: 3, chance: 0.5 } },
       { id: 'tongue_lash', name: 'Tongue Lash', weight: 2, bonus: 1, hit: ['{actor} tongues you across the face for {dmg}. Unprofessional.'] },
     ],
-    roam: { patrolTicksPerTile: 12, chaseTicksPerTile: 10, visionRange: 4, visionArcDeg: 160, hearingRadius: 3, sleepChance: 0, giveUpTicks: 150, smart: false },
+    roam: { patrolTicksPerTile: 12, chaseTicksPerTile: 12, visionRange: 4, visionArcDeg: 160, hearingRadius: 3, sleepChance: 0, giveUpTicks: 150, smart: false },
   },
   pipe_leech: {
     id: 'pipe_leech',
@@ -96,21 +96,21 @@ export const ENEMIES: Record<string, EnemyDef> = {
     tokens: [2, 5],
     moves: [
       { id: 'latch', name: 'Latch', weight: 3, bonus: 0, hit: ['{actor} latches on for {dmg}. It has opinions about your blood type.'], status: { kind: 'bleed', turns: 3, chance: 0.5 } },
-      { id: 'drink_deep', name: 'Drink Deep', weight: 1, bonus: 3, hit: ['{actor} drinks deep. You lose {dmg} HP and some self-respect.'] },
+      { id: 'drink_deep', name: 'Drink Deep', weight: 1, bonus: 2, hit: ['{actor} drinks deep. You lose {dmg} HP and some self-respect.'] },
     ],
-    roam: { patrolTicksPerTile: 24, chaseTicksPerTile: 16, visionRange: 3, visionArcDeg: 120, hearingRadius: 2, sleepChance: 0.7, giveUpTicks: 120, smart: false },
+    roam: { patrolTicksPerTile: 24, chaseTicksPerTile: 18, visionRange: 3, visionArcDeg: 120, hearingRadius: 2, sleepChance: 0.7, giveUpTicks: 120, smart: false },
   },
   grudge_gator: {
     id: 'grudge_gator',
     name: 'Grudge Gator',
     blurb: 'Flushed as a hatchling. Has not let it go.',
-    stats: { hp: 22, str: 5, speed: 2, evasion: 1, armor: 3, charm: 0 },
-    weapon: 3,
+    stats: { hp: 22, str: 4, speed: 2, evasion: 1, armor: 3, charm: 0 },
+    weapon: 2,
     xp: 14,
     tokens: [4, 8],
     moves: [
       { id: 'chomp', name: 'Chomp', weight: 3, bonus: 0, hit: ['{actor} chomps you for {dmg}. It was thinking about someone else.'] },
-      { id: 'death_roll', name: 'Death Roll', weight: 1, bonus: 4, hit: ['{actor} death-rolls you for {dmg}. Twenty years of resentment, released.'] },
+      { id: 'death_roll', name: 'Death Roll', weight: 1, bonus: 3, hit: ['{actor} death-rolls you for {dmg}. Twenty years of resentment, released.'] },
     ],
     roam: { patrolTicksPerTile: 20, chaseTicksPerTile: 13, visionRange: 6, visionArcDeg: 80, hearingRadius: 2, sleepChance: 0.3, giveUpTicks: 300, smart: true },
   },
@@ -128,7 +128,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { id: 'nail', name: 'Nail Gun', weight: 3, bonus: 0, hit: ['{actor} nails you for {dmg}, then looks away like it was someone else.', '{actor} shoots you for {dmg} and mouths "sorry".'] },
       { id: 'spray', name: 'Spray and Pray', weight: 1, bonus: 1, hit: ['{actor} fires wildly. One nail finds you for {dmg}.'] },
     ],
-    roam: { patrolTicksPerTile: 12, chaseTicksPerTile: 10, visionRange: 5, visionArcDeg: 120, hearingRadius: 3, sleepChance: 0, giveUpTicks: 150, smart: true },
+    roam: { patrolTicksPerTile: 12, chaseTicksPerTile: 12, visionRange: 5, visionArcDeg: 120, hearingRadius: 3, sleepChance: 0, giveUpTicks: 150, smart: true },
   },
   marjorie_grievance: {
     id: 'marjorie_grievance',

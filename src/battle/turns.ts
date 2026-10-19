@@ -81,6 +81,8 @@ export function startBattle(state: GameState, encounter: Encounter): void {
     spared: [],
     allyCooldowns: {},
     playerHasActed: false,
+    wait: 0,
+    yourTurn: false,
   };
   state.record.fights++;
   state.battle = battle;
@@ -97,7 +99,8 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   if (enemiesOf(battle).some((c) => ENEMIES[c.defId].spare)) say(battle, T.skitchSpotted, 'host');
 
   beginRound(battle);
-  runTurns(state);
+  // The opening line gets a moment on screen before anyone moves.
+  battle.wait = TUNING.battle.turnTicks;
 }
 
 /** The combatant whose turn it is, or null once the battle is decided. */
@@ -117,18 +120,31 @@ export function hasStatus(c: Combatant, kind: StatusKind): boolean {
 export function battleCommand(state: GameState, cmd: BattleCommand): void {
   const battle = state.battle;
   if (!battle) return;
+  if (battle.wait > 0) return; // something is still playing out
   if (battle.result) {
     if (cmd.kind === 'continue') endBattle(state);
     return;
   }
   const actor = currentActor(battle);
-  if (!actor || !isYou(actor)) return;
+  if (!actor || !isYou(actor) || !battle.yourTurn) return;
   if (!playerAct(state, battle, actor, cmd)) return; // refused: still your turn
   battle.playerHasActed = true;
-  if (!checkOver(state, battle)) {
-    advance(battle);
-    runTurns(state);
-  }
+  battle.yourTurn = false;
+  if (!checkOver(state, battle)) advance(battle);
+  // Let your move land on screen before the next one.
+  battle.wait = battle.result ? TUNING.battle.resultTicks : TUNING.battle.turnTicks;
+}
+
+/**
+ * One fixed step of a battle. Turns other than yours play out one at a time,
+ * a beat apart, so you can see each one land (user feedback: "things move
+ * too fast").
+ */
+export function battleTick(state: GameState): void {
+  const battle = state.battle;
+  if (!battle || battle.wait <= 0) return;
+  if (--battle.wait > 0 || battle.result) return;
+  runTurns(state);
 }
 
 // --- rounds and turns -------------------------------------------------------
@@ -168,21 +184,30 @@ function advance(battle: BattleState): void {
  * Resolve turns until the player has a choice to make or the battle ends.
  * Each turn starts with its holder's statuses ticking.
  */
+/** Resolve the next turn: yours waits for the menu; anyone else's plays out, then a pause. */
 function runTurns(state: GameState): void {
   const battle = state.battle!;
-  for (let guard = 0; guard < 200; guard++) {
-    if (battle.result) return;
-    const actor = currentActor(battle)!;
-    const canAct = startTurn(state, battle, actor);
-    if (checkOver(state, battle)) return;
-    if (canAct) {
-      if (isYou(actor)) return; // wait for the menu
-      if (actor.side === 'player') allyAct(state, battle, actor);
-      else enemyAct(state, battle, actor);
-      if (checkOver(state, battle)) return;
-    }
-    advance(battle);
+  if (battle.result) return;
+  const actor = currentActor(battle)!;
+  const canAct = startTurn(state, battle, actor);
+  if (checkOver(state, battle)) {
+    battle.wait = TUNING.battle.resultTicks;
+    return;
   }
+  if (canAct && isYou(actor)) {
+    battle.yourTurn = true; // wait for the menu
+    return;
+  }
+  if (canAct) {
+    if (actor.side === 'player') allyAct(state, battle, actor);
+    else enemyAct(state, battle, actor);
+  }
+  if (checkOver(state, battle)) {
+    battle.wait = TUNING.battle.resultTicks;
+    return;
+  }
+  advance(battle);
+  battle.wait = canAct ? TUNING.battle.turnTicks : TUNING.battle.skipTicks;
 }
 
 /** Tick statuses at the start of a turn. Returns false if the turn is lost. */

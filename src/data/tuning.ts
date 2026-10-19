@@ -3,6 +3,8 @@
 export const TUNING = {
   /** Fixed-step ticks to cross one tile while roaming (60 ticks = 1 second). */
   playerTicksPerTile: 9,
+  /** Out of battle you heal 1 HP every this many ticks (allies too). */
+  regenTicks: 90,
   /** Field-of-view radius in tiles. */
   fovRadius: 8,
 
@@ -11,8 +13,8 @@ export const TUNING = {
   /** Distance (tiles, Chebyshev) at which touching starts a battle. */
   contactRadius: 0.8,
   /** Enemies this close (tiles) to the contact point join, up to the max. */
-  joinRadius: 3,
-  maxEnemiesPerBattle: 4,
+  joinRadius: 2,
+  maxEnemiesPerBattle: 3,
   /** After a successful flee: no new fight for this long, enemies stand dazed. */
   fleeGraceTicks: 90,
   fleeStunTicks: 60,
@@ -64,4 +66,7 @@ export const TUNING = {
     catchUpDistance: 3,
     catchUpTicksPerTile: 5,
   },
+
+  /** Battle pacing, in fixed steps (60 a second): the beat between turns. */
+  battle: { turnTicks: 50, skipTicks: 30, resultTicks: 60 },
 };

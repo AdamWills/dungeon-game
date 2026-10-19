@@ -215,6 +215,10 @@ export type BattleState = {
   spared: string[];
   /** Ally ability cooldowns this fight, in that ally's turns. */
   allyCooldowns: Record<string, number>;
+  /** Fixed steps until the next turn plays out (pacing; nothing happens meanwhile). */
+  wait: number;
+  /** Your turn has started and the menu is waiting for you. */
+  yourTurn: boolean;
   /** XP and tokens won, worked out once when the fight is won. */
   spoils?: { xp: number; tokens: number };
   /** You always get a first turn: until then, nothing can take you below 1 HP. */
