@@ -167,6 +167,8 @@ export type Combatant = {
   statuses: Status[];
   /** One of your allies (including an enemy you just spared). */
   ally?: boolean;
+  /** Enemies only: the move and target it has lined up for its next turn. */
+  intent?: { moveId: string; targetId: string };
 };
 
 export type BattleCommand =
@@ -286,7 +288,8 @@ export type GameEvent =
   | { type: 'allyRecruited'; allyId: string }
   | { type: 'allyDied'; allyId: string; item: string | null }
   | { type: 'allyLeft'; allyId: string; how: 'quit' | 'steal' | 'turn'; item: string | null }
-  | { type: 'loyaltyLow'; allyId: string };
+  | { type: 'loyaltyLow'; allyId: string }
+  | { type: 'skillUp'; id: string; level: number };
 
 export type GameState = {
   seed: number;
@@ -318,6 +321,8 @@ export type GameState = {
   /** Level-up points spent on each stat. */
   trained: Partial<Record<StatKey, number>>;
   perks: string[];
+  /** Skills level through use (Read the Room, ...). */
+  skills: Record<string, { level: number; xp: number }>;
   /** A level-up waiting on the player: points to spend and perks to pick from. */
   levelUp: { points: number; perkChoices: string[] | null } | null;
   record: RunRecord;

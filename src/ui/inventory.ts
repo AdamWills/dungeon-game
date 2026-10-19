@@ -7,6 +7,8 @@ import { RACES } from '../data/races';
 import { UI_TEXT } from '../data/uiText';
 import { carriedCount, SLOTS, type Slot, weaponOf } from '../game/equipment';
 import { ALLIES, STANCE_ORDER, STANCES } from '../data/allies';
+import { SKILLS } from '../data/skills';
+import { skillLevel } from '../game/skills';
 import type { Entity, GameState, InvCommand, ItemInstance } from '../game/types';
 import type { MenuKey } from './input';
 import type { ItemIcons } from './itemIcons';
@@ -211,7 +213,7 @@ export class InventoryMenu {
 
     const s = state.player.stats;
     const wpn = weaponOf(state.player);
-    const sy = py + ph - 132;
+    const sy = py + ph - 154;
     ctx.fillStyle = '#6f7d70';
     ctx.fillText(`${RACES[state.race].name.toUpperCase()} ${CLASSES[state.cls].name.toUpperCase()}`, dx, sy);
     ctx.fillStyle = '#c8d0c4';
@@ -220,6 +222,7 @@ export class InventoryMenu {
       `Strength ${s.str}   Speed ${s.speed}`,
       `Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}`,
       `Weapon: ${wpn.name} (${wpn.damage} damage)`,
+      ...Object.values(SKILLS).map((k) => `${k.name}: level ${skillLevel(state, k.id)}`),
     ];
     stats.forEach((t, i) => ctx.fillText(t, dx, sy + 22 + i * 20));
 

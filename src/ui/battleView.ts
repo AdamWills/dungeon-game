@@ -4,6 +4,8 @@
 // keyed off the battle's fx list and wall-clock time.
 
 import { currentActor, youIn } from '../battle/turns';
+import { skillLevel } from '../game/skills';
+import { intentText } from './intent';
 import type { BattleState, Combatant, GameState } from '../game/types';
 import { SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
@@ -46,8 +48,23 @@ export class BattleView {
     const size = SPRITE * scale;
     const gap = Math.min(size * 1.6, (w - 80) / Math.max(1, enemies.length));
     const rowY = Math.round(h * 0.18);
+    const reading = skillLevel(state, 'read_the_room');
     enemies.forEach((c, i) => {
       const cx = Math.round(w / 2 + (i - (enemies.length - 1) / 2) * gap);
+      // Read the Room: what it is about to do, as much as you can tell.
+      const intent = intentText(battle, c, reading);
+      if (intent) {
+        ctx.font = '12px ui-monospace, Menlo, Consolas, monospace';
+        const lines = wrapLines(ctx, intent, Math.max(130, gap - 14));
+        lines.forEach((l, j) => {
+          const tw = ctx.measureText(l).width;
+          ctx.fillStyle = 'rgba(10, 6, 16, 0.85)';
+          ctx.fillRect(cx - tw / 2 - 5, rowY - 30 - (lines.length - 1 - j) * 15, tw + 10, 15);
+          ctx.fillStyle = '#ffb040';
+          ctx.fillText(l, cx - tw / 2, rowY - 28 - (lines.length - 1 - j) * 15);
+        });
+        ctx.font = FONT;
+      }
       this.drawCombatant(ctx, c, cx, rowY, size, battle, now, {
         flip: true,
         highlight: c.id === targetId,

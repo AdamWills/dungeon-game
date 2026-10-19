@@ -11,6 +11,7 @@ import { HOST_CHANCE, HOST_LINE_MS, HOST_LINES, type HostEvent } from '../data/h
 import { ITEMS } from '../data/items';
 import { PERKS } from '../data/perks';
 import { RACES } from '../data/races';
+import { SKILLS } from '../data/skills';
 import { fill } from '../data/battleText';
 import type { EventBus } from '../game/events';
 import type { GameState } from '../game/types';
@@ -56,6 +57,7 @@ export class Host {
     bus.on('bribeShort', (e) => this.say('bribeShort', { ally: ally(e.allyId), price: e.price, tokens: e.tokens }, true));
     bus.on('corpseEaten', (e) => this.say(e.hp > 0 ? 'ateGood' : 'ateBad', {}));
     bus.on('doorOpened', () => this.say('doorOpened', {}));
+    bus.on('skillUp', (e) => this.say('skillUp', { skill: SKILLS[e.id].name, level: e.level }, true));
   }
 
   /** Pick a line for an event, never the same as last time. */

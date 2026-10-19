@@ -87,6 +87,10 @@
 - User: "things move way too fast", "dead by the second enemy". Battles now play out one turn at a time: after your move, every other turn (enemy or ally) resolves a beat apart (50 fixed steps, about 0.8 s) and the result banner waits for the last hit to land. The menu says whose turn it is; Flee shows your actual chance and warns that a failed try lets them all hit you. Logic stays deterministic: the pause is counted in fixed steps (`battleTick`).
 - Measured with a sensible-player bot (`tests/difficulty.test.ts`, run with `SIM=1`): before, Brawler runs died 58% of the time and Hexer runs 98% (usually in the 2nd fight). Changes: at most 3 enemies per fight and a smaller join radius; you and your allies regain 1 HP every 1.5 s while exploring; chasing enemies are a little slower than you; the Grudge Gator hits softer (Death Roll and Drink Deep too); the Hexer has 26 HP, 1 Armor, 3 Strength, a 3-damage clipboard and Hex every 4 turns. After: Brawler wins 80% and dies 5%; Hexer still dies 57% and needs more work.
 
+### Read the Room (user request: enemy intents, "but as a skill that is developed")
+- The first trainable skill (`src/data/skills.ts`, `src/game/skills.ts`). Enemies now pick their next move and target in advance (`intent`), and use exactly that. Watching an enemy act is practice; levels at 3, 15, 40 and 80. Level 1 shows above each enemy whether it is about to attack, hit hard or attack with a status; 2 adds the move's name; 3 a rough damage number; 4 who it is aimed at. Level-ups are announced in the battle log and by Chet; the pause screen shows the level.
+- Tests: `tests/skills.test.ts`.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

@@ -74,6 +74,7 @@ export const BATTLE_TEXT = {
   itemOnAlly: 'You give {target} the {item}. +{amount} HP. Teamwork!',
   tokens: '+{amount} Prize Tokens.',
   token: '+1 Prize Token.',
+  skillUp: '{skill} is now level {level}! {help}',
   allyHolds: '{ally} holds back and looks at you. Mercy, or not?',
 } as const;
 

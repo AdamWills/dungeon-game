@@ -18,6 +18,8 @@ import { rollItem } from '../game/loot';
 import { changeLoyalty, makeAlly, recruit, settleLoyalty } from '../game/party';
 import { gainXp, hasPerk, openLevelUp } from '../game/progress';
 import { eliminate } from '../game/report';
+import { practice, skillLevel } from '../game/skills';
+import { SKILLS } from '../data/skills';
 import { nextFloat, nextInt, pick } from '../game/rng';
 import { applyOutcome, applyRepeats, gatherArena, resolveImprov, validateOutcome } from './improvise';
 import type { BattleCommand, BattleState, Combatant, Encounter, Entity, GameState, LogLine, Vec } from '../game/types';
@@ -86,6 +88,7 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   };
   state.record.fights++;
   state.battle = battle;
+  for (const c of enemiesOf(battle)) planIntent(state, battle, c);
   const from = state.mode;
   state.mode = 'battle';
   state.events.push({ type: 'modeChanged', from, to: 'battle' });
@@ -376,7 +379,9 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
         target.defId = allyId;
         target.name = ALLIES[allyId].short;
         target.statuses = [];
+        target.intent = undefined;
         battle.spared.push(target.id);
+        retarget(state, battle);
       } else say(battle, fill(variant(T.spareFail, ...salt), { target: target.name }), 'bad');
       return true;
     }
@@ -540,11 +545,37 @@ function pickVictim(state: GameState, battle: BattleState): Combatant {
   return weightedPick(state.rng, pool.map((c) => ({ c, weight: weight(c) }))).c;
 }
 
+/**
+ * Each enemy lines up its next move and target in advance, so Read the Room
+ * can show it. Targets that fall (or switch sides) are re-picked.
+ */
+function planIntent(state: GameState, battle: BattleState, enemy: Combatant): void {
+  const move = weightedPick(state.rng, ENEMIES[enemy.defId].moves);
+  enemy.intent = { moveId: move.id, targetId: pickVictim(state, battle).id };
+}
+
+function retarget(state: GameState, battle: BattleState): void {
+  if (!battle.combatants.some((c) => c.side === 'player' && c.alive)) return; // nobody left to go for
+  for (const e of enemiesOf(battle)) {
+    if (!e.alive || !e.intent) continue;
+    const t = battle.combatants.find((c) => c.id === e.intent!.targetId);
+    if (!t?.alive || t.side !== 'player') e.intent.targetId = pickVictim(state, battle).id;
+  }
+}
+
 function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void {
   const def = ENEMIES[actor.defId];
-  const target = pickVictim(state, battle);
+  if (!actor.intent) planIntent(state, battle, actor);
+  const plan = actor.intent!;
+  const move = def.moves.find((m) => m.id === plan.moveId) ?? def.moves[0];
+  const target = battle.combatants.find((c) => c.id === plan.targetId && c.alive && c.side === 'player') ?? pickVictim(state, battle);
   const mine = isYou(target);
-  const move = weightedPick(state.rng, def.moves);
+  // Watching them work is how you learn to read them.
+  const knew = skillLevel(state, 'read_the_room');
+  practice(state, 'read_the_room');
+  const now = skillLevel(state, 'read_the_room');
+  if (now > knew) say(battle, fill(T.skillUp, { skill: SKILLS.read_the_room.name, level: now, help: SKILLS.read_the_room.levels[now] }), 'host');
+  planIntent(state, battle, actor);
   const salt = [battle.round, battle.turn, battle.log.length];
   if (!rollHit(state.rng, target.stats.evasion)) {
     say(battle, fill(variant(mine ? T.enemyMiss : T.enemyMissesAlly, ...salt), { actor: actor.name, move: move.name, target: target.name }), 'info');
@@ -678,6 +709,7 @@ function kill(state: GameState, battle: BattleState, target: Combatant, killer: 
   state.events.push({ type: 'entityDied', id: target.id, defId: target.defId, killerId: killer.id });
   if (target.side === 'enemy') say(battle, fill(variant(T.kill, battle.round, battle.log.length), { target: target.name }), 'good');
   else if (target.ally) say(battle, fill(variant(T.allyDown, battle.round, battle.log.length), { target: target.name }), 'host');
+  if (target.side === 'player') retarget(state, battle);
 }
 
 /** Sets the result if one side is wiped out. */

@@ -568,7 +568,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 - Sound, music and a text-to-speech voice for the host.
 - Mobile and touch controls.
 - Optional audience-style mechanic (viewers, sponsors), which was deliberately dropped from v1.
-- Skills: a trainable skill system (for example lockpicking, haggling, cooking, scavenging) that levels through use and works both on the map and in battle. To be designed alongside perks so the two do not overlap.
+- Skills: a trainable skill system (for example lockpicking, haggling, cooking, scavenging) that levels through use and works both on the map and in battle. To be designed alongside perks so the two do not overlap. **Started (user decision):** the first skill, Read the Room, ships in the prototype. Enemies line up their next move in advance; watching enemies act levels the skill, and each level shows more of an enemy's next move above it in battle (the kind of move, then its name, rough damage, and who it is aimed at).
 
 **Open questions**
 

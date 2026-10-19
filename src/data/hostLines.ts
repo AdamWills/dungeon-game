@@ -23,9 +23,17 @@ export type HostEvent =
   | 'bribeShort'
   | 'ateGood'
   | 'ateBad'
-  | 'doorOpened';
+  | 'doorOpened'
+  | 'skillUp';
 
 export const HOST_LINES: Record<HostEvent, string[]> = {
+  skillUp: [
+    '{skill} level {level}! Our contestant is learning! Slowly! Painfully!',
+    'Look who\'s paying attention, folks! {skill}, level {level}!',
+    '{skill} goes up to {level}! Knowledge is power! Power is not armour, though!',
+    'Level {level} in {skill}! You can see it coming now! Dodging it is a separate course!',
+    '{skill} is now level {level}! Our contestant has been taking notes! On their own injuries!',
+  ],
   runStart: [
     'Welcome to DESCEND & WIN! The show where the only way out is down! Our {class} looks... available!',
     'Folks, give it up for our newest contestant, a {race} {class} with absolutely no idea where they are!',
