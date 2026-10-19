@@ -1,6 +1,7 @@
 // Showbiz kit: the big, corny, 1970s game-show look for the moments that
-// matter. Sunbursts, chasing marquee bulbs, chunky gold titles, spinning
-// starbursts, spotlights and confetti. UI only; animation runs off the clock.
+// matter, in pixel art. Sunbursts, chasing marquee bulbs, chunky gold titles,
+// spinning starbursts and confetti, drawn at low resolution with a reduced
+// palette. UI only; animation runs off the clock.
 
 export const SHOW_FONT = '"Impact", "Haettenschweiler", "Arial Black", "Franklin Gothic Heavy", sans-serif';
 
@@ -39,14 +40,14 @@ export function sunburst(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
     ctx.closePath();
     ctx.fill();
   }
-  // Fade the edge into the background.
-  const g = ctx.createRadialGradient(0, 0, r * 0.35, 0, 0, r);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(10,4,18,0.85)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
+  // Darken towards the edge in a few flat steps (pixel art has no smooth fades).
+  ctx.fillStyle = 'rgba(10, 4, 18, 0.32)';
+  for (const f of [0.62, 0.8, 0.92]) {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.arc(0, 0, r * f, 0, Math.PI * 2, true);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -73,24 +74,28 @@ export function marquee(
   const frame = opts.frame ?? '#d8b04a';
   const bulb = opts.bulb ?? '#fff1a8';
   const spacing = opts.spacing ?? 26;
-  // Chunky frame with a bevel.
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 24;
+  // Chunky frame: a solid drop shadow, then flat bevel bands.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+  roundRect(ctx, x + 10, y + 12, w, h, 18);
+  ctx.fill();
+  ctx.fillStyle = '#8a5a12';
   roundRect(ctx, x, y, w, h, 18);
-  const fg = ctx.createLinearGradient(x, y, x, y + h);
-  fg.addColorStop(0, '#fff2b8');
-  fg.addColorStop(0.5, frame);
-  fg.addColorStop(1, '#8a5a12');
-  ctx.fillStyle = fg;
   ctx.fill();
-  ctx.restore();
-  roundRect(ctx, x + 14, y + 14, w - 28, h - 28, 10);
-  const inner = ctx.createLinearGradient(x, y, x, y + h);
-  inner.addColorStop(0, opts.fill ?? '#3a0e5a');
-  inner.addColorStop(1, PALETTE.night);
-  ctx.fillStyle = inner;
+  ctx.fillStyle = frame;
+  roundRect(ctx, x, y, w, h - 8, 18);
   ctx.fill();
+  ctx.fillStyle = '#fff2b8';
+  roundRect(ctx, x + 6, y + 3, w - 12, 8, 6);
+  ctx.fill();
+  ctx.fillStyle = '#5a3a0a';
+  roundRect(ctx, x + 12, y + 12, w - 24, h - 24, 10);
+  ctx.fill();
+  ctx.fillStyle = opts.fill ?? '#3a0e5a';
+  roundRect(ctx, x + 16, y + 16, w - 32, h - 32, 8);
+  ctx.fill();
+  // One darker band at the bottom for depth.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.fillRect(x + 16, y + h - 16 - Math.min(40, h / 6), w - 32, Math.min(40, h / 6));
 
   // Bulbs around the frame, chasing.
   const perimeter: [number, number][] = [];
@@ -104,22 +109,29 @@ export function marquee(
   add(x + w - m, y + h - m, x + m, y + h - m);
   add(x + m, y + h - m, x + m, y + m);
   const step = Math.floor(now / 110);
+  const b = Math.max(6, 2 / unitScale(ctx)); // at least 2 real pixels
   perimeter.forEach(([bx, by], i) => {
     const on = (i + step) % 3 !== 0;
     ctx.fillStyle = on ? bulb : '#6a4a1a';
+    ctx.fillRect(Math.round(bx - b / 2), Math.round(by - b / 2), b, b);
     if (on) {
-      ctx.save();
-      ctx.shadowColor = bulb;
-      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(Math.round(bx - b / 2), Math.round(by - b / 2), b / 2, b / 2);
     }
-    ctx.beginPath();
-    ctx.arc(bx, by, 4, 0, Math.PI * 2);
-    ctx.fill();
-    if (on) ctx.restore();
   });
 }
 
-/** Big chunky title: gradient fill, dark outline, drop shadow. */
+/** How many device pixels one user unit covers right now (rotation-proof). */
+function unitScale(ctx: CanvasRenderingContext2D): number {
+  const m = ctx.getTransform();
+  return Math.hypot(m.a, m.b) || 1;
+}
+
+/**
+ * Big chunky title: gradient fill, dark outline, drop shadow. Rendered at the
+ * real pixel size it will occupy and then thresholded, so the letters have
+ * hard pixel edges instead of smooth anti-aliasing.
+ */
 export function bigTitle(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -129,27 +141,102 @@ export function bigTitle(
   opts: { colors?: string[]; outline?: string; scale?: number; tilt?: number; maxWidth?: number } = {},
 ): void {
   const colors = opts.colors ?? PALETTE.gold;
+  const k = unitScale(ctx) * (opts.scale ?? 1);
+  let px = Math.max(7, Math.round(size * k));
+  const t = document.createElement('canvas').getContext('2d')!;
+  t.font = `${px}px ${SHOW_FONT}`;
+  if (opts.maxWidth) {
+    const fit = (opts.maxWidth * k) / t.measureText(text).width;
+    if (fit < 1) px = Math.max(7, Math.floor(px * fit));
+  }
+  t.font = `${px}px ${SHOW_FONT}`;
+  const outline = Math.max(1, Math.round(px / 9));
+  const tw = Math.ceil(t.measureText(text).width) + outline * 2 + Math.ceil(px * 0.12) + 4;
+  const th = Math.ceil(px * 1.5);
+  t.canvas.width = tw;
+  t.canvas.height = th;
+  t.font = `${px}px ${SHOW_FONT}`;
+  t.textBaseline = 'middle';
+  t.textAlign = 'center';
+  t.lineJoin = 'round';
+  const ox = tw / 2;
+  const oy = th / 2;
+  const drop = Math.max(1, Math.round(px * 0.08));
+  t.fillStyle = 'rgba(0,0,0,0.8)';
+  t.fillText(text, ox + drop, oy + drop);
+  t.strokeStyle = opts.outline ?? '#3a1404';
+  t.lineWidth = outline * 2;
+  t.strokeText(text, ox, oy);
+  // Banded gradient: a few flat stripes, like a palette, not a smooth blend.
+  const g = t.createLinearGradient(0, oy - px / 2, 0, oy + px / 2);
+  colors.forEach((c, i) => {
+    g.addColorStop(i / colors.length, c);
+    g.addColorStop((i + 1) / colors.length - 0.001, c);
+  });
+  t.fillStyle = g;
+  t.fillText(text, ox, oy);
+  hardenAlpha(t);
+
   ctx.save();
-  ctx.font = `${size}px ${SHOW_FONT}`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  let fit = 1;
-  if (opts.maxWidth) fit = Math.min(1, opts.maxWidth / ctx.measureText(text).width);
   ctx.translate(cx, y);
   ctx.rotate(opts.tilt ?? 0);
-  ctx.scale((opts.scale ?? 1) * fit, (opts.scale ?? 1) * fit);
-  ctx.lineJoin = 'round';
-  // Drop shadow, then outline, then gradient face.
-  ctx.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx.fillText(text, size * 0.06, size * 0.08);
-  ctx.strokeStyle = opts.outline ?? '#3a1404';
-  ctx.lineWidth = Math.max(4, size / 8);
-  ctx.strokeText(text, 0, 0);
-  const g = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
-  colors.forEach((c, i) => g.addColorStop(i / Math.max(1, colors.length - 1), c));
-  ctx.fillStyle = g;
-  ctx.fillText(text, 0, 0);
+  ctx.scale(1 / k, 1 / k);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(t.canvas, Math.round(-tw / 2), Math.round(-th / 2));
   ctx.restore();
+}
+
+/** Snap every pixel to fully opaque or fully clear: crisp pixel edges. */
+function hardenAlpha(t: CanvasRenderingContext2D): void {
+  const img = t.getImageData(0, 0, t.canvas.width, t.canvas.height);
+  const d = img.data;
+  for (let i = 3; i < d.length; i += 4) d[i] = d[i] >= 110 ? 255 : 0;
+  t.putImageData(img, 0, 0);
+}
+
+/**
+ * Draw a scene at low resolution and blow it up with hard pixel edges, so the
+ * showbiz screens match the pixel-art game. `draw` works in normal (CSS)
+ * coordinates; everything it draws comes out `pixel` CSS pixels per pixel.
+ */
+export function pixelLayer(ctx: CanvasRenderingContext2D, w: number, h: number, pixel: number, draw: (lctx: CanvasRenderingContext2D) => void): void {
+  const lw = Math.ceil(w / pixel);
+  const lh = Math.ceil(h / pixel);
+  if (!layer || layer.canvas.width !== lw || layer.canvas.height !== lh) {
+    const c = document.createElement('canvas');
+    c.width = lw;
+    c.height = lh;
+    layer = c.getContext('2d')!;
+  }
+  const l = layer;
+  l.setTransform(1, 0, 0, 1, 0, 0);
+  l.clearRect(0, 0, lw, lh);
+  l.setTransform(1 / pixel, 0, 0, 1 / pixel, 0, 0);
+  l.imageSmoothingEnabled = false;
+  draw(l);
+  posterize(l, lw, lh);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(l.canvas, 0, 0, lw * pixel, lh * pixel);
+  ctx.restore();
+}
+let layer: CanvasRenderingContext2D | null = null;
+
+/**
+ * Cut the layer down to a small palette, like old hardware: smooth gradients
+ * become flat bands and soft anti-aliased edges snap to one colour or the other.
+ */
+function posterize(l: CanvasRenderingContext2D, w: number, h: number, levels = 6): void {
+  const img = l.getImageData(0, 0, w, h);
+  const d = img.data;
+  const step = 255 / (levels - 1);
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = Math.round(d[i] / step) * step;
+    d[i + 1] = Math.round(d[i + 1] / step) * step;
+    d[i + 2] = Math.round(d[i + 2] / step) * step;
+    d[i + 3] = d[i + 3] >= 128 ? 255 : 0;
+  }
+  l.putImageData(img, 0, 0);
 }
 
 /** A spinning starburst badge with a word on it. */
@@ -166,47 +253,22 @@ export function starburst(ctx: CanvasRenderingContext2D, cx: number, cy: number,
     ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
   }
   ctx.closePath();
-  ctx.fillStyle = color;
-  ctx.shadowColor = 'rgba(0,0,0,0.5)';
-  ctx.shadowBlur = 12;
+  ctx.save();
+  ctx.translate(4, 5);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
   ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.restore();
+  ctx.fillStyle = color;
+  ctx.fill();
   ctx.strokeStyle = '#fff6d0';
   ctx.lineWidth = 3;
   ctx.stroke();
-  ctx.font = `${Math.round(r * 0.42)}px ${SHOW_FONT}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#fffbe8';
-  ctx.strokeStyle = '#3a1404';
-  ctx.lineWidth = 3;
+  // Badge words: never smaller than 12 real pixels, or they turn to mush.
+  const size = Math.max(r * 0.46, 12 / unitScale(ctx));
   const words = text.split(' ');
-  const lh = r * 0.42;
   words.forEach((wd, i) => {
-    const yy = (i - (words.length - 1) / 2) * lh;
-    ctx.strokeText(wd, 0, yy, r * 1.4);
-    ctx.fillText(wd, 0, yy, r * 1.4);
+    bigTitle(ctx, wd, 0, (i - (words.length - 1) / 2) * size * 0.95, size, { colors: ['#fffbe8'], outline: '#3a1404', maxWidth: r * 1.5 });
   });
-  ctx.restore();
-}
-
-/** Two coloured spotlights sweeping across the stage. */
-export function spotlights(ctx: CanvasRenderingContext2D, w: number, h: number, now: number): void {
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for (const [i, color] of [[0, 'rgba(255, 62, 165, 0.16)'], [1, 'rgba(56, 200, 255, 0.16)']] as const) {
-    const sx = i === 0 ? w * 0.08 : w * 0.92;
-    const angle = Math.PI / 2 + Math.sin(now / 1400 + i * 2) * 0.55;
-    const len = h * 1.3;
-    const spread = 0.22;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(sx, -10);
-    ctx.lineTo(sx + Math.cos(angle - spread) * len, -10 + Math.sin(angle - spread) * len);
-    ctx.lineTo(sx + Math.cos(angle + spread) * len, -10 + Math.sin(angle + spread) * len);
-    ctx.closePath();
-    ctx.fill();
-  }
   ctx.restore();
 }
 

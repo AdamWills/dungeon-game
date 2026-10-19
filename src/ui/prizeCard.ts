@@ -1,11 +1,12 @@
 // The prize card: a new item, shown big and corny on a game-show marquee,
-// with the game paused until the player presses ENTER.
+// with the game paused until the player presses ENTER. The art is drawn at
+// pixel-art resolution to match the game; small body text stays sharp.
 
 import { ITEMS } from '../data/items';
 import { UI_TEXT } from '../data/uiText';
 import type { ItemInstance } from '../game/types';
 import type { ItemIcons } from './itemIcons';
-import { bigTitle, confetti, marquee, PALETTE, popIn, spotlights, starburst, sunburst } from './showbiz';
+import { bigTitle, confetti, marquee, PALETTE, pixelLayer, popIn, starburst, sunburst } from './showbiz';
 import { centered, wrapLines } from './text';
 
 /** Per rarity: title colours, sunburst colours and the badge. */
@@ -28,58 +29,70 @@ export function drawPrizeCard(
   icons: ItemIcons,
   now: number,
   since: number,
+  pixel: number,
 ): void {
   const def = ITEMS[item.defId];
   if (!def) return;
   const T = UI_TEXT.prize;
   const style = STYLE[def.rarity];
-  const t = (now - since) / 450;
-
-  ctx.fillStyle = 'rgba(8, 2, 16, 0.82)';
-  ctx.fillRect(0, 0, w, h);
-  spotlights(ctx, w, h, now);
-
+  const pop = popIn((now - since) / 450);
   const cw = Math.min(660, w - 32);
   const ch = Math.min(500, h - 32);
   const cx = w / 2;
   const cy = h / 2;
-  sunburst(ctx, cx, cy, Math.max(w, h) * 0.6, style.rays, now);
-  if (style.confetti) confetti(ctx, w, h, since, now); // behind the card, so the text stays readable
-
-  // Pop the whole card in.
-  const s = popIn(t);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(s, s);
-  ctx.translate(-cx, -cy);
-
   const x = cx - cw / 2;
   const y = cy - ch / 2;
-  marquee(ctx, x, y, cw, ch, now);
+  const popped = (c: CanvasRenderingContext2D) => {
+    c.translate(cx, cy);
+    c.scale(pop, pop);
+    c.translate(-cx, -cy);
+  };
 
-  bigTitle(ctx, T.heading, cx, y + 58, 52, { maxWidth: cw - 160 });
-  starburst(ctx, x + cw - 50, y + 48, 54, style.badge, T.badges[def.rarity], now);
+  ctx.fillStyle = 'rgba(8, 2, 16, 0.82)';
+  ctx.fillRect(0, 0, w, h);
+  pixelLayer(ctx, w, h, pixel, (l) => {
+    sunburst(l, cx, cy, Math.max(w, h) * 0.6, style.rays, now);
+    if (style.confetti) confetti(l, w, h, since, now);
+    l.save();
+    popped(l);
+    marquee(l, x, y, cw, ch, now);
+    bigTitle(l, T.heading, cx, y + 58, 52, { maxWidth: cw - 190 });
+    starburst(l, x + cw - 56, y + 52, 70, style.badge, T.badges[def.rarity], now);
+    // A stepped glow behind the prize.
+    l.fillStyle = 'rgba(255, 240, 160, 0.18)';
+    for (const r of [64, 48, 32]) {
+      l.beginPath();
+      l.arc(cx, y + 150, r, 0, Math.PI * 2);
+      l.fill();
+    }
+    bigTitle(l, def.name.toUpperCase(), cx, y + 228, 38, { colors: style.title, maxWidth: cw - 60 });
+    if (Math.floor(now / 450) % 2 === 0 || now - since < 900) {
+      bigTitle(l, queued > 0 ? `${T.prompt} (${queued} MORE!)` : T.prompt, cx, y + ch - 44, 24, {
+        colors: ['#ffffff', '#ff9ad0'],
+        outline: '#4a0a2a',
+        maxWidth: cw - 60,
+      });
+    }
+    l.restore();
+  });
 
-  // The prize on a glowing pedestal.
-  const glow = ctx.createRadialGradient(cx, y + 150, 4, cx, y + 150, 70);
-  glow.addColorStop(0, 'rgba(255, 240, 160, 0.55)');
-  glow.addColorStop(1, 'rgba(255, 240, 160, 0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(cx - 80, y + 80, 160, 140);
-  const bob = Math.sin(now / 300) * 4;
+  // The prize itself, at a whole-number scale so its pixels stay square.
+  ctx.save();
+  popped(ctx);
+  const scale = Math.max(4, pixel);
+  const bob = Math.round(Math.sin(now / 300) * 2) * pixel;
   ctx.imageSmoothingEnabled = false;
-  icons(ctx, def.id, cx - 40, y + 108 + bob, 5);
+  icons(ctx, def.id, Math.round(cx - 8 * scale), Math.round(y + 150 - 8 * scale) + bob, scale);
 
-  bigTitle(ctx, def.name.toUpperCase(), cx, y + 228, 38, { colors: style.title, maxWidth: cw - 60 });
-
+  // Body text, sharp for reading.
   ctx.textBaseline = 'top';
   ctx.font = BODY_FONT;
   let yy = y + 262;
   const block = (text: string, color: string, gap: number) => {
     yy += gap;
     ctx.fillStyle = color;
-    for (const l of wrapLines(ctx, text, cw - 70)) {
-      centered(ctx, l, cx, yy);
+    for (const line of wrapLines(ctx, text, cw - 70)) {
+      centered(ctx, line, cx, yy);
       yy += 21;
     }
   };
@@ -87,14 +100,5 @@ export function drawPrizeCard(
   block(`"${def.description}"`, '#c8b8e0', 8);
   const hint = def.slot ? T.equipHint : def.use ? (def.use.battleOnly || def.use.target !== 'self' ? T.fightHint : T.useHint) : T.carryHint;
   block(def.cursed ? `${T.cursedHint} ${hint}` : hint, '#ffd23a', 8);
-
-  // Blinking prompt.
-  if (Math.floor(now / 450) % 2 === 0 || t < 2) {
-    bigTitle(ctx, queued > 0 ? `${T.prompt} (${queued} MORE!)` : T.prompt, cx, y + ch - 44, 24, {
-      colors: ['#ffffff', '#ffe8f4', '#ff9ad0'],
-      outline: '#4a0a2a',
-      maxWidth: cw - 60,
-    });
-  }
   ctx.restore();
 }

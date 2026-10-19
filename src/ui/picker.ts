@@ -10,7 +10,7 @@ import { computeStats } from '../game/equipment';
 import type { Equipment } from '../game/types';
 import type { MenuKey } from './input';
 import type { PlayerSprites } from './playerSprite';
-import { bigTitle, marquee, spotlights, sunburst } from './showbiz';
+import { bigTitle, marquee, pixelLayer, sunburst } from './showbiz';
 import { centered, FONT, FONT_BIG, wrapLines } from './text';
 
 const STORE_KEY = 'subpar-dungeon:last-contestant';
@@ -50,25 +50,23 @@ export class Picker {
     return choice;
   }
 
-  draw(ctx: CanvasRenderingContext2D, w: number, h: number, sprites: PlayerSprites, now: number): void {
+  draw(ctx: CanvasRenderingContext2D, w: number, h: number, sprites: PlayerSprites, now: number, pixel: number): void {
     // The studio: dark stage, sweeping spotlights, the show logo on a marquee.
-    const stage = ctx.createLinearGradient(0, 0, 0, h);
-    stage.addColorStop(0, '#1a0630');
-    stage.addColorStop(1, '#07030c');
-    ctx.fillStyle = stage;
-    ctx.fillRect(0, 0, w, h);
     const cx = w / 2;
-    sunburst(ctx, cx, 90, Math.min(w, 900) * 0.55, ['#ff3ea5', '#5a1a8a'], now);
-    spotlights(ctx, w, h, now);
     const lw = Math.min(560, w - 32);
-    marquee(ctx, cx - lw / 2, 18, lw, 128, now, { fill: '#3a0e5a' });
-    bigTitle(ctx, UI_TEXT.picker.show, cx, 70, 60, { tilt: -0.03, maxWidth: lw - 60 });
+    let y = 172;
+    pixelLayer(ctx, w, h, pixel, (l) => {
+      l.fillStyle = '#330033'; // sits exactly on the reduced palette
+      l.fillRect(0, 0, w, h);
+      sunburst(l, cx, 90, Math.min(w, 900) * 0.55, ['#ff3ea5', '#5a1a8a'], now);
+      marquee(l, cx - lw / 2, 18, lw, 128, now, { fill: '#3a0e5a' });
+      bigTitle(l, UI_TEXT.picker.show, cx, 66, 60, { tilt: -0.03, maxWidth: lw - 60 });
+      bigTitle(l, UI_TEXT.picker.title, cx, y, 30, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a' });
+    });
     ctx.font = 'bold 15px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffd8f0';
     centered(ctx, UI_TEXT.picker.tagline, cx, 108);
-    let y = 172;
-    bigTitle(ctx, UI_TEXT.picker.title, cx, y, 30, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a' });
     ctx.font = FONT;
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#c8b8e0';

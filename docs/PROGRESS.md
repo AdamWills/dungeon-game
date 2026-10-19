@@ -71,6 +71,7 @@
 - Used for the prize card (colours and badge by rarity: BOOBY PRIZE!, SPECIAL PRIZE!, JACKPOT!!), the battle result banner (VICTORY with confetti, YOU GOT AWAY, YOU DIED), the end-of-run screens (YOU DIED / ELIMINATED!, YOU ESCAPED / WINNER!) and the contestant picker, which now has a "DESCEND & WIN!" show logo. Headings stay plain; the corn is in the styling and badges.
 - Fixed while checking: the elimination report read "with a lovely a long, relaxing soak" and "the the Sludge Pool"; hazard and status deaths now read cleanly.
 - Titles use the Impact font where the system has it (Mac and Windows do), falling back to a heavy sans.
+- Then made pixelated to match the game (user: "too clean"): these screens are drawn at low resolution, at the same pixel size as the map, with a reduced 6-level palette and hard edges, then scaled up without smoothing. Titles and badge words are rendered at their real pixel size with hard-edged letters. The art uses flat colour bands and solid offset shadows instead of gradients and blur (which turn to speckle at low resolution). Small body text (item help, report lines) stays sharp for reading, like the HUD.
 
 ## Next
 

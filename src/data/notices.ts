@@ -17,7 +17,7 @@ export const NOTICES = {
   died: {
     title: 'YOU DIED',
     subtitle: 'Thanks for playing, contestant!',
-    badge: 'ELIMINATED!',
+    badge: "YOU'RE OUT!",
     lines: [
       'Contestant: one (1) {class}, previously alive.',
       'Eliminated by: {enemy}, with a lovely {move}.',

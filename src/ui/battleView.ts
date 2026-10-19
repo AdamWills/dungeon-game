@@ -13,7 +13,7 @@ import type { PropSprites } from './propSprites';
 import { PROPS } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
-import { bigTitle, confetti, marquee, PALETTE, popIn, starburst } from './showbiz';
+import { bigTitle, confetti, marquee, PALETTE, pixelLayer, popIn, starburst } from './showbiz';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
 const FX_MS = 700;
@@ -28,7 +28,7 @@ export class BattleView {
     private floorTile: (ctx: CanvasRenderingContext2D, x: number, y: number) => void,
   ) {}
 
-  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, menu: BattleMenu, now: number): void {
+  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, menu: BattleMenu, now: number, pixel: number): void {
     const battle = state.battle!;
     for (const f of battle.fx) if (!this.fxStart.has(f.seq)) this.fxStart.set(f.seq, now);
     const scale = Math.max(2, Math.min(5, Math.floor(Math.min(w, h) / 170)));
@@ -89,7 +89,7 @@ export class BattleView {
       ctx.fillStyle = battle.ambushSide === 'player' ? '#d9b310' : '#f08a7a';
       centered(ctx, battle.ambushSide === 'player' ? 'AMBUSH: YOU STRIKE FIRST, +50% DAMAGE THIS ROUND' : 'AMBUSHED: THEY STRIKE FIRST, +50% DAMAGE THIS ROUND', w / 2, 52);
     }
-    if (battle.result) this.drawResult(ctx, w, h, battle, now);
+    if (battle.result) this.drawResult(ctx, w, h, battle, now, pixel);
   }
 
   private drawBackdrop(ctx: CanvasRenderingContext2D, w: number, floorBottom: number, scale: number): void {
@@ -293,7 +293,7 @@ export class BattleView {
   private resultSince = new WeakMap<BattleState, number>();
 
   /** The end of a fight, game-show style: a marquee banner that pops in. */
-  private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState, now: number): void {
+  private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState, now: number, pixel: number): void {
     if (!this.resultSince.has(battle)) this.resultSince.set(battle, now);
     const since = this.resultSince.get(battle)!;
     const r = battle.result!;
@@ -303,26 +303,34 @@ export class BattleView {
       fled: { title: ['#e8faff', '#38c8ff', '#1a6ae8'], badge: '#1a8ae8', fill: '#0e2a5a' },
       lost: { title: ['#ffe0d8', '#ff5a3a', '#a01a0a'], badge: '#a01a0a', fill: '#3a0a0a' },
     }[r];
-    ctx.fillStyle = 'rgba(8, 2, 16, 0.55)';
-    ctx.fillRect(0, 0, w, h);
-    if (r === 'won') confetti(ctx, w, h, since, now);
     const bw = Math.min(620, w - 40);
     const bh = 210;
     const cx = w / 2;
     const cy = Math.round(h * 0.36);
     const s = popIn((now - since) / 400);
+    const popped = (c: CanvasRenderingContext2D) => {
+      c.translate(cx, cy);
+      c.scale(s, s);
+      c.translate(-cx, -cy);
+    };
+    ctx.fillStyle = 'rgba(8, 2, 16, 0.55)';
+    ctx.fillRect(0, 0, w, h);
+    pixelLayer(ctx, w, h, pixel, (l) => {
+      if (r === 'won') confetti(l, w, h, since, now);
+      l.save();
+      popped(l);
+      marquee(l, cx - bw / 2, cy - bh / 2, bw, bh, now, { fill: look.fill });
+      bigTitle(l, text.title, cx, cy - 34, 64, { colors: look.title, maxWidth: bw - 150 });
+      starburst(l, cx + bw / 2 - 44, cy - bh / 2 + 34, 60, look.badge, text.badge, now);
+      if (Math.floor(now / 450) % 2 === 0) bigTitle(l, UI_TEXT.result.prompt, cx, cy + 66, 24, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a' });
+      l.restore();
+    });
     ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(s, s);
-    ctx.translate(-cx, -cy);
-    marquee(ctx, cx - bw / 2, cy - bh / 2, bw, bh, now, { fill: look.fill });
-    bigTitle(ctx, text.title, cx, cy - 34, 64, { colors: look.title, maxWidth: bw - 150 });
-    starburst(ctx, cx + bw / 2 - 40, cy - bh / 2 + 30, 46, look.badge, text.badge, now);
+    popped(ctx);
     ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
     centered(ctx, text.sub, cx, cy + 14);
-    if (Math.floor(now / 450) % 2 === 0) bigTitle(ctx, UI_TEXT.result.prompt, cx, cy + 66, 24, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a' });
     ctx.restore();
   }
 }

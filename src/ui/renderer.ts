@@ -25,7 +25,7 @@ import type { InventoryMenu } from './inventory';
 import { buildItemIcons, type ItemIcons } from './itemIcons';
 import type { Picker } from './picker';
 import { drawPrizeCard } from './prizeCard';
-import { bigTitle, confetti, marquee, PALETTE, popIn, spotlights, starburst, sunburst } from './showbiz';
+import { bigTitle, confetti, marquee, PALETTE, pixelLayer, popIn, starburst, sunburst } from './showbiz';
 import { buildPropSprites, type PropSprites } from './propSprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
@@ -95,7 +95,7 @@ export class Renderer {
     const { ctx, canvas, dpr } = this;
     this.clear();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    picker.draw(ctx, canvas.width / dpr, canvas.height / dpr, this.playerSprites, now);
+    picker.draw(ctx, canvas.width / dpr, canvas.height / dpr, this.playerSprites, now, this.pixel);
   }
 
   render(state: GameState, ui: Overlays, now: number): void {
@@ -103,7 +103,7 @@ export class Renderer {
     this.clear();
     if (state.battle) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.battleView.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, ui.menu, now);
+      this.battleView.draw(ctx, canvas.width / dpr, canvas.height / dpr, state, ui.menu, now, this.pixel);
       return;
     }
     this.drawWorld(state);
@@ -112,10 +112,15 @@ export class Renderer {
     if (state.mode === 'menu') {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
-      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now));
+      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
       else ui.inventory.draw(ctx, w, h, state, this.icons);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);
+  }
+
+  /** Size of one art pixel in CSS pixels: the map's zoom, so overlays match it. */
+  get pixel(): number {
+    return Math.max(2, Math.round(this.zoom / this.dpr));
   }
 
   /** First time we drew this object, for pop-in animations. */
@@ -401,26 +406,34 @@ export class Renderer {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = 'rgba(8, 2, 16, 0.85)';
-    ctx.fillRect(0, 0, w, h);
-    spotlights(ctx, w, h, now);
-    sunburst(ctx, w / 2, h / 2, Math.max(w, h) * 0.6, died ? ['#7a1a1a', '#2a0606'] : ['#ffd23a', '#e8601a'], now);
-    if (!died) confetti(ctx, w, h, since, now);
-
     const pw = Math.min(760, w - 32);
     const ph = Math.min(430, h - 32);
     const cx = w / 2;
     const cy = h / 2;
     const s = popIn((now - since) / 450);
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(s, s);
-    ctx.translate(-cx, -cy);
     const x = cx - pw / 2;
     const y = cy - ph / 2;
-    marquee(ctx, x, y, pw, ph, now, { fill: died ? '#3a0a0a' : '#3a0e5a' });
-    bigTitle(ctx, d.title, cx, y + 70, 72, { colors: died ? ['#ffe0d8', '#ff5a3a', '#a01a0a'] : PALETTE.gold, maxWidth: pw - 170 });
-    starburst(ctx, x + pw - 54, y + 54, 58, died ? '#a01a0a' : '#ff3ea5', d.badge, now);
+    const popped = (c: CanvasRenderingContext2D) => {
+      c.translate(cx, cy);
+      c.scale(s, s);
+      c.translate(-cx, -cy);
+    };
+    ctx.fillStyle = 'rgba(8, 2, 16, 0.85)';
+    ctx.fillRect(0, 0, w, h);
+    pixelLayer(ctx, w, h, this.pixel, (l) => {
+      sunburst(l, cx, cy, Math.max(w, h) * 0.6, died ? ['#7a1a1a', '#2a0606'] : ['#ffd23a', '#e8601a'], now);
+      if (!died) confetti(l, w, h, since, now);
+      l.save();
+      popped(l);
+      marquee(l, x, y, pw, ph, now, { fill: died ? '#3a0a0a' : '#3a0e5a' });
+      bigTitle(l, d.title, cx, y + 70, 72, { colors: died ? ['#ffe0d8', '#ff5a3a', '#a01a0a'] : PALETTE.gold, maxWidth: pw - 170 });
+      starburst(l, x + pw - 60, y + 58, 74, died ? '#a01a0a' : '#ff3ea5', d.badge, now);
+      if (Math.floor(now / 450) % 2 === 0)
+        bigTitle(l, d.prompt.toUpperCase(), cx, y + ph - 46, 26, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a', maxWidth: pw - 60 });
+      l.restore();
+    });
+    ctx.save();
+    popped(ctx);
     ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ff9ad0';
@@ -434,8 +447,6 @@ export class Renderer {
       }
       yy += 4;
     });
-    if (Math.floor(now / 450) % 2 === 0)
-      bigTitle(ctx, d.prompt.toUpperCase(), cx, y + ph - 46, 26, { colors: ['#ffffff', '#ffe8f4', '#ff9ad0'], outline: '#4a0a2a', maxWidth: pw - 60 });
     ctx.restore();
   }
 }
