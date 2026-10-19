@@ -25,11 +25,12 @@ import type { InventoryMenu } from './inventory';
 import { buildItemIcons, type ItemIcons } from './itemIcons';
 import type { Picker } from './picker';
 import { drawPrizeCard } from './prizeCard';
-import { bigTitle, confetti, marquee, PALETTE, pixelLayer, popIn, starburst, sunburst } from './showbiz';
+import { blink, confetti, lowRes, NEON, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
+import { drawText, fitScale, textHeight, wrapPixel } from './pixelFont';
 import { buildPropSprites, type PropSprites } from './propSprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
-import { bar, centered, FONT, wrapLines, wrapText } from './text';
+import { bar, FONT, wrapText } from './text';
 
 export type Toast = { text: string; until: number };
 
@@ -406,48 +407,38 @@ export class Renderer {
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const pw = Math.min(760, w - 32);
-    const ph = Math.min(430, h - 32);
-    const cx = w / 2;
-    const cy = h / 2;
-    const s = popIn((now - since) / 450);
-    const x = cx - pw / 2;
-    const y = cy - ph / 2;
-    const popped = (c: CanvasRenderingContext2D) => {
-      c.translate(cx, cy);
-      c.scale(s, s);
-      c.translate(-cx, -cy);
-    };
-    ctx.fillStyle = 'rgba(8, 2, 16, 0.85)';
-    ctx.fillRect(0, 0, w, h);
-    pixelLayer(ctx, w, h, this.pixel, (l) => {
-      sunburst(l, cx, cy, Math.max(w, h) * 0.6, died ? ['#7a1a1a', '#2a0606'] : ['#ffd23a', '#e8601a'], now);
-      if (!died) confetti(l, w, h, since, now);
-      l.save();
-      popped(l);
-      marquee(l, x, y, pw, ph, now, { fill: died ? '#3a0a0a' : '#3a0e5a' });
-      bigTitle(l, d.title, cx, y + 70, 72, { colors: died ? ['#ffe0d8', '#ff5a3a', '#a01a0a'] : PALETTE.gold, maxWidth: pw - 170 });
-      starburst(l, x + pw - 60, y + 58, 74, died ? '#a01a0a' : '#ff3ea5', d.badge, now);
-      if (Math.floor(now / 450) % 2 === 0)
-        bigTitle(l, d.prompt.toUpperCase(), cx, y + ph - 46, 26, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a', maxWidth: pw - 60 });
-      l.restore();
-    });
-    ctx.save();
-    popped(ctx);
-    ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ff9ad0';
-    centered(ctx, d.subtitle.toUpperCase(), cx, y + 118);
-    let yy = y + 156;
-    lines.forEach((l, i) => {
-      ctx.fillStyle = i === lines.length - 1 ? '#ffd23a' : '#ffffff';
-      for (const part of wrapLines(ctx, l, pw - 70)) {
-        centered(ctx, part, cx, yy);
-        yy += 24;
-      }
-      yy += 4;
-    });
-    ctx.restore();
+    const look = died
+      ? { outer: NEON.red, inner: NEON.purple, title: NEON.red, floor: NEON.red }
+      : { outer: NEON.pink, inner: NEON.cyan, title: NEON.gold, floor: NEON.pink };
+    const minH = 220;
+    lowRes(ctx, w, h, this.pixel, (g, lw, lh) => {
+      stage(g, lw, lh, now, look.floor);
+      if (!died) confetti(g, lw, lh, since, now);
+    }, { minH });
+    lowRes(ctx, w, h, this.pixel, (g, lw, lh) => {
+      const pw = Math.min(330, lw - 8);
+      const maxW = pw - 28;
+      const wrapped = lines.map((l) => wrapPixel(l, maxW));
+      const scale = fitScale(d.title, pw - 28, 4, TITLE_STYLE);
+      const th = textHeight({ ...TITLE_STYLE, scale });
+      const ph = Math.min(lh - 4, 13 + th + 22 + wrapped.reduce((n, ls) => n + ls.length * 9 + 4, 0) + 30);
+      const x = Math.round((lw - pw) / 2);
+      const y = Math.round((lh - ph) / 2);
+      const cx = Math.round(lw / 2);
+      panel(g, x, y, pw, ph, look.outer, look.inner, now);
+      title(g, d.title, cx, y + 13, look.title, scale);
+      sign(g, d.badge, x + pw - 4, y - 10, look.outer, now, { align: 'right' });
+      drawText(g, d.subtitle, cx, y + 13 + th + 4, { color: look.inner.text, align: 'center' });
+      let yy = y + 13 + th + 20;
+      wrapped.forEach((ls, i) => {
+        for (const l of ls) {
+          drawText(g, l, cx, yy, { color: i === lines.length - 1 ? NEON.gold.text : '#ffffff', align: 'center' });
+          yy += 9;
+        }
+        yy += 4;
+      });
+      if (blink(now)) drawText(g, d.prompt, cx, y + ph - 21, { color: NEON.pink.core, outline: '#2a0a3a', align: 'center' });
+    }, { minH, pop: popIn((now - since) / 450), slot: 1 });
   }
 }
 

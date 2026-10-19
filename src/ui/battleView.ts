@@ -13,7 +13,8 @@ import type { PropSprites } from './propSprites';
 import { PROPS } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
-import { bigTitle, confetti, marquee, PALETTE, pixelLayer, popIn, starburst } from './showbiz';
+import { blink, confetti, lowRes, NEON, panel as neonPanel, popIn, sign, title, TITLE_STYLE } from './neon';
+import { drawText, fitScale, textHeight, wrapPixel } from './pixelFont';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
 const FX_MS = 700;
@@ -292,46 +293,40 @@ export class BattleView {
 
   private resultSince = new WeakMap<BattleState, number>();
 
-  /** The end of a fight, game-show style: a marquee banner that pops in. */
+  /** The end of a fight, game-show style: a neon banner that pops in. */
   private drawResult(ctx: CanvasRenderingContext2D, w: number, h: number, battle: BattleState, now: number, pixel: number): void {
     if (!this.resultSince.has(battle)) this.resultSince.set(battle, now);
     const since = this.resultSince.get(battle)!;
     const r = battle.result!;
     const text = UI_TEXT.result[r];
     const look = {
-      won: { title: PALETTE.gold, badge: '#ff3ea5', fill: '#3a0e5a' },
-      fled: { title: ['#e8faff', '#38c8ff', '#1a6ae8'], badge: '#1a8ae8', fill: '#0e2a5a' },
-      lost: { title: ['#ffe0d8', '#ff5a3a', '#a01a0a'], badge: '#a01a0a', fill: '#3a0a0a' },
+      won: { outer: NEON.pink, inner: NEON.cyan, title: NEON.gold, badge: NEON.pink },
+      fled: { outer: NEON.cyan, inner: NEON.purple, title: NEON.cyan, badge: NEON.cyan },
+      lost: { outer: NEON.red, inner: NEON.purple, title: NEON.red, badge: NEON.red },
     }[r];
-    const bw = Math.min(620, w - 40);
-    const bh = 210;
-    const cx = w / 2;
-    const cy = Math.round(h * 0.36);
-    const s = popIn((now - since) / 400);
-    const popped = (c: CanvasRenderingContext2D) => {
-      c.translate(cx, cy);
-      c.scale(s, s);
-      c.translate(-cx, -cy);
-    };
-    ctx.fillStyle = 'rgba(8, 2, 16, 0.55)';
+    ctx.fillStyle = 'rgba(8, 2, 16, 0.6)';
     ctx.fillRect(0, 0, w, h);
-    pixelLayer(ctx, w, h, pixel, (l) => {
-      if (r === 'won') confetti(l, w, h, since, now);
-      l.save();
-      popped(l);
-      marquee(l, cx - bw / 2, cy - bh / 2, bw, bh, now, { fill: look.fill });
-      bigTitle(l, text.title, cx, cy - 34, 64, { colors: look.title, maxWidth: bw - 150 });
-      starburst(l, cx + bw / 2 - 44, cy - bh / 2 + 34, 60, look.badge, text.badge, now);
-      if (Math.floor(now / 450) % 2 === 0) bigTitle(l, UI_TEXT.result.prompt, cx, cy + 66, 24, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a' });
-      l.restore();
-    });
-    ctx.save();
-    popped(ctx);
-    ctx.font = 'bold 17px ui-monospace, Menlo, Consolas, monospace';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ffffff';
-    centered(ctx, text.sub, cx, cy + 14);
-    ctx.restore();
+    const cy = Math.round(h * 0.36);
+    lowRes(ctx, w, h, pixel, (g, lw, lh) => {
+      if (r === 'won') confetti(g, lw, lh, since, now);
+      const bw = Math.min(280, lw - 8);
+      const subs = wrapPixel(text.sub, bw - 28);
+      const scale = fitScale(text.title, bw - 28, 4, TITLE_STYLE);
+      const th = textHeight({ ...TITLE_STYLE, scale });
+      const bh = 13 + th + 6 + subs.length * 9 + 26;
+      const x = Math.round((lw - bw) / 2);
+      const y = Math.round((cy * lh) / h - bh / 2);
+      const cx = Math.round(lw / 2);
+      neonPanel(g, x, y, bw, bh, look.outer, look.inner, now);
+      title(g, text.title, cx, y + 13, look.title, scale);
+      sign(g, text.badge, x + bw - 4, y - 10, look.badge, now, { align: 'right' });
+      let yy = y + 13 + th + 6;
+      for (const line of subs) {
+        drawText(g, line, cx, yy, { color: '#ffffff', align: 'center' });
+        yy += 9;
+      }
+      if (blink(now)) drawText(g, UI_TEXT.result.prompt, cx, yy + 4, { color: NEON.pink.core, outline: '#2a0a3a', align: 'center' });
+    }, { pop: popIn((now - since) / 400), origin: [w / 2, cy], minH: 120 });
   }
 }
 

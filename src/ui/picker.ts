@@ -10,8 +10,8 @@ import { computeStats } from '../game/equipment';
 import type { Equipment } from '../game/types';
 import type { MenuKey } from './input';
 import type { PlayerSprites } from './playerSprite';
-import { bigTitle, marquee, pixelLayer, sunburst } from './showbiz';
-import { centered, FONT, FONT_BIG, wrapLines } from './text';
+import { lowRes, NEON, panel, stage, title, TITLE_STYLE, tube } from './neon';
+import { drawText, fitScale, wrapPixel } from './pixelFont';
 
 const STORE_KEY = 'subpar-dungeon:last-contestant';
 
@@ -51,86 +51,85 @@ export class Picker {
   }
 
   draw(ctx: CanvasRenderingContext2D, w: number, h: number, sprites: PlayerSprites, now: number, pixel: number): void {
-    // The studio: dark stage, sweeping spotlights, the show logo on a marquee.
-    const cx = w / 2;
-    const lw = Math.min(560, w - 32);
-    let y = 172;
-    pixelLayer(ctx, w, h, pixel, (l) => {
-      l.fillStyle = '#330033'; // sits exactly on the reduced palette
-      l.fillRect(0, 0, w, h);
-      sunburst(l, cx, 90, Math.min(w, 900) * 0.55, ['#ff3ea5', '#5a1a8a'], now);
-      marquee(l, cx - lw / 2, 18, lw, 128, now, { fill: '#3a0e5a' });
-      bigTitle(l, UI_TEXT.picker.show, cx, 66, 60, { tilt: -0.03, maxWidth: lw - 60 });
-      bigTitle(l, UI_TEXT.picker.title, cx, y, 30, { colors: ['#ffffff', '#ff9ad0'], outline: '#4a0a2a' });
-    });
-    ctx.font = 'bold 15px ui-monospace, Menlo, Consolas, monospace';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#ffd8f0';
-    centered(ctx, UI_TEXT.picker.tagline, cx, 108);
-    ctx.font = FONT;
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#c8b8e0';
-    centered(ctx, UI_TEXT.picker.sub, cx, y + 22);
-    y += 64;
-
+    // The studio at night: the show logo in neon over the grid floor.
+    const T = UI_TEXT.picker;
     const race = RACES[this.races[this.race]];
     const cls = CLASSES[this.classes[this.cls]];
-    const rows: [string, string, number][] = [
-      ['RACE', race.name, 0],
-      ['CLASS', cls.name, 1],
-    ];
-    for (const [label, value, i] of rows) {
-      const sel = this.row === i;
-      ctx.fillStyle = sel ? '#5a1a6a' : '#1e0a30';
-      ctx.fillRect(cx - 220, y - 6, 440, 34);
-      ctx.fillStyle = '#6f7d70';
-      ctx.fillText(label, cx - 204, y + 4);
-      ctx.font = FONT_BIG;
-      ctx.fillStyle = sel ? '#f4ecd0' : '#c8d0c4';
-      centered(ctx, `<  ${value}  >`, cx + 30, y);
-      ctx.font = FONT;
-      y += 44;
-    }
-
-    // Preview sprite, gently bobbing.
-    const sprite = sprites('down', 'stand', Math.floor(now / 180) % 20 === 0);
-    const size = 24 * 5;
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sprite, cx - 330 - size / 2, 226 + Math.round(Math.sin(now / 400) * 3), size, size);
-    ctx.restore();
-
-    // What you get, in plain words.
     const equipment: Equipment = {};
     for (const [slot, id] of Object.entries(cls.kit)) if (id) equipment[slot as keyof Equipment] = { defId: id, identified: true };
     const s = computeStats(race.id, cls.id, equipment);
     const ability = ABILITIES[cls.ability];
     const kit = [...Object.values(cls.kit), ...cls.startingItems].map((id) => ITEMS[id!]?.name).filter(Boolean);
-    const lines: [string, string][] = [
-      ['#c8d0c4', `${race.name}: ${race.help}`],
-      ['#9aa89a', `"${race.blurb}"`],
-      ['', ''],
-      ['#c8d0c4', `${cls.name}: ${cls.help}`],
-      ['#9aa89a', `"${cls.blurb}"`],
-      ['', ''],
-      ['#e8e4da', `HP ${s.maxHp}   Strength ${s.str}   Speed ${s.speed}   Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}`],
-      ['#e8e4da', `Ability: ${ability ? `${ability.name}. ${ability.help}` : 'none'}`],
-      ['#e8e4da', `Starts with: ${kit.join(', ')}`],
-    ];
-    y += 12;
-    const maxW = Math.min(760, w - 40);
-    for (const [color, text] of lines) {
-      if (!text) {
-        y += 10;
-        continue;
-      }
-      ctx.fillStyle = color;
-      for (const l of wrapLines(ctx, text, maxW)) {
-        centered(ctx, l, cx, y);
+
+    lowRes(ctx, w, h, pixel, (g, lw, lh) => {
+      stage(g, lw, lh, now);
+      const cx = Math.round(lw / 2);
+      const oy = Math.max(4, Math.floor((lh - 250) / 2));
+
+      // The logo sign.
+      const lsw = Math.min(300, lw - 8);
+      panel(g, cx - lsw / 2, oy, lsw, 46, NEON.pink, NEON.cyan, now);
+      title(g, T.show, cx, oy + 12, NEON.pink, fitScale(T.show, lsw - 24, 3, TITLE_STYLE));
+      drawText(g, T.tagline, cx, oy + 50, { color: NEON.cyan.text, align: 'center' });
+      drawText(g, T.title, cx, oy + 63, { color: NEON.gold.text, outline: '#2a0a3a', align: 'center' });
+      drawText(g, T.sub, cx, oy + 75, { color: '#b090e0', align: 'center' });
+
+      // Race and class rows; the chosen row is lit.
+      let y = oy + 90;
+      const rows: [string, string, number][] = [
+        ['RACE', race.name, 0],
+        ['CLASS', cls.name, 1],
+      ];
+      for (const [label, value, i] of rows) {
+        const sel = this.row === i;
+        g.fillStyle = '#06020e';
+        g.fillRect(cx - 90, y, 180, 16);
+        tube(g, cx - 90, y, 180, 16, sel ? NEON.cyan : NEON.purple, sel);
+        drawText(g, label, cx - 84, y + 5, { color: sel ? NEON.cyan.text : '#6a5a8a' });
+        const v = `< ${value} >`;
+        drawText(g, v, cx + 22, y + 5, { bold: true, color: sel ? '#ffffff' : '#a898c8', align: 'center' });
         y += 20;
       }
-    }
-    ctx.fillStyle = '#d9b310';
-    centered(ctx, UI_TEXT.picker.keys, cx, Math.min(h - 40, y + 24));
+
+      // The contestant, on a lit pad to the left of the rows.
+      const px = cx - 128;
+      g.fillStyle = NEON.cyan.glow;
+      for (let j = -3; j <= 3; j++) {
+        const half = Math.round(18 * Math.sqrt(1 - (j / 3.5) ** 2));
+        g.fillRect(px - half, oy + 128 + j, half * 2 + 1, 1);
+      }
+      const sprite = sprites('down', 'stand', Math.floor(now / 180) % 20 === 0);
+      g.drawImage(sprite, px - 24, oy + 82 + Math.round(Math.sin(now / 400)), 48, 48);
+
+      // What you get, in plain words.
+      const maxW = Math.min(lw - 24, 420);
+      const lines: [string, string][] = [
+        ['#ffffff', `${race.name}: ${race.help}`],
+        ['#b090e0', `"${race.blurb}"`],
+        ['', ''],
+        ['#ffffff', `${cls.name}: ${cls.help}`],
+        ['#b090e0', `"${cls.blurb}"`],
+        ['', ''],
+        [NEON.cyan.text, `HP ${s.maxHp}  STRENGTH ${s.str}  SPEED ${s.speed}  EVASION ${s.evasion}  ARMOR ${s.armor}  CHARM ${s.charm}`],
+        [NEON.cyan.text, `Ability: ${ability ? `${ability.name}. ${ability.help}` : 'none'}`],
+        [NEON.cyan.text, `Starts with: ${kit.join(', ')}`],
+      ];
+      const wrapped = lines.map(([c, t]) => [c, t ? wrapPixel(t, maxW) : []] as const);
+      const bodyH = wrapped.reduce((n, [, ls]) => n + (ls.length ? ls.length * 9 : 3), 0);
+      y = oy + 136;
+      g.fillStyle = 'rgba(6, 2, 14, 1)';
+      g.fillRect(cx - maxW / 2 - 8, y, maxW + 16, bodyH + 12);
+      tube(g, cx - maxW / 2 - 8, y, maxW + 16, bodyH + 12, NEON.purple);
+      y += 6;
+      for (const [color, ls] of wrapped) {
+        if (!ls.length) y += 3;
+        for (const l of ls) {
+          drawText(g, l, cx, y, { color, align: 'center' });
+          y += 9;
+        }
+      }
+      const keysY = Math.min(lh - 10, y + 12);
+      drawText(g, T.keys, cx, keysY, { color: NEON.gold.text, align: 'center' });
+    }, { minH: 260 });
   }
 }
