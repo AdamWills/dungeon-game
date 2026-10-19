@@ -56,12 +56,22 @@ describe('enemy senses', () => {
 });
 
 describe('encounters (who moved decides)', () => {
-  it('gives the enemy an ambush when a chaser catches you standing still', () => {
+  it('gives the enemy an ambush when a chaser catches you from behind', () => {
     const state = emptyRun();
+    state.player.facing = Math.PI; // looking left; it comes from the right
     spawn(state, 'intake_rat', nearPlayer(state, 3, 0), { facing: LEFT, alert: 'chasing' });
     for (let i = 0; i < 200 && state.mode === 'roaming'; i++) step(state, NO_INPUT);
     expect(state.mode).toBe('battle');
     expect(state.battle!.encounter.start).toBe('enemy_ambush');
+  });
+
+  it('is a normal fight when a chaser walks into your face', () => {
+    const state = emptyRun();
+    state.player.facing = 0; // looking right, straight at it
+    spawn(state, 'intake_rat', nearPlayer(state, 3, 0), { facing: LEFT, alert: 'chasing' });
+    for (let i = 0; i < 200 && state.mode === 'roaming'; i++) step(state, NO_INPUT);
+    expect(state.mode).toBe('battle');
+    expect(state.battle!.encounter.start).toBe('normal');
   });
 
   it('gives you an ambush when you walk into an unaware enemy', () => {

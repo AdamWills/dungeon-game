@@ -68,8 +68,8 @@ A run is a descent through floors; each floor is a map of rooms explored in real
 **Ambushes**
 
 - **Player ambush:** touching an enemy that has not noticed you (from behind, outside its vision cone, or while it sleeps) starts the battle with you acting first for the whole opening round and dealing +50% damage that round.
-- **Enemy ambush:** if a chasing enemy runs into you (it moved into the contact, you did not move toward it), it acts first and deals +50% damage for the opening round. Enemies that spot you flash a "!" over their head.
-- Walking into an alerted enemy, or meeting it head-on, is a normal battle, ordered by Speed. In short: who moved decides.
+- **Enemy ambush:** if a chasing enemy runs into you from behind (it moved into the contact, you did not move toward it, and it came from the side you are not facing), it acts first and deals +50% damage for the opening round. Enemies that spot you flash a "!" over their head.
+- Walking into an alerted enemy, or one walking into your face, is a normal battle, ordered by Speed (user feedback: being "ambushed" by something walking straight at you made no sense).
 - Only the enemy that caught you gets the first strike and the bonus; any others pulled into the fight act in normal Speed order.
 - **You always get a first turn.** Until you have acted, nothing (hits or damage over time) can take you below 1 HP, so an ambush can hurt badly but never kills before you can respond.
 

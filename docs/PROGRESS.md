@@ -110,6 +110,10 @@
 - The HUD now has a second row with your stats (Strength, Speed, Evasion, Armor, Charm, weapon) always in view (user: "How can I view my character stats?").
 - Tests: the generator tests use 60 seeds, the bot plays 16 runs, and the test timeout is 60 s.
 
+### Plainer ambushes and prize badges (user feedback)
+- "An enemy walks right into my face... how is that being ambushed?" An enemy now only ambushes you if it reaches you from behind (the side you are not facing); walking into your face is a normal fight. The battle banner says why in plain words ("SNEAK ATTACK: they had not noticed you..." / "AMBUSHED FROM BEHIND: it caught you with your back turned..."). GDD updated.
+- "What the heck is Booby Prize?" Prize card badges now show the plain rarity, as in the inventory: JUNK, STANDARD, SPECIAL, CURSED!, HOST'S PICK!.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

@@ -1,7 +1,7 @@
 // Detects contact between the player and an enemy and builds the Encounter:
-// who joins, and who gets the first strike. Who moved decides (user call):
-// an unaware or sleeping enemy gives the player an ambush; a chasing enemy
-// that runs into the player ambushes them; anything else is a normal fight.
+// who joins, and who gets the first strike. An unaware or sleeping enemy
+// gives the player an ambush; a chasing enemy that runs into the player from
+// behind ambushes them; anything else, face to face, is a normal fight.
 
 import { TUNING } from '../data/tuning';
 import type { Encounter, Entity, GameState } from '../game/types';
@@ -28,7 +28,7 @@ export function buildEncounter(state: GameState, enemy: Entity): Encounter {
   const player = state.player;
   let start: Encounter['start'];
   if (enemy.mind!.asleep || enemy.patrol!.alert !== 'chasing') start = 'player_ambush';
-  else if (approaching(enemy, player) && !approaching(player, enemy)) start = 'enemy_ambush';
+  else if (approaching(enemy, player) && !approaching(player, enemy) && fromBehind(player, enemy)) start = 'enemy_ambush';
   else start = 'normal';
 
   const others = state.floor.entities
@@ -42,6 +42,16 @@ export function buildEncounter(state: GameState, enemy: Entity): Encounter {
     start,
     tile: { x: Math.round(at.x), y: Math.round(at.y) },
   };
+}
+
+/**
+ * True if the enemy reached you from the side you are not facing. Something
+ * walking into your face is a normal fight, not an ambush (user feedback).
+ */
+function fromBehind(player: Entity, enemy: Entity): boolean {
+  const dx = enemy.pos.x - player.pos.x;
+  const dy = enemy.pos.y - player.pos.y;
+  return Math.cos(player.facing) * dx + Math.sin(player.facing) * dy < 0;
 }
 
 /** True if `a` is mid-step and that step brings it closer to `b`. */

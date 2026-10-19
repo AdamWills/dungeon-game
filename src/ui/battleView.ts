@@ -121,7 +121,7 @@ export class BattleView {
     if (battle.round === 1 && battle.ambushSide) {
       ctx.font = FONT;
       ctx.fillStyle = battle.ambushSide === 'player' ? '#d9b310' : '#f08a7a';
-      centered(ctx, battle.ambushSide === 'player' ? 'AMBUSH: YOU STRIKE FIRST, +50% DAMAGE THIS ROUND' : 'AMBUSHED: THEY STRIKE FIRST, +50% DAMAGE THIS ROUND', w / 2, 52);
+      centered(ctx, battle.ambushSide === 'player' ? UI_TEXT.ambush.yours : UI_TEXT.ambush.theirs, w / 2, 52);
     }
     if (battle.result && battle.wait === 0) this.drawResult(ctx, w, h, battle, now, pixel);
   }

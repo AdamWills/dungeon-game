@@ -34,6 +34,10 @@ export const UI_TEXT = {
     lost: { title: 'YOU DIED', sub: 'Eliminated! Stay tuned for your parting gift.', badge: 'OUCH!' },
     prompt: 'PRESS ENTER!',
   },
+  ambush: {
+    yours: 'SNEAK ATTACK: they had not noticed you. You all act first, +50% damage this round.',
+    theirs: 'AMBUSHED FROM BEHIND: it caught you with your back turned. It acts first, +50% damage this round.',
+  },
   mapHint: 'MAP (M hides)  you: white',
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep', $: 'for hire' } as Record<string, string>,
   picker: {
@@ -80,7 +84,8 @@ export const UI_TEXT = {
   },
   prize: {
     heading: 'NEW ITEM!',
-    badges: { junk: 'BOOBY PRIZE!', standard: 'A FINE PRIZE!', special: 'SPECIAL PRIZE!', cursed: 'UH-OH!', hosts_pick: 'JACKPOT!!' } as Record<string, string>,
+    // Plain rarity names (user: "What the heck is Booby Prize?"), as in the inventory.
+    badges: { junk: 'JUNK', standard: 'STANDARD', special: 'SPECIAL', cursed: 'CURSED!', hosts_pick: "HOST'S PICK!" } as Record<string, string>,
     cursedHint: 'Cursed: once worn, it stays on for the rest of the run.',
     equipHint: 'Wear it from the inventory (I or ESC).',
     useHint: 'Use it any time from the inventory (I or ESC), or in a fight.',
