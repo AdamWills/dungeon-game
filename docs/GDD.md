@@ -198,6 +198,7 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 - Every attack rolls to hit against the target's Evasion (hit chance stays between 20% and 95%). Damage is weapon damage plus Strength, minus the target's Armor, with a minimum of 1.
 - Stats: HP, Strength, Speed, Evasion, Armor, Charm (affects recruiting and vendors). Keep numbers small so the player can do the math in their head.
 - Status effects (bleed, poison, burning, stunned, charmed) last a fixed number of turns and stack by duration, not intensity.
+- **Weak spots (user decision):** every hit has a damage type: Blunt, Sharp, Fire or Gross. Each creature is weak to some types (×1.5, and it is knocked off balance, so you act again, once per turn) and shrugs off others (×0.5). You learn which by trying; what you learn is shown when you pick a target. Swapping weapons in a fight is free.
 
 **Gore**
 

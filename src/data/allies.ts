@@ -1,6 +1,7 @@
 // The three recruitable allies (GDD "Recruitable party"): a bruiser, a healer
 // and a coward with a gun. Words first; numbers untuned until M5.
 
+import type { DamageType } from './damage';
 import type { Stats } from '../game/types';
 import type { StatusKind } from './statuses';
 
@@ -29,7 +30,7 @@ export type AllyDef = {
   /** Level 1 stats, plus this much per player level above 1. */
   base: Omit<Stats, 'maxHp'>;
   growth: Partial<Omit<Stats, 'maxHp'>>;
-  weapon: { name: string; damage: number };
+  weapon: { name: string; damage: number; type: DamageType };
   passive: { id: 'load_bearing' | 'second_opinion' | 'survival_instinct'; name: string; help: string };
   ability: AllyAbility;
   /** What happens when loyalty hits zero. */
@@ -49,7 +50,7 @@ export const ALLIES: Record<string, AllyDef> = {
     recruit: { kind: 'cell' },
     base: { hp: 26, str: 4, speed: 2, evasion: 1, armor: 2, charm: 0 },
     growth: { hp: 4, str: 1 },
-    weapon: { name: 'Pallet Jack Handle', damage: 3 },
+    weapon: { name: 'Pallet Jack Handle', damage: 3, type: 'blunt' },
     passive: { id: 'load_bearing', name: 'Load-Bearing', help: 'Takes 1 less damage from every hit.' },
     ability: {
       id: 'lift',
@@ -75,7 +76,7 @@ export const ALLIES: Record<string, AllyDef> = {
     recruit: { kind: 'bribe', price: 15 },
     base: { hp: 16, str: 1, speed: 3, evasion: 2, armor: 0, charm: 2 },
     growth: { hp: 2 },
-    weapon: { name: 'Reflex Hammer', damage: 1 },
+    weapon: { name: 'Reflex Hammer', damage: 1, type: 'blunt' },
     passive: { id: 'second_opinion', name: 'Second Opinion', help: 'After each fight you win, the whole party heals 3 HP.' },
     ability: {
       id: 'remedy',
@@ -101,7 +102,7 @@ export const ALLIES: Record<string, AllyDef> = {
     recruit: { kind: 'spare', enemyId: 'skitch' },
     base: { hp: 12, str: 2, speed: 5, evasion: 5, armor: 0, charm: 1 },
     growth: { hp: 2, speed: 1 },
-    weapon: { name: 'Nail Gun', damage: 2 },
+    weapon: { name: 'Nail Gun', damage: 2, type: 'sharp' },
     passive: { id: 'survival_instinct', name: 'Survival Instinct', help: '+3 Evasion, and enemies only go for him when nobody else is standing.' },
     ability: {
       id: 'panic_fire',

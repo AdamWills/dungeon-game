@@ -6,6 +6,9 @@ import { describe, it } from 'vitest';
 import { ITEMS } from '../src/data/items';
 import { createRng, nextFloat, pick } from '../src/game/rng';
 import { ENEMIES } from '../src/data/enemies';
+import { PROPS } from '../src/data/props';
+import { weaponOf } from '../src/game/equipment';
+import { knownSpots } from '../src/game/weakspots';
 import { createGameState } from '../src/game/state';
 import { talkView } from '../src/game/talk';
 import type { BattleCommand, Dir, GameState, InputFrame, Vec } from '../src/game/types';
@@ -26,6 +29,11 @@ function battleChoice(s: GameState): BattleCommand {
   // Brace for a telegraphed big hit; back out of a room boss that is winning.
   if (foes.some((c) => ENEMIES[c.defId].moves.find((m) => m.id === c.intent?.moveId)?.windup && c.intent?.targetId === 'player')) return { kind: 'defend' };
   if (me.stats.hp < me.stats.maxHp * 0.5 && foes.some((c) => ENEMIES[c.defId].tier === 'room')) return { kind: 'flee' };
+  // Swap to a weapon you know hits this one's weak spot (free), and set the lair barrels alight.
+  const swap = s.player.inventory.findIndex((i) => { const w = ITEMS[i.defId]?.weapon; return !!w && knownSpots(s, foes[0].defId).weak.includes(w.type) && weaponOf(s.player).type !== w.type; });
+  if (swap >= 0) return { kind: 'item', slot: swap };
+  const burn = b.props.find((p) => p.usesLeft > 0 && PROPS[p.defId].tags.includes('flammable'));
+  if (burn && foes.some((c) => ENEMIES[c.defId].tier === 'floor')) return { kind: 'improvise', channel: 'prop', propId: burn.id, verb: 'ignite' };
   const ab = s.cls === 'hexer' ? 'hex' : 'rampage';
   const scroll = s.player.inventory.findIndex((i) => i.defId === 'hex_scroll');
   if (ab === 'hex' && s.player.cooldowns[ab] && scroll >= 0 && hexed(foes[0]) === 1 && foes[0].stats.hp > 6) return { kind: 'item', slot: scroll, targetId: foes[0].id };

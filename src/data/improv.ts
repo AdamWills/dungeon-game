@@ -27,25 +27,25 @@ export const VERBS: Record<PropVerb, { name: string; help: string }> = {
 /** Generic rules per verb: the first rule whose tag test passes wins. */
 export const VERB_RULES: Record<PropVerb, ({ when: PropTag | 'any'; unless?: PropTag } & OutcomeTemplate)[]> = {
   shove: [
-    { when: 'heavy', grade: 'brilliant', effects: [{ kind: 'damage', amount: 7, target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
+    { when: 'heavy', grade: 'brilliant', effects: [{ kind: 'damage', amount: 7, type: 'blunt', target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
       line: 'You shove the {prop} onto {target}! TIMBER! The folks at home felt that one.' },
-    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 2, target: 'one' }],
+    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 2, type: 'blunt', target: 'one' }],
       line: 'You shove the {prop} at {target}. It sort of bumps into them. Polite applause.' },
   ],
   kick: [
     { when: 'heavy', grade: 'disaster', effects: [{ kind: 'damage', amount: 3, target: 'self' }],
       line: 'You kick the {prop}. The {prop} wins. Ooh, that is a broken toe, folks!' },
-    { when: 'slippery', grade: 'brilliant', effects: [{ kind: 'damage', amount: 2, target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
+    { when: 'slippery', grade: 'brilliant', effects: [{ kind: 'damage', amount: 2, type: 'blunt', target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
       line: 'You kick the {prop} under {target}. They slip and go DOWN! Comedy!' },
-    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 3, target: 'one' }],
+    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 3, type: 'blunt', target: 'one' }],
       line: 'You punt the {prop} into {target}. A solid, unglamorous {dmg}.' },
   ],
   throw: [
     { when: 'heavy', grade: 'meh', effects: [],
       line: 'You try to lift the {prop}. You do not lift the {prop}. Your back files a complaint.' },
-    { when: 'sharp', grade: 'brilliant', effects: [{ kind: 'damage', amount: 5, target: 'one' }, { kind: 'status', status: 'bleed', turns: 2, target: 'one' }],
+    { when: 'sharp', grade: 'brilliant', effects: [{ kind: 'damage', amount: 5, type: 'sharp', target: 'one' }, { kind: 'status', status: 'bleed', turns: 2, target: 'one' }],
       line: 'You hurl the {prop} at {target}! It sticks! Somebody get a mop!' },
-    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 4, target: 'one' }],
+    { when: 'any', grade: 'meh', effects: [{ kind: 'damage', amount: 4, type: 'blunt', target: 'one' }],
       line: 'You throw the {prop} at {target}. Bonk!' },
   ],
   eat: [
@@ -61,9 +61,9 @@ export const VERB_RULES: Record<PropVerb, ({ when: PropTag | 'any'; unless?: Pro
       line: 'You hide behind the {prop}. All of you is still visible. Brave choice.' },
   ],
   ignite: [
-    { when: 'explosive', grade: 'legendary', effects: [{ kind: 'damage', amount: 8, target: 'all' }, { kind: 'damage', amount: 3, target: 'self' }],
+    { when: 'explosive', grade: 'legendary', effects: [{ kind: 'damage', amount: 8, type: 'fire', target: 'all' }, { kind: 'damage', amount: 3, target: 'self' }],
       line: 'You set fire to the {prop} and it EXPLODES! Everyone is on the floor! Including you! Ratings!' },
-    { when: 'flammable', grade: 'brilliant', effects: [{ kind: 'status', status: 'burning', turns: 2, target: 'all' }],
+    { when: 'flammable', grade: 'brilliant', effects: [{ kind: 'damage', amount: 2, type: 'fire', target: 'all' }, { kind: 'status', status: 'burning', turns: 2, target: 'all' }],
       line: 'You set the {prop} alight! The whole set is on fire! Beautiful!' },
     { when: 'any', grade: 'meh', effects: [],
       line: 'You try to set the {prop} on fire. It refuses. Fire safety: one, contestant: nil.' },
@@ -72,13 +72,13 @@ export const VERB_RULES: Record<PropVerb, ({ when: PropTag | 'any'; unless?: Pro
 
 /** Hand-written verb and prop combos, keyed `verb:propId`. */
 export const PROP_COMBOS: Record<string, OutcomeTemplate> = {
-  'shove:vending_machine': { grade: 'legendary', effects: [{ kind: 'damage', amount: 10, target: 'one' }, { kind: 'status', status: 'stunned', turns: 2, target: 'one' }],
+  'shove:vending_machine': { grade: 'legendary', effects: [{ kind: 'damage', amount: 10, type: 'blunt', target: 'one' }, { kind: 'status', status: 'stunned', turns: 2, target: 'one' }],
     line: 'You tip the Vending Machine onto {target}! It dispenses ONE ENEMY, flattened! LEGENDARY!' },
   'kick:vending_machine': { grade: 'brilliant', effects: [{ kind: 'heal', amount: 5, target: 'self' }],
     line: 'You kick the Vending Machine and a free snack drops out! Expired, but free! +{heal} HP.' },
-  'ignite:sludge_puddle': { grade: 'legendary', effects: [{ kind: 'status', status: 'burning', turns: 3, target: 'all' }, { kind: 'damage', amount: 3, target: 'all' }],
+  'ignite:sludge_puddle': { grade: 'legendary', effects: [{ kind: 'status', status: 'burning', turns: 3, target: 'all' }, { kind: 'damage', amount: 3, type: 'fire', target: 'all' }],
     line: 'You light the Sludge Puddle and it goes up like a season finale! Everybody is ON FIRE!' },
-  'throw:folding_chair': { grade: 'brilliant', effects: [{ kind: 'damage', amount: 6, target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
+  'throw:folding_chair': { grade: 'brilliant', effects: [{ kind: 'damage', amount: 6, type: 'blunt', target: 'one' }, { kind: 'status', status: 'stunned', turns: 1, target: 'one' }],
     line: 'FOLDING CHAIR to the back of {target}! Folks, it is a CLASSIC for a reason!' },
   'kick:fire_extinguisher': { grade: 'brilliant', effects: [{ kind: 'status', status: 'stunned', turns: 1, target: 'all' }],
     line: 'You kick the Fire Extinguisher and it rockets around the room spraying foam! Everybody down!' },
@@ -92,11 +92,11 @@ export const PROP_COMBOS: Record<string, OutcomeTemplate> = {
 
 /** Hand-written combos for two specific items, keyed by both ids sorted and joined with '+'. */
 export const JANK_COMBOS: Record<string, { name: string } & OutcomeTemplate> = {
-  'pipe_bomb+rubber_chicken': { name: 'Squeaky Shrapnel', grade: 'legendary', effects: [{ kind: 'damage', amount: 10, target: 'all' }, { kind: 'status', status: 'stunned', turns: 1, target: 'all' }],
+  'pipe_bomb+rubber_chicken': { name: 'Squeaky Shrapnel', grade: 'legendary', effects: [{ kind: 'damage', amount: 10, type: 'sharp', target: 'all' }, { kind: 'status', status: 'stunned', turns: 1, target: 'all' }],
     line: 'You stuff the Rubber Chicken with the Pipe Bomb. SQUEAK-BOOM! Squeaky Shrapnel everywhere!' },
   'craft_services_sandwich+ghost_pepper_sauce': { name: 'Inferno Hoagie', grade: 'brilliant', effects: [{ kind: 'heal', amount: 12, target: 'self' }, { kind: 'status', status: 'hasted', turns: 2, target: 'self' }],
     line: 'You make an Inferno Hoagie and eat it in one go. +{heal} HP and your legs are moving on their own!' },
-  'glitter_bomb+pipe_bomb': { name: 'Glitterpocalypse', grade: 'legendary', effects: [{ kind: 'damage', amount: 8, target: 'all' }, { kind: 'status', status: 'stunned', turns: 1, target: 'all' }],
+  'glitter_bomb+pipe_bomb': { name: 'Glitterpocalypse', grade: 'legendary', effects: [{ kind: 'damage', amount: 8, type: 'sharp', target: 'all' }, { kind: 'status', status: 'stunned', turns: 1, target: 'all' }],
     line: 'GLITTERPOCALYPSE! It is sharp, it is sparkly, it is EVERYWHERE!' },
   'expired_energy_drink+ghost_pepper_sauce': { name: 'Liquid Regret', grade: 'brilliant', effects: [{ kind: 'status', status: 'burning', turns: 3, target: 'all' }],
     line: 'You shake up Liquid Regret and spray the room. Everything it touches catches fire. Do not drink that.' },
@@ -140,19 +140,19 @@ export const ITEM_TAGS: Record<string, PropTag[]> = {
 
 /** Generic jank: the first rule where one item has `a` (and the other has `b`, if given) wins. */
 export const JANK_RULES: ({ a: PropTag; b?: PropTag; name: string } & OutcomeTemplate)[] = [
-  { a: 'explosive', name: 'Improvised Device', grade: 'brilliant', effects: [{ kind: 'damage', amount: 6, target: 'all' }],
+  { a: 'explosive', name: 'Improvised Device', grade: 'brilliant', effects: [{ kind: 'damage', amount: 6, type: 'fire', target: 'all' }],
     line: 'You tape the {a} to the {b} and throw it. BOOM! The {name} works!' },
   { a: 'flammable', b: 'flammable', name: 'Bonfire', grade: 'brilliant', effects: [{ kind: 'status', status: 'burning', turns: 2, target: 'all' }],
     line: 'You set the {a} and the {b} alight together. A Bonfire! Toasty, deadly television!' },
   { a: 'edible', b: 'edible', name: 'Mystery Smoothie', grade: 'brilliant', effects: [{ kind: 'heal', amount: 8, target: 'self' }],
     line: 'You blend the {a} and the {b} into a Mystery Smoothie. +{heal} HP. Do not ask.' },
-  { a: 'sharp', name: 'Spiky Surprise', grade: 'brilliant', effects: [{ kind: 'damage', amount: 5, target: 'one' }, { kind: 'status', status: 'bleed', turns: 2, target: 'one' }],
+  { a: 'sharp', name: 'Spiky Surprise', grade: 'brilliant', effects: [{ kind: 'damage', amount: 5, type: 'sharp', target: 'one' }, { kind: 'status', status: 'bleed', turns: 2, target: 'one' }],
     line: 'You strap the {a} to the {b}. Spiky Surprise! {target} is surprised. And spiky.' },
 ];
 
 /** When nothing matches: mild, random results. */
 export const JANK_FALLBACK: ({ name: string } & OutcomeTemplate)[] = [
-  { name: 'Contraption', grade: 'meh', effects: [{ kind: 'damage', amount: 2, target: 'one' }],
+  { name: 'Contraption', grade: 'meh', effects: [{ kind: 'damage', amount: 2, type: 'blunt', target: 'one' }],
     line: 'You combine the {a} and the {b} into a Contraption and throw it at {target}. It does... something. {dmg}.' },
   { name: 'Snack', grade: 'meh', effects: [{ kind: 'heal', amount: 3, target: 'self' }],
     line: 'You combine the {a} and the {b} and, for reasons, eat it. +{heal} HP.' },

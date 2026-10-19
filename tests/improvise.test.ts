@@ -121,7 +121,7 @@ describe('props', () => {
     const b = fight(s, ['grudge_gator']);
     const gator = b.combatants[1];
     battleCommand(s, { kind: 'improvise', channel: 'prop', propId: vm.id, verb: 'shove' });
-    expect(gator.stats.hp).toBe(22 - (10 - 3));
+    expect(gator.stats.hp).toBe(22 - Math.round((10 - 3) * 1.5)); // blunt: the gator's weak spot
     expect(gator.statuses.some((x) => x.kind === 'stunned')).toBe(true);
     expect(s.events.some((e) => e.type === 'improvised' && e.grade === 'legendary')).toBe(true);
     b.result = 'won';

@@ -86,6 +86,13 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { ally
     floor.props.push({ id: `prop-${floor.props.length}`, defId: def.id, pos, usesLeft: def.uses });
   }
 
+  // The floor boss's lair (the stairs room) always has something that burns.
+  const lair = floor.rooms.find((r) => inRoom(r, floor.stairs));
+  for (const id of lair ? theme.lairProps : []) {
+    const pos = edgeSpot([lair!]);
+    if (pos) floor.props.push({ id: `prop-${floor.props.length}`, defId: id, pos, usesLeft: PROPS[id].uses });
+  }
+
   // Captives also stand still and block the way, so they get the same check.
   const captives: { allyId: string; pos: Vec }[] = [];
   const used = new Set<Room>();

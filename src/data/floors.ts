@@ -34,6 +34,8 @@ export type FloorTheme = {
   /** Room bosses (each holds a room of its own) and the floor boss in the stairs lair. */
   roomBosses: { ids: string[]; count: [number, number]; minDepth: number };
   floorBoss: string;
+  /** Props always placed in the floor boss's lair (it should be beatable with what is there). */
+  lairProps: string[];
   /** Sludge pools (clusters), spike tiles and gas vents per floor. */
   hazards: { sludgePools: [number, number]; spikes: [number, number]; gasVents: [number, number] };
 };
@@ -67,6 +69,7 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     elites: { count: [4, 6], minDepth: 0.2 },
     roomBosses: { ids: ['sump_crab', 'old_flushy', 'hairball_hydra'], count: [2, 3], minDepth: 0.45 },
     floorBoss: 'fatberg',
+    lairProps: ['barrel', 'barrel'],
     hazards: { sludgePools: [12, 20], spikes: [18, 28], gasVents: [8, 14] },
   },
 };

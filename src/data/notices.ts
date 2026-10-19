@@ -11,6 +11,7 @@ export const NOTICES = {
   dash: 'HOUSE RULE #4: SHIFT for a quick sprint past the residents! Sprinting is loud, and the sneakers need a moment to recharge.',
   inventory: 'HOUSE RULE #6: ESC or I opens your pockets and pauses the show. Equip something nice for the cameras!',
   sneak: 'HOUSE RULE #5: Residents see in cones and hear footsteps. Tiptoe up behind them for a big surprise bonus!',
+  weakSpots: 'HOUSE RULE #7: Everybody down here has a weak spot! Blunt, Sharp, Fire or Gross: find theirs and you get to go again. Switch weapons, throw things, set things on fire!',
   paused: 'COMMERCIAL BREAK. Stay right where you are. Press ESC when you are ready to go back on air.',
   onStairs: 'You are on the stairs. Press E to take them and finish the run.',
   bossHud: { hidden: 'FLOOR BOSS: not found', found: 'FLOOR BOSS: {boss} (TAB map)', beaten: 'FLOOR BOSS: beaten, stairs open' },

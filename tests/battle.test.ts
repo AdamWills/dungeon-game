@@ -67,8 +67,8 @@ describe('battle turns', () => {
       battleCommand(state, attackFirst(state));
       if (!state.battle!.fx.some((f) => f.kind === 'hit' && f.targetId === 't0')) continue; // missed on this seed
       expect(state.battle!.log[1].text).toContain('(Ambush bonus.)');
-      // 3 (pipe) + 4 (Str) - 3 (gator Armor) = 4, x1.5 = 6
-      expect(state.battle!.combatants[1].stats.hp).toBe(22 - 6);
+      // 3 (pipe) + 4 (Str) - 3 (gator Armor) = 4, x1.5 ambush = 6, x1.5 blunt weak spot = 9
+      expect(state.battle!.combatants[1].stats.hp).toBe(22 - 9);
       return;
     }
     throw new Error('never hit in 40 seeds');

@@ -8,13 +8,14 @@ import { PROPS } from '../data/props';
 import { BATTLE_TEXT as T, fill, variant } from '../data/battleText';
 import { CLASSES } from '../data/classes';
 import { ELITE, eliteName } from '../data/bosses';
+import { DAMAGE_TYPES, type DamageType, WEAK_SPOTS } from '../data/damage';
 import { ENEMIES, type EnemyMove } from '../data/enemies';
 import { FLOOR_THEMES } from '../data/floors';
 import { type EffectRef, ITEMS } from '../data/items';
 import { STATUSES, type StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../game/combat';
-import { playerResists, weaponOf } from '../game/equipment';
+import { inventoryCommand, playerResists, weaponOf } from '../game/equipment';
 import { depthOf, rollItem, rollItemOf } from '../game/loot';
 import { changeLoyalty, makeAlly, settleLoyalty } from '../game/party';
 import { startTalk } from '../game/talk';
@@ -141,8 +142,18 @@ export function battleCommand(state: GameState, cmd: BattleCommand): void {
   if (!actor || !isYou(actor) || !battle.yourTurn) return;
   if (!playerAct(state, battle, actor, cmd)) return; // refused: still your turn
   battle.playerHasActed = true;
+  const over = checkOver(state, battle);
+  // A weak spot knocks them off balance: you go again, once per turn.
+  const again = battle.offBalance && !battle.bonusUsed && !over;
+  battle.offBalance = false;
+  if (again) {
+    battle.bonusUsed = true;
+    say(battle, T.goAgain, 'host');
+    battle.wait = TUNING.battle.turnTicks;
+    return;
+  }
   battle.yourTurn = false;
-  if (!checkOver(state, battle)) advance(battle);
+  if (!over) advance(battle);
   // Let your move land on screen before the next one.
   battle.wait = battle.result ? TUNING.battle.resultTicks : TUNING.battle.turnTicks;
 }
@@ -156,6 +167,7 @@ export function battleTick(state: GameState): void {
   const battle = state.battle;
   if (!battle || battle.wait <= 0) return;
   if (--battle.wait > 0 || battle.result) return;
+  if (battle.yourTurn) return; // a bonus action: still yours
   runTurns(state);
 }
 
@@ -208,6 +220,7 @@ function runTurns(state: GameState): void {
   }
   if (canAct && isYou(actor)) {
     battle.yourTurn = true; // wait for the menu
+    battle.bonusUsed = false;
     return;
   }
   if (canAct) {
@@ -321,6 +334,18 @@ function playerAct(state: GameState, battle: BattleState, me: Combatant, cmd: Ba
       if (!def) {
         say(battle, T.noItems, 'host');
         return false;
+      }
+      // Swapping weapons is free, so you can hunt for a weak spot.
+      if (def.slot === 'weapon') {
+        const before = weaponOf(state.player).name;
+        inventoryCommand(state, { kind: 'equip', slot: cmd.slot });
+        if (weaponOf(state.player).name === before) return false; // cursed: it will not let go
+        const p = state.player.stats;
+        Object.assign(me.stats, { str: p.str, speed: p.speed, evasion: p.evasion, armor: p.armor, charm: p.charm, maxHp: p.maxHp });
+        me.stats.hp = Math.min(me.stats.hp, me.stats.maxHp);
+        const w = weaponOf(state.player);
+        say(battle, fill(T.swapped, { weapon: w.name, type: DAMAGE_TYPES[w.type].name }), 'info');
+        return false; // still your turn
       }
       if (!def.use) {
         say(battle, T.cantUseHere, 'host');
@@ -465,8 +490,9 @@ export function applyEffects(state: GameState, battle: BattleState, user: Combat
         break;
       }
       case 'damage': {
-        const raw = eff.pierce ? eff.amount : Math.max(1, eff.amount - target.stats.armor);
-        hurt(state, battle, target, user, raw);
+        const hit = typed(state, battle, user, target, eff.pierce ? eff.amount : Math.max(1, eff.amount - target.stats.armor), eff.type);
+        if (hit.note) say(battle, `${target.name}:${hit.note}`, 'info');
+        hurt(state, battle, target, user, hit.dmg);
         break;
       }
       case 'status':
@@ -502,6 +528,33 @@ export function applyStatus(
   return true;
 }
 
+/**
+ * Weak spots: scale a hit on an enemy by its damage type and remember what
+ * that type does to this kind of creature. Your weak-spot hits knock it off
+ * balance (you go again). Returns the damage and a note for the log.
+ */
+function typed(state: GameState, battle: BattleState, attacker: Combatant, target: Combatant, raw: number, type?: DamageType): { dmg: number; note: string } {
+  if (!type || target.side !== 'enemy') return { dmg: raw, note: '' };
+  const def = ENEMIES[target.defId];
+  const name = DAMAGE_TYPES[type].name;
+  const tried = (state.weakSpots[def.id] ??= []);
+  const first = !tried.includes(type);
+  if (first) tried.push(type);
+  if (def.weak?.includes(type)) {
+    if (isYou(attacker)) battle.offBalance = true;
+    fx(battle, target.id, 'weak');
+    // The first time, Chet makes a fuss about it (same line, so it reads in order).
+    const found = first ? ` ${fill(T.weakFound, { target: def.name, type: name.toLowerCase() })}` : '';
+    if (first) state.events.push({ type: 'weakSpotFound', defId: def.id, damage: type });
+    return { dmg: Math.max(1, Math.round(raw * WEAK_SPOTS.weakMult)), note: fill(T.weakNote, { type: name }) + found };
+  }
+  if (def.resists?.includes(type)) {
+    fx(battle, target.id, 'resist');
+    return { dmg: Math.max(1, Math.round(raw * WEAK_SPOTS.resistMult)), note: fill(T.resistNote, { type: name.toLowerCase() }) };
+  }
+  return { dmg: raw, note: '' };
+}
+
 /** Final damage after Hex, bracing and passives; kills if HP hits 0. */
 function hurt(state: GameState, battle: BattleState, target: Combatant, source: Combatant, raw: number): number {
   let dmg = raw;
@@ -530,13 +583,13 @@ function playerStrike(state: GameState, battle: BattleState, me: Combatant, targ
     return;
   }
   const ambush = ambushActive(battle, 'player');
-  const raw = modifyDamage(baseDamage(weapon.damage, me.stats.str, target.stats.armor), { ambush, defending: false });
+  const hit = typed(state, battle, me, target, modifyDamage(baseDamage(weapon.damage, me.stats.str, target.stats.armor), { ambush, defending: false }), weapon.type);
   const hexed = hasStatus(target, 'hexed');
   const line = fill(variant(T.playerHit, ...s), { target: target.name, weapon: weapon.name, dmg: '{dmg}' });
   const idx = battle.log.length;
   say(battle, line, 'good');
-  const dmg = hurt(state, battle, target, me, raw);
-  battle.log[idx].text = line.replace('{dmg}', String(dmg)) + (ambush ? T.bonus : '') + (hexed ? ' (Hexed: double damage.)' : '');
+  const dmg = hurt(state, battle, target, me, hit.dmg);
+  battle.log[idx].text = line.replace('{dmg}', String(dmg)) + hit.note + (ambush ? T.bonus : '') + (hexed ? ' (Hexed: double damage.)' : '');
   if (target.alive && weapon.onHit && nextFloat(state.rng) < weapon.onHit.chance)
     applyStatus(state, battle, target, weapon.onHit.status, weapon.onHit.turns);
 }
@@ -703,11 +756,11 @@ function allyStrike(state: GameState, battle: BattleState, me: Combatant, def: (
     return;
   }
   const ambush = ambushActive(battle, 'player');
-  const raw = modifyDamage(baseDamage(weapon, me.stats.str, target.stats.armor), { ambush, defending: false });
+  const hit = typed(state, battle, me, target, modifyDamage(baseDamage(weapon, me.stats.str, target.stats.armor), { ambush, defending: false }), def.weapon.type);
   const idx = battle.log.length;
   say(battle, '', 'good');
-  const dmg = hurt(state, battle, target, me, raw);
-  battle.log[idx].text = fill(variant(def.attackLines, ...salt), { ally: me.name, target: target.name, dmg }) + (ambush ? T.bonus : '');
+  const dmg = hurt(state, battle, target, me, hit.dmg);
+  battle.log[idx].text = fill(variant(def.attackLines, ...salt), { ally: me.name, target: target.name, dmg }) + hit.note + (ambush ? T.bonus : '');
 }
 
 function useAllyAbility(state: GameState, battle: BattleState, me: Combatant, def: (typeof ALLIES)[string], foes: Combatant[], hurtMost: Combatant): void {

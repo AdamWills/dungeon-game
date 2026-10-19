@@ -2,6 +2,7 @@
 // consumables, junk and cursed things. Names and jokes first; every number is a placeholder until
 // M5. Adding an item is a one-entry change here (plus an icon if you like).
 
+import type { DamageType } from './damage';
 import type { StatusKind } from './statuses';
 
 export type Rarity = 'junk' | 'standard' | 'special' | 'cursed' | 'hosts_pick';
@@ -19,7 +20,7 @@ export const SLOT_NAMES: Record<ItemSlot, string> = {
 
 export type EffectRef =
   | { kind: 'heal'; amount: number }
-  | { kind: 'damage'; amount: number; pierce?: boolean } // pierce ignores Armor
+  | { kind: 'damage'; amount: number; pierce?: boolean; type?: DamageType } // pierce ignores Armor
   | { kind: 'status'; status: StatusKind; turns: number; then?: { status: StatusKind; turns: number } }
   | { kind: 'cleanse' };
 
@@ -28,7 +29,7 @@ export type ItemDef = {
   name: string;
   rarity: Rarity;
   slot?: ItemSlot;
-  weapon?: { damage: number; onHit?: { status: StatusKind; turns: number; chance: number } };
+  weapon?: { damage: number; type: DamageType; onHit?: { status: StatusKind; turns: number; chance: number } };
   /** Stat changes while equipped. */
   mods?: Partial<Record<StatKey, number>>;
   /** Statuses that cannot be applied to you while equipped. */
@@ -58,46 +59,52 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- weapons ---------------------------------------------------------------
   rusted_pipe: {
     id: 'rusted_pipe', name: 'Rusted Pipe', rarity: 'standard', slot: 'weapon', noLoot: true,
-    weapon: { damage: 3 },
+    weapon: { damage: 3, type: 'blunt' },
     description: 'Load-bearing until very recently.',
-    help: 'Weapon. 3 damage.',
+    help: 'Weapon, Blunt. 3 damage.',
   },
   cursed_clipboard: {
     id: 'cursed_clipboard', name: 'Cursed Clipboard', rarity: 'standard', slot: 'weapon', noLoot: true,
-    weapon: { damage: 3 }, mods: { charm: 1 },
+    weapon: { damage: 3, type: 'sharp' }, mods: { charm: 1 },
     description: 'Every page is a waiver you already signed.',
-    help: 'Weapon. 3 damage, +1 Charm.',
+    help: 'Weapon, Sharp. 3 damage, +1 Charm.',
   },
   mop_of_reckoning: {
     id: 'mop_of_reckoning', name: 'Mop of Reckoning', rarity: 'standard', slot: 'weapon',
-    weapon: { damage: 4 },
+    weapon: { damage: 4, type: 'gross' },
     description: 'The cleaning crew\'s finest. Cleans up afterwards, mostly you.',
-    help: 'Weapon. 4 damage.',
+    help: 'Weapon, Gross. 4 damage.',
   },
   sharpened_trophy: {
     id: 'sharpened_trophy', name: 'Sharpened Participation Trophy', rarity: 'special', slot: 'weapon',
-    weapon: { damage: 4, onHit: { status: 'bleed', turns: 3, chance: 0.4 } },
+    weapon: { damage: 4, type: 'sharp', onHit: { status: 'bleed', turns: 3, chance: 0.4 } },
     description: 'Everyone gets one. Not everyone gets one in the neck.',
-    help: 'Weapon. 4 damage; 40% chance a hit makes the target bleed for 3 turns.',
+    help: 'Weapon, Sharp. 4 damage; 40% chance a hit makes the target bleed for 3 turns.',
   },
   giant_foam_finger: {
     id: 'giant_foam_finger', name: 'Giant Foam Finger', rarity: 'junk', slot: 'weapon',
-    weapon: { damage: 1 }, mods: { charm: 3 },
+    weapon: { damage: 1, type: 'blunt' }, mods: { charm: 3 },
     description: 'WE\'RE NUMBER ONE. We are not.',
-    help: 'Weapon. 1 damage, +3 Charm.',
+    help: 'Weapon, Blunt. 1 damage, +3 Charm.',
   },
   chainless_chainsaw: {
     id: 'chainless_chainsaw', name: 'Chainsaw (Chain Sold Separately)', rarity: 'standard', slot: 'weapon',
-    weapon: { damage: 6 }, mods: { speed: -1 },
+    weapon: { damage: 6, type: 'blunt' }, mods: { speed: -1 },
     description: 'It roars. It vibrates. It is, functionally, a very loud club.',
-    help: 'Weapon. 6 damage, -1 Speed.',
+    help: 'Weapon, Blunt. 6 damage, -1 Speed.',
   },
   prize_wheel_spoke: {
     id: 'prize_wheel_spoke', name: 'Prize Wheel Spoke', rarity: 'special', slot: 'weapon',
-    weapon: { damage: 5 }, mods: { speed: 1 },
+    weapon: { damage: 5, type: 'sharp' }, mods: { speed: 1 },
     description: 'Snapped off the big wheel. Chet has not noticed. Chet will notice.',
-    help: 'Weapon. 5 damage, +1 Speed.',
+    help: 'Weapon, Sharp. 5 damage, +1 Speed.',
+  },  tiki_torch: {
+    id: 'tiki_torch', name: 'Tiki Torch (Novelty)', rarity: 'standard', slot: 'weapon',
+    weapon: { damage: 3, type: 'fire', onHit: { status: 'burning', turns: 2, chance: 0.25 } },
+    description: 'From the Season 2 luau episode. We do not talk about the luau episode.',
+    help: 'Weapon, Fire. 3 damage; 25% chance a hit sets the target burning for 2 turns.',
   },
+
   // --- armour ----------------------------------------------------------------
   velour_tracksuit: {
     id: 'velour_tracksuit', name: 'Velour Tracksuit', rarity: 'standard', slot: 'body', noLoot: true,
@@ -166,9 +173,9 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   pipe_bomb: {
     id: 'pipe_bomb', name: 'Pipe Bomb', rarity: 'special',
-    use: { target: 'all_enemies', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 8 }] },
+    use: { target: 'all_enemies', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 8, type: 'fire' }] },
     description: 'Plumbing-adjacent. Do not let Chet see. He will want it on the show.',
-    help: 'In battle: 8 damage to every enemy. Used up.',
+    help: 'In battle: 8 Fire damage to every enemy. Used up.',
     useLine: 'You throw the Pipe Bomb! KA-BLAMMO! That is how you get ratings, folks!',
   },
   smelling_salts: {
@@ -209,9 +216,9 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- junk ------------------------------------------------------------------
   rubber_chicken: {
     id: 'rubber_chicken', name: 'Rubber Chicken', rarity: 'junk',
-    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 2, pierce: true }] },
+    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 2, pierce: true, type: 'blunt' }] },
     description: 'Squeaks with judgement. A show staple since the pilot.',
-    help: 'In battle: throw it for 2 damage to one enemy, ignoring Armor. Used up.',
+    help: 'In battle: throw it for 2 Blunt damage to one enemy, ignoring Armor. Used up.',
     useLine: 'You throw the Rubber Chicken at {target}. SQUEAK. {amount} damage. Comedy!',
   },
   giant_novelty_check: {
@@ -223,9 +230,9 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   previous_contestant_jar: {
     id: 'previous_contestant_jar', name: 'Previous Contestant (in a Jar)', rarity: 'junk',
-    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 7 }] },
+    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 7, type: 'gross' }] },
     description: 'He gives advice. Bad advice. He does make a good projectile.',
-    help: 'In battle: throw it for 7 damage to one enemy. Used up.',
+    help: 'In battle: throw it for 7 Gross damage to one enemy. Used up.',
     useLine: 'You hurl the jar at {target}! The previous contestant finally makes an impact!',
   },
   sewer_rabbit_foot: {

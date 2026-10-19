@@ -250,6 +250,15 @@ export class BattleView {
     }
 
     for (const { f, t } of fx) {
+      if (t < 1 && (f.kind === 'weak' || f.kind === 'resist')) {
+        // A word over the target's head, above the damage number.
+        ctx.globalAlpha = 1 - t;
+        ctx.font = FONT_BIG;
+        ctx.fillStyle = f.kind === 'weak' ? '#ffd23a' : '#9aa0a8';
+        centered(ctx, f.kind === 'weak' ? 'WEAK SPOT!' : 'RESISTED', cx, top - 14 - t * 30);
+        ctx.globalAlpha = 1;
+        continue;
+      }
       if (t >= 1 || (f.kind !== 'hit' && f.kind !== 'miss' && f.kind !== 'heal')) continue;
       ctx.globalAlpha = 1 - t;
       ctx.font = FONT_BIG;

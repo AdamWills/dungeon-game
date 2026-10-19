@@ -44,4 +44,4 @@ export const CLASSES: Record<string, ClassDef> = {
 };
 
 /** Damage when nothing is equipped in the weapon slot. */
-export const FISTS = { name: 'Bare Fists', damage: 1 };
+export const FISTS = { name: 'Bare Fists', damage: 1, type: 'blunt' as const };

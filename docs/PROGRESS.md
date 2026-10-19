@@ -124,6 +124,15 @@
 - The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
 - Later: drawing gear on the character sprite itself.
 
+### Weak spots (user pick, to make combat more than mashing Enter)
+- Four damage types: Blunt, Sharp, Fire and Gross (`src/data/damage.ts`). Every weapon, ally weapon, damaging item and improvised attack has one. A new fire weapon, the Tiki Torch (Novelty), joins the loot.
+- Every creature is weak to at least one type and some shrug others off (`weak` and `resists` in `src/data/enemies.ts`). A weak spot does ×1.5 and knocks it off balance: you go again, once per turn. A resisted hit does half.
+- You learn by trying. What each type did to each kind of creature is kept for the run (`state.weakSpots`) and shown on the target screen ("Weak to Fire. Shrugs off Blunt. Not tried yet: ..."). The damage preview includes the bonus once you know it.
+- Swapping weapons in a fight (Item menu) is free, so you can hunt for the weak spot. The Attack label shows your damage type, and the floating text says WEAK SPOT! or RESISTED. House Rule #7 explains it in Chet's words.
+- The Fatberg shrugs off Blunt and Gross and is weak to Fire. Its lair always has two barrels to set alight (Improvise), and Chet's intro drops a hint. The improvisation validator drops unknown damage types (LLM safety).
+- Sim with a bot that swaps to known weak spots and lights the lair barrels, 12 runs each: Brawler won 7, Hexer 4.
+- Tests (`tests/weakspots.test.ts`): weak ×1.5 plus an extra go (only once per turn), resist ×0.5, learning, the free swap, every creature has a weak spot, the validator. Three older tests now expect the weak-spot damage.
+
 ### Boss tiers and the Fatberg (user request)
 - The stairs now sit in the floor boss's lair and stay sealed until it dies (user: "I should need to defeat a boss to proceed"). Three tiers, user-chosen: elites, room bosses, the floor boss (see the GDD, Floors). Names are our own, not the book's.
 - Content: 4 elite traits (`src/data/bosses.ts`); room bosses the Sump Crab, Old Flushy and the Hairball Hydra; the floor boss, the Fatberg, which sheds Grease Blobs (at most two at once), and the Grease Blob itself (`src/data/enemies.ts`). New move kinds: wind-ups (announced a turn ahead and always shown in the intent line), hit-the-whole-party, and summons.
@@ -143,7 +152,7 @@
 
 ## Next
 
-Weak spots (user pick from the combat-fun options, to stop Enter-mashing): enemies have weaknesses and resistances (blunt, sharp, fire, gross), learned as you fight them; hitting a weakness knocks them off balance for an extra turn. Then M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
+M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
 
 Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). The writing for the allies and Chet's lines is first-draft placeholder text (user: "not good, but ok"); it all lives in `src/data` for a rewrite pass.
 

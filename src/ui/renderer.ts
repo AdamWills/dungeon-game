@@ -12,6 +12,7 @@ import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
 import { hazardActive, hazardPhase } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, leftItemHere, propAt } from '../world/interact';
+import { DAMAGE_TYPES } from '../data/damage';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
@@ -683,7 +684,7 @@ export class Renderer {
 
     // Second row: your stats, always in view, then the party.
     const wpn = weaponOf(state.player);
-    const stats = `Strength ${s.str}   Speed ${s.speed}   Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}   Weapon ${wpn.name} (${wpn.damage})`;
+    const stats = `Strength ${s.str}   Speed ${s.speed}   Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}   Weapon ${wpn.name} (${wpn.damage}, ${DAMAGE_TYPES[wpn.type].name})`;
     ctx.fillStyle = '#c8d0c4';
     ctx.fillText(stats, 14, 34);
     x = 14 + ctx.measureText(stats).width + 30;
@@ -732,7 +733,7 @@ export class Renderer {
       if (def.recruit.kind === 'cell') return fill(P.cell, { name: def.short });
       return fill(P.bribe, { name: def.short, price: priceOf(state, def.id), tokens: state.tokens });
     }
-    const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.inventory, NOTICES.dash, NOTICES.stairs, NOTICES.pause];
+    const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.inventory, NOTICES.dash, NOTICES.stairs, NOTICES.weakSpots, NOTICES.pause];
     return cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
   }
 

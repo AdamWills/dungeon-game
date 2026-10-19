@@ -300,7 +300,7 @@ describe('statuses, Hex and items in battle', () => {
     expect(b.log.filter((l) => l.text.includes('stunned and just stands there'))).toHaveLength(2);
     const before = b.combatants.slice(1).map((c) => c.stats.hp);
     battleCommand(s, { kind: 'item', slot: slotOf(s, 'pipe_bomb') });
-    b.combatants.slice(1).forEach((c, i) => expect(c.stats.hp).toBe(before[i] - (8 - 2)));
+    b.combatants.slice(1).forEach((c, i) => expect(c.stats.hp).toBe(before[i] - Math.round((8 - 2) * 1.5))); // fire: a leech's weak spot
   });
 
   it('turns an Expired Energy Drink into two turns a round, then a stun', () => {

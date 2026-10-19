@@ -1,6 +1,7 @@
 // Sewer fauna. Names and lines first, numbers untuned until M5.
 
 import type { Stats } from '../game/types';
+import type { DamageType } from './damage';
 import type { Rarity } from './items';
 import type { StatusKind } from './statuses';
 
@@ -46,6 +47,9 @@ export type EnemyDef = {
   prize?: Rarity[];
   /** Drawn this many times bigger than a normal enemy. */
   size?: number;
+  /** Weak spots (more damage, and you go again) and damage types it shrugs off. */
+  weak?: DamageType[];
+  resists?: DamageType[];
   moves: EnemyMove[];
   roam: {
     patrolTicksPerTile: number;
@@ -70,6 +74,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     weapon: 1,
     xp: 4,
     tokens: [1, 3],
+    weak: ['blunt'],
     moves: [
       { id: 'gnaw', name: 'Gnaw', weight: 3, bonus: 0, hit: ['{actor} gnaws on your ankle for {dmg}.', '{actor} bites you for {dmg} and looks smug about it.'] },
       { id: 'lanyard_whip', name: 'Lanyard Whip', weight: 1, bonus: 1, hit: ['{actor} whips you with its lanyard for {dmg}. Backstage access: revoked.'] },
@@ -84,6 +89,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     weapon: 2,
     xp: 6,
     tokens: [2, 4],
+    weak: ['gross'],
     moves: [
       { id: 'staple', name: 'Staple', weight: 3, bonus: 0, hit: ['{actor} staples you for {dmg}. It is collating you.', '{actor} staples you to the present moment for {dmg}.'] },
       { id: 'reply_all', name: 'Reply-All', weight: 1, bonus: 2, hit: ['{actor} screams a reply-all at you. {dmg} psychic damage.'] },
@@ -98,6 +104,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     weapon: 1,
     xp: 5,
     tokens: [1, 4],
+    weak: ['fire'],
+    resists: ['gross', 'blunt'],
     moves: [
       { id: 'splat', name: 'Splat', weight: 2, bonus: 0, hit: ['{actor} lands on you. {dmg} damage and a smell that will outlive you.'], status: { kind: 'poison', turns: 3, chance: 0.5 } },
       { id: 'tongue_lash', name: 'Tongue Lash', weight: 2, bonus: 1, hit: ['{actor} tongues you across the face for {dmg}. Unprofessional.'] },
@@ -112,6 +120,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     weapon: 2,
     xp: 8,
     tokens: [2, 5],
+    weak: ['fire'],
+    resists: ['blunt'],
     moves: [
       { id: 'latch', name: 'Latch', weight: 3, bonus: 0, hit: ['{actor} latches on for {dmg}. It has opinions about your blood type.'], status: { kind: 'bleed', turns: 3, chance: 0.5 } },
       { id: 'drink_deep', name: 'Drink Deep', weight: 1, bonus: 2, hit: ['{actor} drinks deep. You lose {dmg} HP and some self-respect.'] },
@@ -126,6 +136,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     weapon: 2,
     xp: 14,
     tokens: [4, 8],
+    weak: ['blunt'],
+    resists: ['sharp'],
     moves: [
       { id: 'chomp', name: 'Chomp', weight: 3, bonus: 0, hit: ['{actor} chomps you for {dmg}. It was thinking about someone else.'] },
       { id: 'death_roll', name: 'Death Roll', weight: 1, bonus: 3, hit: ['{actor} death-rolls you for {dmg}. Twenty years of resentment, released.'] },
@@ -142,6 +154,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     tokens: [1, 3],
     spare: 'skitch',
     special: true,
+    weak: ['blunt'],
     moves: [
       { id: 'nail', name: 'Nail Gun', weight: 3, bonus: 0, hit: ['{actor} nails you for {dmg}, then looks away like it was someone else.', '{actor} shoots you for {dmg} and mouths "sorry".'] },
       { id: 'spray', name: 'Spray and Pray', weight: 1, bonus: 1, hit: ['{actor} fires wildly. One nail finds you for {dmg}.'] },
@@ -157,6 +170,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 15,
     tokens: [3, 6],
     special: true,
+    weak: ['gross'],
+    resists: ['blunt'],
     moves: [
       { id: 'clothesline', name: 'Clothesline', weight: 3, bonus: 0, hit: ['{actor} clotheslines you for {dmg}. She used to do that FOR you.'] },
       { id: 'forklift', name: 'Forklift', weight: 1, bonus: 3, hit: ['{actor} lifts you with her legs and drops you for {dmg}. Perfect form.'] },
@@ -179,6 +194,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     size: 1.5,
     prize: ['special', 'hosts_pick'],
     intro: 'Folks, it is a ROOM BOSS! The Sump Crab has held this sump for nine seasons. Nobody has made it say yes!',
+    weak: ['blunt'],
+    resists: ['sharp'],
     moves: [
       { id: 'pinch', name: 'Pinch', weight: 3, bonus: 0, hit: ['{actor} pinches you for {dmg}. It does not let go until it is finished.', '{actor} pinches you for {dmg}, then pinches the air, for emphasis.'] },
       { id: 'claw_clap', name: 'Claw Clap', weight: 1, bonus: 4, windup: true, hit: ['{actor} claps both claws together with you in the middle. {dmg} damage and a round of applause.'] },
@@ -198,6 +215,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     size: 1.5,
     prize: ['special', 'hosts_pick'],
     intro: 'A ROOM BOSS! Old Flushy, folks! Somebody\'s childhood pet, all grown up and full of feelings!',
+    weak: ['sharp'],
+    resists: ['gross'],
     moves: [
       { id: 'gulp', name: 'Gulp', weight: 3, bonus: 0, hit: ['{actor} gulps at you for {dmg}. Three seconds later it has forgotten, and gulps again.'], status: { kind: 'bleed', turns: 3, chance: 0.4 } },
       { id: 'thrash', name: 'Thrash', weight: 2, bonus: 0, hitsAll: true, hit: ['{actor} thrashes around the room. {dmg} damage to you, and to everybody else.'] },
@@ -218,6 +237,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     size: 1.5,
     prize: ['special', 'hosts_pick'],
     intro: 'ROOM BOSS! The Hairball Hydra! Three heads, no shampoo, and a whole lot of attitude!',
+    weak: ['fire'],
+    resists: ['blunt'],
     moves: [
       { id: 'tangle', name: 'Tangle', weight: 3, bonus: 0, hit: ['{actor} tangles you up for {dmg}. You will be finding hair in places for weeks.'], status: { kind: 'stunned', turns: 1, chance: 0.15 } },
       { id: 'three_heads', name: 'All Three Heads', weight: 1, bonus: 1, hitsAll: true, hit: ['All three heads of {actor} lunge at once. {dmg} damage to everyone, and they argue about who did it.'] },
@@ -239,7 +260,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
     tier: 'floor',
     size: 2,
     prize: ['hosts_pick'],
-    intro: 'Ladies and gentlemen, the FLOOR BOSS! Built from everything you ever flushed and said "it\'ll be fine"! It is THE FATBERG! Beat it, and the stairs are yours!',
+    intro: 'Ladies and gentlemen, the FLOOR BOSS! Built from everything you ever flushed and said "it\'ll be fine"! It is THE FATBERG! Beat it, and the stairs are yours! And folks, whatever you do, do NOT bring anything flammable near all that grease!',
+    weak: ['fire'],
+    resists: ['blunt', 'gross'],
     moves: [
       { id: 'engulf', name: 'Engulf', weight: 3, bonus: 1, hit: ['{actor} engulfs you for {dmg}. It is warm in there. That is the worst part.'], status: { kind: 'stunned', turns: 1, chance: 0.25 } },
       { id: 'wipe_lash', name: 'Wet Wipe Lash', weight: 2, bonus: 0, hitsAll: true, hit: ['{actor} lashes out with a rope of "flushable" wipes. {dmg} damage to everybody. They were not flushable.'] },
@@ -257,6 +280,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 2,
     tokens: [0, 1],
     special: true,
+    weak: ['fire'],
     moves: [{ id: 'slap', name: 'Slap', weight: 1, bonus: 0, hit: ['{actor} slaps you wetly for {dmg}.', '{actor} gets grease on you for {dmg}. It will not wash out.'] }],
     roam: { patrolTicksPerTile: 16, chaseTicksPerTile: 16, visionRange: 4, visionArcDeg: 120, hearingRadius: 2, sleepChance: 0, giveUpTicks: 60, smart: false },
   },

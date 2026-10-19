@@ -3,6 +3,7 @@
 // paused.
 
 import { CLASSES, FISTS } from '../data/classes';
+import type { DamageType } from '../data/damage';
 import { INVENTORY_CAP, ITEMS, type ItemDef, type ItemSlot, type StatKey } from '../data/items';
 import { RACES } from '../data/races';
 import type { StatusKind } from '../data/statuses';
@@ -64,7 +65,7 @@ export function refreshPlayerStats(state: GameState): void {
   p.stats = next;
 }
 
-export function weaponOf(player: Entity): { name: string; damage: number; onHit?: NonNullable<ItemDef['weapon']>['onHit'] } {
+export function weaponOf(player: Entity): { name: string; damage: number; type: DamageType; onHit?: NonNullable<ItemDef['weapon']>['onHit'] } {
   const inst = player.equipment?.weapon;
   const def = inst && ITEMS[inst.defId];
   return def?.weapon ? { name: def.name, ...def.weapon } : FISTS;

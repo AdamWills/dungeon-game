@@ -3,7 +3,7 @@
 
 export const UI_TEXT = {
   help: {
-    attack: 'Hit one enemy with your {weapon}. You choose the target next.',
+    attack: '{weapon}: {type} damage. Weak spots take more, and you go again.',
     item: 'Use something from your pockets. Takes your turn.',
     noItems: 'You have no items left.',
     defend: 'Take half damage until your next turn.',
@@ -13,9 +13,10 @@ export const UI_TEXT = {
     spare: 'If it works, {name} joins your party. Charm helps. Takes your turn.',
     spareNotYet: '{name} is not ready to switch sides yet. Get its HP below 40% first.',
     recharging: '{name} is recharging: ready in {turns} of your turns.',
-    target: '{name}: {hp}/{max} HP. You hit {chance}% of the time, for {dmg} damage.',
+    target: '{name}: {hp}/{max} HP. You hit {chance}% of the time, for {dmg} {type} damage.',
     targetKeys: 'Arrows choose, Enter confirms, Esc goes back.',
     hexTarget: '{name}: {hp}/{max} HP. Hex makes it take double damage for {turns} turns.',
+    swapWeapon: 'Enter switches to it. Free: it does not take your turn.',
     equipOnly: 'Equip it from the inventory (ESC on the map); it cannot be used in a fight.',
     improvise: 'Try something unwise: use a prop in the arena, combine two items, or press the Bad Idea button. Takes your turn.',
     improvProps: 'Shove, kick, throw, eat, hide in or set fire to something in the arena.',

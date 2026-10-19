@@ -2,6 +2,7 @@
 // these rather than replace them.
 
 import type { Stance } from '../data/allies';
+import type { DamageType } from '../data/damage';
 import type { HazardKind } from '../data/hazards';
 import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
 import type { StatKey } from '../data/items';
@@ -171,7 +172,7 @@ export type Encounter = {
 export type LogLine = { text: string; tone: 'info' | 'good' | 'bad' | 'host' };
 
 /** A visible thing that happened in battle, for the UI to animate. */
-export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend' | 'status'; amount?: number };
+export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend' | 'status' | 'weak' | 'resist'; amount?: number };
 
 export type Combatant = {
   id: string;
@@ -235,6 +236,9 @@ export type BattleState = {
   badIdeas: number;
   /** Thick Skull: the first hit on you has been halved already. */
   skullUsed?: boolean;
+  /** You hit a weak spot this action: you go again (once per turn). */
+  offBalance?: boolean;
+  bonusUsed?: boolean;
   /** Enemies spared this fight: they leave with you as allies. */
   spared: string[];
   /** Ally ability cooldowns this fight, in that ally's turns. */
@@ -315,7 +319,8 @@ export type GameEvent =
   | { type: 'allyDismissed'; allyId: string }
   | { type: 'bossRoared'; defId: string }
   | { type: 'bossDefeated'; defId: string; tier: 'elite' | 'room' | 'floor'; name: string }
-  | { type: 'stairsSealed'; defId: string };
+  | { type: 'stairsSealed'; defId: string }
+  | { type: 'weakSpotFound'; defId: string; damage: DamageType };
 
 export type GameState = {
   seed: number;
@@ -340,6 +345,8 @@ export type GameState = {
   party: Entity[];
   /** Tiles the player has just left, newest first: the party walks along this. */
   trail: Vec[];
+  /** Damage types you have tried on each creature (by def); what they did shows on the target screen. */
+  weakSpots: Record<string, DamageType[]>;
   /** Prize Tokens, the in-run money. */
   tokens: number;
   xp: number;

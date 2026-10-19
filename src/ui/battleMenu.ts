@@ -1,6 +1,8 @@
 // Battle menu: cursor state (UI only) that turns key presses into a
 // BattleCommand for the next fixed step.
 
+import { DAMAGE_TYPES } from '../data/damage';
+import { spotsLine, typeMultiplier } from '../game/weakspots';
 import { ABILITIES } from '../data/abilities';
 import { fill } from '../data/battleText';
 import { CLASSES } from '../data/classes';
@@ -48,11 +50,11 @@ export class BattleMenu {
     const ability = ABILITIES[cls.ability];
     const cd = state.player.cooldowns[cls.ability] ?? 0;
     const weapon = weaponOf(state.player);
-    const usable = state.player.inventory.filter((i) => ITEMS[i.defId]?.use).length;
+    const usable = state.player.inventory.filter((i) => ITEMS[i.defId]?.use || ITEMS[i.defId]?.slot === 'weapon').length;
     const H = UI_TEXT.help;
     const abilityHelp = !ability ? '' : cd > 0 ? fill(H.recharging, { name: ability.name, turns: cd }) : ability.help;
     const opts: MenuOption[] = [
-      { id: 'attack', label: `Attack (${weapon.name})`, enabled: true, help: fill(H.attack, { weapon: weapon.name }) },
+      { id: 'attack', label: `Attack (${DAMAGE_TYPES[weapon.type].name})`, enabled: true, help: fill(H.attack, { weapon: weapon.name, type: DAMAGE_TYPES[weapon.type].name }) },
       { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0, help: abilityHelp },
       { id: 'item', label: `Item (${usable})`, enabled: usable > 0, help: usable > 0 ? H.item : H.noItems },
       { id: 'improvise', label: 'Improvise', enabled: true, help: H.improvise },
@@ -272,6 +274,7 @@ export class BattleMenu {
       const inst = state.player.inventory[this.itemCursor];
       const def = inst && ITEMS[inst.defId];
       if (!def) return UI_TEXT.help.noItems;
+      if (def.slot === 'weapon') return `${def.help} ${UI_TEXT.help.swapWeapon}`;
       return def.use ? def.help : `${def.help} ${UI_TEXT.help.equipOnly}`;
     }
     if (this.level === 'target') {
@@ -285,15 +288,20 @@ export class BattleMenu {
         const def = p.kind === 'friend' ? ITEMS[state.player.inventory[p.slot]?.defId] : undefined;
         what = `${foe.name}: ${foe.stats.hp}/${foe.stats.maxHp} HP. ${def?.help ?? fill(UI_TEXT.help.spare, { name: foe.name })}`;
       } else if (p.kind === 'attack') {
-        const dmg = baseDamage(weaponOf(state.player).damage, me.stats.str, foe.stats.armor) * (hasStatus(foe, 'hexed') ? 2 : 1);
-        what = fill(UI_TEXT.help.target, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, chance: Math.round(hitChance(foe.stats.evasion) * 100), dmg });
+        const weapon = weaponOf(state.player);
+        // The weak-spot bonus only shows once you have found it out.
+        const known = (state.weakSpots[foe.defId] ?? []).includes(weapon.type);
+        const mult = known ? typeMultiplier(foe.defId, weapon.type) : 1;
+        const dmg = Math.max(1, Math.round(baseDamage(weapon.damage, me.stats.str, foe.stats.armor) * mult)) * (hasStatus(foe, 'hexed') ? 2 : 1);
+        what = fill(UI_TEXT.help.target, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, chance: Math.round(hitChance(foe.stats.evasion) * 100), dmg, type: DAMAGE_TYPES[weapon.type].name });
       } else if (p.kind === 'ability') {
         what = fill(UI_TEXT.help.hexTarget, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, turns: hexTurns(state) });
       } else {
         const def = ITEMS[state.player.inventory[p.slot]?.defId];
         what = `${foe.name}: ${foe.stats.hp}/${foe.stats.maxHp} HP. ${def?.help ?? ''}`;
       }
-      return `${what} ${UI_TEXT.help.targetKeys}`;
+      const spots = foe.side === 'enemy' ? ` ${spotsLine(state, foe.defId)}` : '';
+      return `${what}${spots} ${UI_TEXT.help.targetKeys}`;
     }
     return this.options(state)[this.cursor]?.help ?? '';
   }

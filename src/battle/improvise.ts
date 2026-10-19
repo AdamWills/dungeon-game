@@ -4,6 +4,7 @@
 // game: known effects only, clamped magnitudes, nothing created, no instant
 // win, and never a self-inflicted death.
 
+import { DAMAGE_TYPES } from '../data/damage';
 import {
   BACKFIRE_LINE,
   BAD_IDEAS,
@@ -40,7 +41,11 @@ const KNOWN_TARGETS = new Set(['self', 'one', 'all']);
 export function gatherArena(state: GameState, at: Vec): ArenaProp[] {
   const { floor } = state;
   const r = PROP_RULES.arenaRadius;
-  const near = (p: Vec) => Math.max(Math.abs(p.x - at.x), Math.abs(p.y - at.y)) <= r;
+  // In the boss's lair, everything in the room is in reach.
+  const lairId = floor.lair?.room;
+  const lair = floor.rooms.find((room) => room.id === lairId);
+  const inLair = (p: Vec) => !!lair && p.x >= lair.x1 - 1 && p.x <= lair.x2 + 1 && p.y >= lair.y1 - 1 && p.y <= lair.y2 + 1;
+  const near = (p: Vec) => Math.max(Math.abs(p.x - at.x), Math.abs(p.y - at.y)) <= r || (inLair(at) && inLair(p));
   const found: (ArenaProp & { d: number })[] = [];
   for (const p of floor.props)
     if (p.usesLeft > 0 && near(p.pos)) found.push({ id: p.id, defId: p.defId, usesLeft: p.usesLeft, source: { kind: 'map', propId: p.id }, d: distance(p.pos, at) });
@@ -130,7 +135,7 @@ export function validateOutcome(o: ImprovOutcome): ImprovOutcome {
   const effects: OutcomeEffect[] = [];
   for (const e of o.effects) {
     if (!KNOWN_EFFECTS.has(e.kind) || !KNOWN_TARGETS.has(e.target)) continue;
-    if (e.kind === 'damage') effects.push({ ...e, amount: clamp(Math.round(e.amount), 0, L.maxDamage) });
+    if (e.kind === 'damage') effects.push({ ...e, amount: clamp(Math.round(e.amount), 0, L.maxDamage), type: e.type && e.type in DAMAGE_TYPES ? e.type : undefined });
     else if (e.kind === 'heal') effects.push({ ...e, amount: clamp(Math.round(e.amount), 0, L.maxHeal) });
     else if (e.kind === 'status') {
       if (!(e.status in STATUSES)) continue;
