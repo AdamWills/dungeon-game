@@ -9,27 +9,34 @@ export function isWalkable(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, x: 
   return WALKABLE[floor.tiles[y][x].terrain];
 }
 
-/** Steps from `from` to every tile (4-way), -1 where unreachable. Flat y * width + x. */
-/** `avoid` marks tiles to route around (e.g. hazards); the start is never avoided. */
+/**
+ * Steps from `from` to every tile (4-way), -1 where unreachable. Flat y * width + x.
+ * `avoid` marks tiles to route around (e.g. hazards); the start is never avoided.
+ * Hot path on big floors: flat arrays, no allocation per step.
+ */
 export function bfsDistances(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, from: Vec, avoid?: (x: number, y: number) => boolean): Int32Array {
-  const { width, height } = floor;
-  const dist = new Int32Array(width * height).fill(-1);
+  const { width, height, tiles } = floor;
+  const n = width * height;
+  const dist = new Int32Array(n).fill(-1);
   if (!isWalkable(floor, from.x, from.y)) return dist;
-  const queue = [from.y * width + from.x];
-  dist[queue[0]] = 0;
-  for (let head = 0; head < queue.length; head++) {
+  const open = new Uint8Array(n);
+  for (let y = 0; y < height; y++) {
+    const row = tiles[y];
+    for (let x = 0; x < width; x++) if (WALKABLE[row[x].terrain] && !avoid?.(x, y)) open[y * width + x] = 1;
+  }
+  const queue = new Int32Array(n);
+  let tail = 0;
+  const start = from.y * width + from.x;
+  queue[tail++] = start;
+  dist[start] = 0;
+  for (let head = 0; head < tail; head++) {
     const i = queue[head];
     const x = i % width;
-    const y = (i - x) / width;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx;
-      const ny = y + dy;
-      if (!isWalkable(floor, nx, ny) || avoid?.(nx, ny)) continue;
-      const ni = ny * width + nx;
-      if (dist[ni] !== -1) continue;
-      dist[ni] = dist[i] + 1;
-      queue.push(ni);
-    }
+    const d = dist[i] + 1;
+    if (x + 1 < width && open[i + 1] && dist[i + 1] === -1) (dist[i + 1] = d), (queue[tail++] = i + 1);
+    if (x > 0 && open[i - 1] && dist[i - 1] === -1) (dist[i - 1] = d), (queue[tail++] = i - 1);
+    if (i + width < n && open[i + width] && dist[i + width] === -1) (dist[i + width] = d), (queue[tail++] = i + width);
+    if (i - width >= 0 && open[i - width] && dist[i - width] === -1) (dist[i - width] = d), (queue[tail++] = i - width);
   }
   return dist;
 }

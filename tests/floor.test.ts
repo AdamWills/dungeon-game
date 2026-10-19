@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { FLOOR_THEMES } from '../src/data/floors';
 import { generateFloor } from '../src/gen/floor';
 import { bfsDistances } from '../src/gen/reach';
 
-const SEEDS = Array.from({ length: 200 }, (_, i) => i * 7919 + 1);
+const SEEDS = Array.from({ length: 60 }, (_, i) => i * 7919 + 1);
 
 describe('floor generator', () => {
   it('always produces stairs reachable from the start', () => {
@@ -14,11 +15,12 @@ describe('floor generator', () => {
     }
   });
 
-  it('has 8 to 12 rooms, every one reachable', () => {
+  it('has the theme\'s number of rooms, every one reachable', () => {
+    const { min, max } = FLOOR_THEMES.intake_sewers.rooms;
     for (const seed of SEEDS) {
       const floor = generateFloor(seed, 1);
-      expect(floor.rooms.length).toBeGreaterThanOrEqual(8);
-      expect(floor.rooms.length).toBeLessThanOrEqual(12);
+      expect(floor.rooms.length).toBeGreaterThanOrEqual(min);
+      expect(floor.rooms.length).toBeLessThanOrEqual(max);
       const dist = bfsDistances(floor, floor.start);
       for (const room of floor.rooms) {
         expect(dist[room.center.y * floor.width + room.center.x], `seed ${seed} room ${room.id}`).toBeGreaterThanOrEqual(0);

@@ -64,7 +64,9 @@ export function step(state: GameState, input: InputFrame): void {
   if (state.mode !== 'roaming') return; // a prize card just went up; the world waits
 
   updateParty(state, state.dash.active > 0 ? TUNING.dash.ticksPerTile : TUNING.playerTicksPerTile);
-  for (const e of state.floor.entities) if (e.kind === 'enemy') updateEnemy(state, e);
+  const here = state.player.pos;
+  for (const e of state.floor.entities)
+    if (e.kind === 'enemy' && Math.abs(e.pos.x - here.x) + Math.abs(e.pos.y - here.y) <= TUNING.ai.activeRadius) updateEnemy(state, e);
   spotCaptives(state);
 
   updateHazards(state);

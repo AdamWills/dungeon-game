@@ -3,7 +3,7 @@
 
 import type { FloorTheme } from '../data/floors';
 import type { HazardKind } from '../data/hazards';
-import { PROP_RULES, PROPS } from '../data/props';
+import { PROPS } from '../data/props';
 import { weightedPick } from '../game/combat';
 import { nextInt, pick, type Rng } from '../game/rng';
 import type { Floor, Room, Vec } from '../game/types';
@@ -31,15 +31,30 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { ally
 
   // Chests and props sit against room walls and block movement, so each one is
   // only placed if every walkable tile can still be reached afterwards.
-  const blockers = new Set<string>();
+  const blocked = new Uint8Array(width * height);
+  let blockerCount = 0;
   let walkable = 0;
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (isWalkable(floor, x, y)) walkable++;
+  const passable = (x: number, y: number) => isWalkable(floor, x, y) && blocked[y * width + x] === 0;
+  // Fast path: if the open tiles around a spot are all joined up through its
+  // ring of 8 neighbours, blocking it cannot cut anything off.
+  const RING = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+  const locallySafe = (pos: Vec) => {
+    const open = RING.map(([dx, dy]) => passable(pos.x + dx, pos.y + dy));
+    let runs = 0;
+    for (let k = 0; k < 8; k++) if (open[k] && !open[(k + 7) % 8]) runs++;
+    if (open.every(Boolean)) runs = 1;
+    // Each run of consecutive open ring tiles is 4-connected; one run means one piece.
+    return runs <= 1;
+  };
   const keepsEverythingReachable = (pos: Vec) => {
-    const trial = new Set(blockers).add(key(pos));
-    const dist = bfsDistances(floor, floor.start, (x, y) => trial.has(`${x},${y}`));
+    if (locallySafe(pos)) return true;
+    blocked[pos.y * width + pos.x] = 1;
+    const dist = bfsDistances(floor, floor.start, (x, y) => blocked[y * width + x] === 1);
+    blocked[pos.y * width + pos.x] = 0;
     let reached = 0;
     for (const d of dist) if (d >= 0) reached++;
-    return reached === walkable - trial.size;
+    return reached === walkable - blockerCount - 1;
   };
   const edgeSpot = (rooms = otherRooms): Vec | null => {
     const room = pick(rng, rooms);
@@ -51,7 +66,8 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { ally
       const pos = edge.splice(nextInt(rng, 0, edge.length - 1), 1)[0];
       if (!keepsEverythingReachable(pos)) continue;
       taken.add(key(pos));
-      blockers.add(key(pos));
+      blocked[pos.y * width + pos.x] = 1;
+      blockerCount++;
       return pos;
     }
     return null;
@@ -62,7 +78,7 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { ally
     if (pos) floor.chests.push({ id: `chest-${floor.chests.length}`, pos, opened: false });
   }
   const placeable = Object.values(PROPS).filter((p) => p.placed);
-  const propCount = nextInt(rng, PROP_RULES.perFloor[0], PROP_RULES.perFloor[1]);
+  const propCount = nextInt(rng, theme.props[0], theme.props[1]);
   for (let i = 0; i < propCount && otherRooms.length; i++) {
     const pos = edgeSpot();
     if (!pos) continue;

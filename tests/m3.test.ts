@@ -1,3 +1,4 @@
+import { hazardActive } from '../src/world/hazards';
 import { describe, expect, it } from 'vitest';
 import { applyStatus } from '../src/battle/turns';
 import { ITEMS } from '../src/data/items';
@@ -200,6 +201,9 @@ describe('hazards', () => {
     const t = cleanRun();
     hazardAt(t, 1, 0, 'spikes');
     const hp2 = t.player.stats.hp;
+    // Arrive while they are up (they pop up and drop on a timer).
+    const sp = nearPlayer(t, 1, 0);
+    while (!hazardActive('spikes', sp.x, sp.y, t.tick + 9) || !hazardActive('spikes', sp.x, sp.y, t.tick)) t.tick++;
     for (let i = 0; i < 9; i++) step(t, { ...NO_INPUT, move: 'right' });
     expect(t.player.stats.hp).toBe(hp2 - 3);
   });

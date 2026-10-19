@@ -16,6 +16,7 @@ import { PROPS } from '../data/props';
 import { fill } from '../data/battleText';
 import { ALLIES } from '../data/allies';
 import { captiveAt, priceOf } from '../game/party';
+import { weaponOf } from '../game/equipment';
 import { xpForNext } from '../game/progress';
 import type { EliminationReport, Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
@@ -46,7 +47,7 @@ export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: Le
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
-const HUD_CSS_H = 76;
+const HUD_CSS_H = 96;
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -60,6 +61,9 @@ export class Renderer {
   private allySprites: AllySprites;
   private chet: HTMLCanvasElement;
   private floaters: { id: string; text: string; at: number }[] = [];
+  /** The corner map of explored tiles (M toggles it). */
+  showMap = true;
+  private mapCanvas: HTMLCanvasElement | null = null;
   /** When the current prize card (and other big moments) first appeared, for animations. */
   private shownAt = new WeakMap<object, number>();
 
@@ -121,6 +125,7 @@ export class Renderer {
     }
     this.drawWorld(state);
     this.drawHud(state);
+    if (this.showMap && state.mode === 'roaming') this.drawMinimap(state);
     this.drawToasts(ui.toasts, now);
     if (state.mode === 'roaming') this.drawHost(ui.host, now);
     if (state.mode === 'menu') {
@@ -440,6 +445,63 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Explored tiles in the top right: one pixel per tile, scaled up a little. */
+  private drawMinimap(state: GameState): void {
+    const { ctx, dpr } = this;
+    const f = state.floor;
+    if (!this.mapCanvas || this.mapCanvas.width !== f.width || this.mapCanvas.height !== f.height) {
+      this.mapCanvas = document.createElement('canvas');
+      this.mapCanvas.width = f.width;
+      this.mapCanvas.height = f.height;
+    }
+    const g = this.mapCanvas.getContext('2d')!;
+    const img = g.createImageData(f.width, f.height);
+    const px = (x: number, y: number, r: number, gg: number, b: number) => {
+      const i = (y * f.width + x) * 4;
+      img.data.set([r, gg, b, 255], i);
+    };
+    for (let y = 0; y < f.height; y++)
+      for (let x = 0; x < f.width; x++) {
+        const t = f.tiles[y][x];
+        if (!t.explored || t.terrain === 'wall') continue;
+        const lit = f.visible[y * f.width + x] === 1;
+        if (t.terrain === 'stairs') px(x, y, 255, 210, 58);
+        else if (t.hazard) px(x, y, lit ? 120 : 80, lit ? 170 : 110, 60);
+        else if (t.terrain === 'door') px(x, y, 150, 100, 60);
+        else px(x, y, lit ? 120 : 70, lit ? 110 : 64, lit ? 100 : 60);
+      }
+    for (const c of f.chests) if (!c.opened && f.tiles[c.pos.y][c.pos.x].explored) px(c.pos.x, c.pos.y, 255, 200, 40);
+    for (const e of f.entities) {
+      const x = Math.round(e.pos.x);
+      const y = Math.round(e.pos.y);
+      if (f.visible[y * f.width + x] !== 1) continue;
+      if (e.kind === 'enemy') px(x, y, 255, 70, 50);
+      else px(x, y, 60, 200, 255);
+    }
+    for (const a of state.party) px(Math.round(a.pos.x), Math.round(a.pos.y), 120, 230, 90);
+    px(Math.round(state.player.pos.x), Math.round(state.player.pos.y), 255, 255, 255);
+    g.putImageData(img, 0, 0);
+
+    // A window of the map around you, 3 screen pixels per tile.
+    const w = this.canvas.width / dpr;
+    const scale = 3;
+    const vw = Math.min(f.width, 80);
+    const vh = Math.min(f.height, 50);
+    const vx = Math.max(0, Math.min(f.width - vw, Math.round(state.player.pos.x) - vw / 2));
+    const vy = Math.max(0, Math.min(f.height - vh, Math.round(state.player.pos.y) - vh / 2));
+    const mw = vw * scale;
+    const mh = vh * scale;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = 'rgba(8, 6, 12, 0.72)';
+    ctx.fillRect(w - mw - 18, 10, mw + 8, mh + 24);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.mapCanvas, vx, vy, vw, vh, w - mw - 14, 14, mw, mh);
+    ctx.font = '11px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#9aa89a';
+    ctx.fillText(UI_TEXT.mapHint, w - mw - 14, mh + 18);
+  }
+
   /** Something on the map took damage (hazards): float the number and flash them. */
   notifyHurt(id: string, dmg: number, now: number): void {
     this.floaters.push({ id, text: `-${dmg}`, at: now });
@@ -480,22 +542,28 @@ export class Renderer {
     x += 190;
     ctx.fillStyle = '#ffd23a';
     ctx.fillText(`${state.tokens} TOKENS`, x, 12);
-    x += 110;
-    for (const a of state.party) {
-      const name = ALLIES[a.defId].short;
-      ctx.fillStyle = '#9fd68a';
-      ctx.fillText(name, x, 12);
-      x += ctx.measureText(name).width + 6;
-      bar(ctx, x, 15, 40, 8, a.stats.hp / a.stats.maxHp, '#5fbf4a');
-      x += 52;
-    }
     ctx.fillStyle = '#6f7d70';
     const right = `SEED ${state.seed}`;
     ctx.fillText(right, w - 14 - ctx.measureText(right).width, 12);
 
-    const notice = this.prompt(state);
+    // Second row: your stats, always in view, then the party.
+    const wpn = weaponOf(state.player);
+    const stats = `Strength ${s.str}   Speed ${s.speed}   Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}   Weapon ${wpn.name} (${wpn.damage})`;
     ctx.fillStyle = '#c8d0c4';
-    wrapText(ctx, notice, 14, 36, w - 28, 18);
+    ctx.fillText(stats, 14, 34);
+    x = 14 + ctx.measureText(stats).width + 30;
+    for (const a of state.party) {
+      const name = ALLIES[a.defId].short;
+      ctx.fillStyle = '#9fd68a';
+      ctx.fillText(name, x, 34);
+      x += ctx.measureText(name).width + 6;
+      bar(ctx, x, 37, 40, 8, a.stats.hp / a.stats.maxHp, '#5fbf4a');
+      x += 52;
+    }
+
+    const notice = this.prompt(state);
+    ctx.fillStyle = '#9aa89a';
+    wrapText(ctx, notice, 14, 58, w - 28, 18);
   }
 
   /** What the bottom bar says: a plain prompt for what is here, else a House Rule. */

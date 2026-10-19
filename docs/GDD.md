@@ -166,7 +166,7 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 
 **Structure of a floor**
 
-- A procedural layout of roughly 8 to 12 rooms connected by corridors, with enemies patrolling set routes and map hazards (sludge, spikes, gas vents).
+- A procedural layout of roughly 60 to 100 rooms (192 by 120 tiles; user decision, up from 8 to 12) connected by corridors, with enemies patrolling set routes and map hazards (sludge, spikes, gas vents).
 - 1 stairwell down, always guarded or locked behind a simple condition.
 - 1 to 2 hand-authored set pieces (a vault, a rigged game show, a fountain with a catch) placed in random rooms.
 - A "safe room" with a vendor and a recruitable ally, once per floor.

@@ -107,6 +107,10 @@ function frame(now: number) {
       }
     }
   }
+  if (keyboard.mapToggles) {
+    if (keyboard.mapToggles % 2) renderer.showMap = !renderer.showMap;
+    keyboard.mapToggles = 0;
+  }
   loop.advance(now);
   if (state) renderer.render(state, { menu, inventory, levelUp, host, toasts }, now);
   else renderer.renderPicker(picker, now);

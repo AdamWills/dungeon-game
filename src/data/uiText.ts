@@ -34,6 +34,7 @@ export const UI_TEXT = {
     lost: { title: 'YOU DIED', sub: 'Eliminated! Stay tuned for your parting gift.', badge: 'OUCH!' },
     prompt: 'PRESS ENTER!',
   },
+  mapHint: 'MAP (M hides)  you: white',
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep', $: 'for hire' } as Record<string, string>,
   picker: {
     show: 'DESCEND & WIN!',

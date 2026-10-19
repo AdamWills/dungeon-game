@@ -103,6 +103,13 @@
 - Hexer: starts with the Velour Tracksuit too, and has 4 Evasion. Measured with the sensible-player bot (`SIM=1`, 60 runs each): Brawler wins 49, dies 0; Hexer wins 45, dies 6 (was 59 deaths out of 60 before the first pass).
 - User: spikes were dull, always hurt, and you only noticed from the HP bar. Spikes now pop up and drop on a visible timer (down, a two-step warning twitch, up) and only hurt while up: when you step on them up, or when they pop up under you, once per pop. Any hazard hit on the map now flashes the victim red and floats the damage over their head.
 
+### A big floor (user decision: 192x120)
+- The floor is now 192 by 120 tiles with 60 to 100 rooms (about nine times the first version), with chests (20 to 30), props (30 to 45), hazards and Grudge Gators scaled to match. Props per floor moved from `PROP_RULES` into the floor theme.
+- Speed: residents more than 30 tiles from you hold still; distance maps are shared by every resident heading for the same tile in a tick; the breadth-first search uses flat arrays; and placing chests and props checks the 8 tiles around a spot before falling back to a full reachability check. A floor generates in 25 to 75 ms and the game holds 60 updates a second.
+- A minimap in the top right shows a window of what you have explored around you (you, stairs, unopened chests, residents in view, your party); M hides it.
+- The HUD now has a second row with your stats (Strength, Speed, Evasion, Armor, Charm, weapon) always in view (user: "How can I view my character stats?").
+- Tests: the generator tests use 60 seeds, the bot plays 16 runs, and the test timeout is 60 s.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

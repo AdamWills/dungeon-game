@@ -45,4 +45,4 @@ export const PROPS: Record<string, PropDef> = {
 };
 
 /** Props per floor, and how far from a fight (tiles) a prop joins the arena. */
-export const PROP_RULES = { perFloor: [6, 10] as [number, number], arenaRadius: 2, arenaMax: 4 };
+export const PROP_RULES = { arenaRadius: 2, arenaMax: 4 };

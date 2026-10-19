@@ -13,6 +13,7 @@ const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
 const PAUSE_KEYS = new Set(['Escape', 'KeyP', 'KeyI']);
 const DROP_KEYS = new Set(['KeyX', 'Delete']);
 const GIVE_KEYS = new Set(['KeyG']);
+const MAP_KEYS = new Set(['KeyM']);
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 const BACK_KEYS = new Set(['Escape', 'Backspace']);
 
@@ -24,6 +25,8 @@ export class Keyboard {
   private pausePressed = false;
   private dashPressed = false;
   private menu: MenuKey[] = [];
+  /** Presses of the map key since last asked (a UI toggle, not game input). */
+  mapToggles = 0;
 
   constructor(target: Window) {
     target.addEventListener('keydown', (e) => {
@@ -40,6 +43,8 @@ export class Keyboard {
         if (!e.repeat) this.dashPressed = true;
       } else if (DROP_KEYS.has(e.code)) {
         if (!e.repeat) this.menu.push('drop');
+      } else if (MAP_KEYS.has(e.code)) {
+        if (!e.repeat) this.mapToggles++;
       } else if (GIVE_KEYS.has(e.code)) {
         if (!e.repeat) this.menu.push('give');
       } else if (!PAUSE_KEYS.has(e.code) && !BACK_KEYS.has(e.code)) return;

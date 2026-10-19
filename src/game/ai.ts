@@ -117,9 +117,9 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
   const here = tileOf(e);
   if (here.x === target.x && here.y === target.y) return false;
   // Smart residents route around hazards when there is another way.
-  let dist = bfsDistances(floor, target);
+  let dist = distancesTo(state, target, false);
   if (ENEMIES[e.defId].roam.smart) {
-    const careful = bfsDistances(floor, target, (x, y) => !!floor.tiles[y][x].hazard && !(x === here.x && y === here.y));
+    const careful = distancesTo(state, target, true);
     if (careful[here.y * floor.width + here.x] >= 0) dist = careful;
   }
   const d0 = dist[here.y * floor.width + here.x];
@@ -141,6 +141,28 @@ function stepToward(state: GameState, e: Entity, target: Vec, ticks: number): bo
     }
   }
   return false;
+}
+
+/**
+ * Distance maps to a target, shared by everyone heading there this tick
+ * (usually you). "Careful" avoids hazards. Rebuilt each tick, as doors open
+ * and sludge gets used up.
+ */
+const pathCache = { tick: -1, floor: null as GameState['floor'] | null, maps: new Map<string, ReturnType<typeof bfsDistances>>() };
+function distancesTo(state: GameState, target: Vec, careful: boolean) {
+  if (pathCache.tick !== state.tick || pathCache.floor !== state.floor) {
+    pathCache.tick = state.tick;
+    pathCache.floor = state.floor;
+    pathCache.maps.clear();
+  }
+  const key = `${target.x},${target.y},${careful}`;
+  let d = pathCache.maps.get(key);
+  if (!d) {
+    const floor = state.floor;
+    d = careful ? bfsDistances(floor, target, (x, y) => !!floor.tiles[y][x].hazard && !(x === target.x && y === target.y)) : bfsDistances(floor, target);
+    pathCache.maps.set(key, d);
+  }
+  return d;
 }
 
 /** Tiles other enemies stand on or are moving into, plus chests. */

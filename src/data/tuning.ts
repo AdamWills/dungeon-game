@@ -27,6 +27,8 @@ export const TUNING = {
     /** Hearing range multiplier while the player dashes. */
     dashNoise: 2,
     waypointWait: [20, 70] as [number, number],
+    /** Residents further than this (tiles) from you hold still; the floor is big. */
+    activeRadius: 30,
   },
 
   combat: {

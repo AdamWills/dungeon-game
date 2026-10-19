@@ -23,6 +23,8 @@ export type FloorTheme = {
   quietDepth: number;
   /** Chests per floor, and the chance a slain enemy drops an item. */
   chests: [number, number];
+  /** Arena props (barrels, vending machines, ...) per floor. */
+  props: [number, number];
   dropChance: number;
   /** Allies waiting on this floor: captives (cells, bribes) and deserters among the enemies. */
   captives: string[];
@@ -35,9 +37,10 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
   intake_sewers: {
     id: 'intake_sewers',
     name: 'The Intake Sewers',
-    width: 64,
-    height: 40,
-    rooms: { min: 8, max: 12 },
+    // A big floor (user decision): about nine times the first version.
+    width: 192,
+    height: 120,
+    rooms: { min: 60, max: 100 },
     roomWidth: [5, 12],
     roomHeight: [4, 8],
     roomDugPercentage: 0.18,
@@ -48,13 +51,14 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
       { id: 'feral_intern', weight: 3, minDepth: 0.2 },
       { id: 'sludge_hopper', weight: 3 },
       { id: 'pipe_leech', weight: 2, minDepth: 0.4 },
-      { id: 'grudge_gator', weight: 1, maxPerFloor: 2, minDepth: 0.6 },
+      { id: 'grudge_gator', weight: 1, maxPerFloor: 10, minDepth: 0.6 },
     ],
     quietDepth: 0.35,
-    chests: [3, 5],
+    chests: [20, 30],
+    props: [30, 45],
     dropChance: 0.3,
     captives: ['marjorie', 'moss'],
     deserters: ['skitch'],
-    hazards: { sludgePools: [2, 4], spikes: [3, 5], gasVents: [1, 3] },
+    hazards: { sludgePools: [12, 20], spikes: [18, 28], gasVents: [8, 14] },
   },
 };
