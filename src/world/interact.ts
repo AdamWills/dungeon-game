@@ -5,6 +5,7 @@ import { RACES } from '../data/races';
 import { TUNING } from '../data/tuning';
 import { addItem } from '../game/equipment';
 import { rollItem } from '../game/loot';
+import { nextInt } from '../game/rng';
 import type { GameState, Vec } from '../game/types';
 import { updateFov } from './fov';
 import { tileOf } from './motion';
@@ -38,6 +39,9 @@ export function openChest(state: GameState, x: number, y: number): boolean {
   const chest = chestAt(state, x, y);
   if (!chest || chest.opened) return false;
   const item = rollItem(state.rng);
+  const tokens = nextInt(state.rng, TUNING.chestTokens[0], TUNING.chestTokens[1]);
+  state.tokens += tokens;
+  state.events.push({ type: 'tokensGained', amount: tokens, from: 'chest' });
   if (!addItem(state, item, 'chest')) {
     // No room: the prize waits on top of the chest.
     state.floor.items.push({ id: `${chest.id}-spill`, pos: { ...chest.pos }, item });
@@ -71,6 +75,7 @@ export function eatRemains(state: GameState): boolean {
   const idx = tile.gore.findIndex((g) => g.kind === 'gibs');
   if (idx < 0) return false;
   tile.gore.splice(idx, 1);
+  state.record.lastAction = { kind: 'eat' };
   const s = state.player.stats;
   const before = s.hp;
   if (RACES[state.race].eatsCorpses) s.hp = Math.min(s.maxHp, s.hp + CORPSE.heal);

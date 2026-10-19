@@ -14,7 +14,10 @@ import { hazardActive } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, propAt } from '../world/interact';
 import { PROPS } from '../data/props';
 import { fill } from '../data/battleText';
-import type { Entity, GameState } from '../game/types';
+import { ALLIES } from '../data/allies';
+import { captiveAt, priceOf } from '../game/party';
+import { xpForNext } from '../game/progress';
+import type { EliminationReport, Entity, GameState } from '../game/types';
 import { playerTile } from '../world/roam';
 import { PlayerAnimator } from './animation';
 import { type Atlas, SPRITE, TILE } from './atlas';
@@ -28,6 +31,10 @@ import { drawPrizeCard } from './prizeCard';
 import { blink, confetti, lowRes, NEON, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
 import { drawText, fitScale, textHeight, wrapPixel } from './pixelFont';
 import { buildPropSprites, type PropSprites } from './propSprites';
+import type { Host } from '../host/host';
+import type { LevelUpMenu } from './levelUp';
+import { counted, REPORT } from '../data/report';
+import { type AllySprites, buildAllySprites, buildChetPortrait } from './allySprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
 import { bar, FONT, wrapText } from './text';
@@ -35,7 +42,7 @@ import { bar, FONT, wrapText } from './text';
 export type Toast = { text: string; until: number };
 
 /** UI-side screens and messages the renderer draws on top of the game. */
-export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; toasts: Toast[] };
+export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; host: Host; toasts: Toast[] };
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
@@ -50,6 +57,8 @@ export class Renderer {
   private battleView: BattleView;
   readonly icons: ItemIcons;
   private propSprites: PropSprites;
+  private allySprites: AllySprites;
+  private chet: HTMLCanvasElement;
   /** When the current prize card (and other big moments) first appeared, for animations. */
   private shownAt = new WeakMap<object, number>();
 
@@ -61,7 +70,9 @@ export class Renderer {
   ) {
     this.ctx = canvas.getContext('2d')!;
     this.propSprites = buildPropSprites();
-    this.battleView = new BattleView(playerSprites, enemySprites, this.propSprites, (ctx, x, y) => atlas.draw(ctx, floorVariant(x, y), 0, 0));
+    this.allySprites = buildAllySprites();
+    this.chet = buildChetPortrait();
+    this.battleView = new BattleView(playerSprites, enemySprites, this.allySprites, this.propSprites, (ctx, x, y) => atlas.draw(ctx, floorVariant(x, y), 0, 0));
     this.icons = buildItemIcons(atlas);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -110,11 +121,13 @@ export class Renderer {
     this.drawWorld(state);
     this.drawHud(state);
     this.drawToasts(ui.toasts, now);
+    if (state.mode === 'roaming') this.drawHost(ui.host, now);
     if (state.mode === 'menu') {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
-      if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
-      else ui.inventory.draw(ctx, w, h, state, this.icons);
+      if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
+      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
+      else ui.inventory.draw(ctx, w, h, state, this.icons, ui.host.history);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);
   }
@@ -130,15 +143,47 @@ export class Renderer {
     return this.shownAt.get(obj)!;
   }
 
+  /** Chet's current line in a neon strip along the bottom of the map, typed out. */
+  private drawHost(host: Host, now: number): void {
+    const line = host.line(now);
+    if (!line) return;
+    const { ctx, canvas, dpr } = this;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = canvas.width / dpr;
+    const h = this.worldH / dpr;
+    const chet = this.chet;
+    // A notch finer than the map's pixels, so it covers less of the view.
+    lowRes(ctx, w, h, Math.max(2, this.pixel - 1), (g, lw, lh) => {
+      const sw = Math.min(lw - 8, 320);
+      const lines = wrapPixel(line.text, sw - 50);
+      const sh = Math.max(40, 18 + lines.length * 9);
+      const x = Math.round((lw - sw) / 2);
+      const y = lh - sh - 4;
+      panel(g, x, y, sw, sh, NEON.pink, NEON.cyan, now);
+      // The hologram: a little flicker, and scanlines over the portrait.
+      const jitter = Math.floor(now / 70) % 23 === 0 ? 1 : 0;
+      const py = y + Math.round((sh - 24) / 2);
+      g.drawImage(chet, x + 10 + jitter, py);
+      g.fillStyle = 'rgba(56, 200, 255, 0.28)';
+      for (let r = 0; r < 24; r += 2) g.fillRect(x + 10, py + r, 24, 1);
+      let left = Math.floor((now - line.at) / 22);
+      lines.forEach((l, i) => {
+        if (left <= 0) return;
+        drawText(g, l.slice(0, left), x + 40, y + 9 + i * 9, { color: '#ffffff' });
+        left -= l.length + 1;
+      });
+    }, { slot: 2 });
+  }
+
   private drawToasts(toasts: Toast[], now: number): void {
     const { ctx, dpr } = this;
     const live = toasts.filter((t) => t.until > now).slice(-4);
     if (!live.length) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = FONT;
-    const h = this.worldH / dpr;
+    // Top left, clear of Chet's strip along the bottom.
     live.forEach((t, i) => {
-      const y = h - 12 - (live.length - i) * 24;
+      const y = 12 + i * 24;
       const w = ctx.measureText(t.text).width + 16;
       ctx.globalAlpha = Math.min(1, (t.until - now) / 400);
       ctx.fillStyle = 'rgba(10, 14, 12, 0.85)';
@@ -244,6 +289,13 @@ export class Renderer {
       draw: () => this.drawEnemy(state, e, Math.round(e.pos.x * TILE) - camX, Math.round(e.pos.y * TILE) - camY),
     }));
     actors.push({ y: player.pos.y, draw: () => this.drawPlayer(state, px - camX, py - camY) });
+    // Captives waiting to be recruited, and your party trailing behind you.
+    for (const a of floor.entities) {
+      if (a.kind !== 'ally' || !visible(Math.round(a.pos.x), Math.round(a.pos.y))) continue;
+      actors.push({ y: a.pos.y, draw: () => this.drawAlly(state, a, a.pos.x * TILE - camX, a.pos.y * TILE - camY, true) });
+    }
+    for (const a of state.party)
+      actors.push({ y: a.pos.y - 0.01, draw: () => this.drawAlly(state, a, Math.round(a.pos.x * TILE) - camX, Math.round(a.pos.y * TILE) - camY, false) });
     for (const p of floor.props) {
       if (!floor.tiles[p.pos.y][p.pos.x].explored) continue;
       actors.push({ y: p.pos.y, draw: () => ctx.drawImage(this.propSprites(p.defId), p.pos.x * TILE - camX + TILE / 2 - SPRITE / 2, p.pos.y * TILE - camY + TILE - SPRITE) });
@@ -322,6 +374,37 @@ export class Renderer {
     }
   }
 
+  private drawAlly(state: GameState, a: Entity, sx: number, sy: number, captive: boolean): void {
+    const { ctx } = this;
+    shadow(ctx, sx, sy, 6);
+    const bob = a.motion ? Math.floor(a.motion.tick / 4) % 2 : Math.floor((state.tick + a.id.length * 13) / 40) % 2;
+    const flip = captive ? Math.cos(a.facing) < -0.01 || a.pos.x > state.player.pos.x : Math.cos(a.facing) < -0.01;
+    ctx.save();
+    ctx.translate(sx + TILE / 2, sy + TILE - bob);
+    ctx.scale(flip ? -1 : 1, 1);
+    ctx.drawImage(this.allySprites(a.defId), -SPRITE / 2, -SPRITE);
+    ctx.restore();
+    const top = sy + TILE - SPRITE;
+    if (!captive) {
+      if (a.stats.hp < a.stats.maxHp) {
+        ctx.fillStyle = '#1a1414';
+        ctx.fillRect(sx, top + 1, 16, 3);
+        ctx.fillStyle = '#5fbf4a';
+        ctx.fillRect(sx + 1, top + 2, Math.round(14 * (a.stats.hp / a.stats.maxHp)), 1);
+      }
+      return;
+    }
+    const recruit = ALLIES[a.defId].recruit;
+    if (recruit.kind === 'cell') {
+      // Cell bars in front of her.
+      ctx.fillStyle = '#5a5f68';
+      for (let x = 1; x < TILE; x += 4) ctx.fillRect(sx + x, top + 2, 2, SPRITE - 4);
+      ctx.fillStyle = '#8a909a';
+      ctx.fillRect(sx - 1, top + 2, TILE + 2, 2);
+      ctx.fillRect(sx - 1, top + SPRITE - 6, TILE + 2, 2);
+    } else bubble(ctx, sx, top, '$', '#ffd23a', 0);
+  }
+
   private drawPlayer(state: GameState, sx: number, sy: number): void {
     const { ctx } = this;
     const pose = this.animator.pose(state);
@@ -368,6 +451,22 @@ export class Renderer {
     const dashReady = state.dash.cooldown === 0;
     ctx.fillStyle = dashReady ? '#9fd68a' : '#5a5f58';
     ctx.fillText(dashReady ? 'DASH ready' : 'DASH ...', x, 12);
+    x += 110;
+    const next = xpForNext(state.level);
+    ctx.fillStyle = '#c8b8e0';
+    ctx.fillText(next === null ? `LEVEL ${state.level} (max)` : `LEVEL ${state.level}  XP ${state.xp}/${next}`, x, 12);
+    x += 190;
+    ctx.fillStyle = '#ffd23a';
+    ctx.fillText(`${state.tokens} TOKENS`, x, 12);
+    x += 110;
+    for (const a of state.party) {
+      const name = ALLIES[a.defId].short;
+      ctx.fillStyle = '#9fd68a';
+      ctx.fillText(name, x, 12);
+      x += ctx.measureText(name).width + 6;
+      bar(ctx, x, 15, 40, 8, a.stats.hp / a.stats.maxHp, '#5fbf4a');
+      x += 52;
+    }
     ctx.fillStyle = '#6f7d70';
     const right = `SEED ${state.seed}`;
     ctx.fillText(right, w - 14 - ctx.measureText(right).width, 12);
@@ -391,6 +490,12 @@ export class Renderer {
     if (isClosedDoor(state, f.x, f.y)) return P.door;
     const prop = propAt(state, f.x, f.y);
     if (prop) return fill(P.prop, { prop: PROPS[prop.defId].name });
+    const captive = captiveAt(state, f.x, f.y);
+    if (captive) {
+      const def = ALLIES[captive.defId];
+      if (def.recruit.kind === 'cell') return fill(P.cell, { name: def.short });
+      return fill(P.bribe, { name: def.short, price: priceOf(state, def.id), tokens: state.tokens });
+    }
     const cycle = [NOTICES.movement, NOTICES.sneak, NOTICES.inventory, NOTICES.dash, NOTICES.stairs, NOTICES.pause];
     return cycle[Math.floor(state.tick / (60 * 6)) % cycle.length];
   }
@@ -401,9 +506,8 @@ export class Renderer {
     const end = state.runEnd!;
     const since = this.since(end, now);
     const died = end.kind === 'died';
-    const d = died ? NOTICES.died : NOTICES.escaped;
-    const cls = CLASSES[state.cls].name;
-    const lines = died ? d.lines.map((l) => l.replaceAll('{enemy}', end.enemy).replaceAll('{move}', end.move).replaceAll('{class}', cls)) : d.lines;
+    const d = died ? { ...REPORT, lines: reportLines(end.report) } : NOTICES.escaped;
+    const lines = d.lines;
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -512,4 +616,24 @@ function drawGore(ctx: CanvasRenderingContext2D, kind: 'blood' | 'gibs', sx: num
     ctx.fillStyle = '#e8e0d0';
     ctx.fillRect(sx + 4 + Math.floor(r(40) * 7), sy + 6 + Math.floor(r(41) * 6), 3, 1);
   }
+}
+
+/** The elimination report, line by line, in plain words with Chet's sign-off last. */
+function reportLines(r: EliminationReport): string[] {
+  const L = REPORT.lines;
+  const allies = counted(REPORT.allies, r.alliesRecruited) + (r.alliesLost ? REPORT.alliesLost.replace('{n}', String(r.alliesLost)) : '');
+  const vars = {
+    race: RACES[r.race].name,
+    class: CLASSES[r.cls].name,
+    level: r.level,
+    enemy: r.enemy,
+    move: r.move,
+    fights: counted(REPORT.fights, r.fights),
+    badIdeas: counted(REPORT.badIdeas, r.badIdeas),
+    allies,
+    lastWords: r.lastWords,
+    gift: r.partingGift,
+    signOff: r.hostLine,
+  };
+  return [L.who, L.cause, L.record, L.lastWords, L.gift, L.chet].map((l) => fill(l, vars));
 }

@@ -1,6 +1,7 @@
 // Placeholder sewer fauna, drawn in code like the player. Side views facing
 // right; the renderer flips them to face left.
 
+import { ALLY_ENEMY_RECTS } from './allySprites';
 import { type Rect, renderRects } from './spriteKit';
 
 const SPRITES: Record<string, Rect[]> = {
@@ -50,7 +51,7 @@ export type EnemySprites = (defId: string) => HTMLCanvasElement;
 
 export function buildEnemySprites(): EnemySprites {
   const cache = new Map<string, HTMLCanvasElement>();
-  for (const [id, rects] of Object.entries(SPRITES)) cache.set(id, renderRects(rects));
+  for (const [id, rects] of Object.entries({ ...SPRITES, ...ALLY_ENEMY_RECTS })) cache.set(id, renderRects(rects));
   const fallback = renderRects([[6, 8, 12, 12, '#ff00ff']]);
   return (defId) => cache.get(defId) ?? fallback;
 }

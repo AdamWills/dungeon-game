@@ -1,27 +1,35 @@
 // Battle menu: cursor state (UI only) that turns key presses into a
 // BattleCommand for the next fixed step.
 
-import { ABILITIES, HEX_TURNS } from '../data/abilities';
+import { ABILITIES } from '../data/abilities';
 import { fill } from '../data/battleText';
 import { CLASSES } from '../data/classes';
 import { ITEM_TAGS, VERBS, type PropVerb } from '../data/improv';
 import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
 import { UI_TEXT } from '../data/uiText';
-import { currentActor, enemiesOf, hasStatus } from '../battle/turns';
+import { badIdeaLimit } from '../battle/improvise';
+import { currentActor, enemiesOf, hasStatus, hexTurns } from '../battle/turns';
+import { SPARE } from '../data/allies';
+import { ENEMIES } from '../data/enemies';
 import { baseDamage, hitChance } from '../game/combat';
 import { weaponOf } from '../game/equipment';
 import type { BattleCommand, BattleState, GameState } from '../game/types';
 import type { MenuKey } from './input';
 
-export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'improvise' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
+export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'improvise' | 'spare' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
 
 export type Row = { label: string; enabled: boolean; help: string };
 
 const VERB_ORDER: PropVerb[] = ['shove', 'kick', 'throw', 'eat', 'hide', 'ignite'];
 
 /** What a target choice is for. */
-type Pending = { kind: 'attack' } | { kind: 'ability'; abilityId: string } | { kind: 'item'; slot: number };
+type Pending =
+  | { kind: 'attack' }
+  | { kind: 'ability'; abilityId: string }
+  | { kind: 'item'; slot: number }
+  | { kind: 'friend'; slot: number } // a healing item, for you or an ally
+  | { kind: 'spare' };
 
 export class BattleMenu {
   level: 'main' | 'target' | 'item' | 'improv' | 'prop' | 'verb' | 'jankA' | 'jankB' = 'main';
@@ -43,19 +51,36 @@ export class BattleMenu {
     const usable = state.player.inventory.filter((i) => ITEMS[i.defId]?.use).length;
     const H = UI_TEXT.help;
     const abilityHelp = !ability ? '' : cd > 0 ? fill(H.recharging, { name: ability.name, turns: cd }) : ability.help;
-    return [
+    const opts: MenuOption[] = [
       { id: 'attack', label: `Attack (${weapon.name})`, enabled: true, help: fill(H.attack, { weapon: weapon.name }) },
       { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0, help: abilityHelp },
       { id: 'item', label: `Item (${usable})`, enabled: usable > 0, help: usable > 0 ? H.item : H.noItems },
       { id: 'improvise', label: 'Improvise', enabled: true, help: H.improvise },
       { id: 'defend', label: 'Defend', enabled: true, help: H.defend },
-      { id: 'flee', label: 'Flee', enabled: true, help: H.flee },
+      { id: 'flee', label: 'Flee', enabled: true, help: state.party.length ? `${H.flee} ${H.fleeAllies}` : H.flee },
     ];
+    // Spare only shows up when there is someone you could spare.
+    const spareable = this.spareable(state);
+    if (spareable.length) {
+      const ready = spareable.some((c) => c.stats.hp <= c.stats.maxHp * SPARE.hpFraction);
+      const name = spareable[0].name;
+      opts.splice(4, 0, { id: 'spare', label: `Spare ${name}`, enabled: ready, help: fill(ready ? H.spare : H.spareNotYet, { name }) });
+    }
+    return opts;
   }
 
-  /** Alive enemies in screen order, for target selection. */
+  /** Alive enemies that could switch sides if spared. */
+  spareable(state: GameState) {
+    return state.battle ? enemiesOf(state.battle).filter((c) => c.alive && ENEMIES[c.defId].spare) : [];
+  }
+
+  /** Who the current target choice can pick from, in screen order. */
   targets(state: GameState): string[] {
-    return state.battle ? enemiesOf(state.battle).filter((c) => c.alive).map((c) => c.id) : [];
+    const b = state.battle;
+    if (!b) return [];
+    if (this.pending.kind === 'friend') return b.combatants.filter((c) => c.side === 'player' && c.alive).map((c) => c.id);
+    if (this.pending.kind === 'spare') return this.spareable(state).map((c) => c.id);
+    return enemiesOf(b).filter((c) => c.alive).map((c) => c.id);
   }
 
   handle(key: MenuKey, state: GameState): BattleCommand | null {
@@ -67,19 +92,20 @@ export class BattleMenu {
       this.cursor = 0;
     }
     if (battle.result) return key === 'confirm' ? { kind: 'continue' } : null;
-    if (currentActor(battle)?.side !== 'player') return null;
+    if (currentActor(battle)?.id !== 'player') return null;
 
     if (this.level === 'target') {
       const ids = this.targets(state);
       if (key === 'left' || key === 'up') this.target = (this.target + ids.length - 1) % ids.length;
       else if (key === 'right' || key === 'down') this.target = (this.target + 1) % ids.length;
-      else if (key === 'back') this.level = this.pending.kind === 'item' ? 'item' : 'main';
+      else if (key === 'back') this.level = this.pending.kind === 'item' || this.pending.kind === 'friend' ? 'item' : 'main';
       else if (key === 'confirm' && ids.length) {
         this.level = 'main';
         const targetId = ids[this.target % ids.length];
         const p = this.pending;
         if (p.kind === 'attack') return { kind: 'attack', targetId };
         if (p.kind === 'ability') return { kind: 'ability', abilityId: p.abilityId, targetId };
+        if (p.kind === 'spare') return { kind: 'spare', targetId };
         return { kind: 'item', slot: p.slot, targetId };
       }
       return null;
@@ -97,6 +123,8 @@ export class BattleMenu {
         const slot = Math.min(this.itemCursor, n - 1);
         const def = ITEMS[state.player.inventory[slot]?.defId];
         if (def?.use?.target === 'one_enemy') return this.chooseTarget(state, { kind: 'item', slot });
+        const friends = battle.combatants.filter((c) => c.side === 'player' && c.alive).length;
+        if (def?.use?.target === 'self' && friends > 1) return this.chooseTarget(state, { kind: 'friend', slot });
         this.level = 'main';
         return { kind: 'item', slot };
       }
@@ -127,6 +155,9 @@ export class BattleMenu {
           this.level = 'improv';
           this.sub = 0;
           return null;
+        case 'spare':
+          if (!opt.enabled) return null;
+          return this.chooseTarget(state, { kind: 'spare' });
         case 'defend':
           return { kind: 'defend' };
         case 'flee':
@@ -147,7 +178,7 @@ export class BattleMenu {
         return [
           { label: `Use a prop (${props})`, enabled: props > 0, help: props > 0 ? H.improvProps : H.improvNoProps },
           { label: 'Combine two items', enabled: inv.length >= 2, help: inv.length >= 2 ? H.improvJank : H.improvNoJank },
-          { label: 'Bad Idea button', enabled: !b.badIdeaUsed, help: b.badIdeaUsed ? H.improvBadIdeaUsed : H.improvBadIdea },
+          { label: 'Bad Idea button', enabled: b.badIdeas < badIdeaLimit(state), help: b.badIdeas < badIdeaLimit(state) ? H.improvBadIdea : H.improvBadIdeaUsed },
         ];
       }
       case 'prop':
@@ -238,15 +269,18 @@ export class BattleMenu {
     if (this.level === 'target') {
       const id = this.targets(state)[this.target];
       const foe = battle.combatants.find((c) => c.id === id);
-      const me = battle.combatants.find((c) => c.side === 'player');
+      const me = battle.combatants.find((c) => c.id === 'player');
       if (!foe || !me) return UI_TEXT.help.targetKeys;
       const p = this.pending;
       let what: string;
-      if (p.kind === 'attack') {
+      if (p.kind === 'friend' || p.kind === 'spare') {
+        const def = p.kind === 'friend' ? ITEMS[state.player.inventory[p.slot]?.defId] : undefined;
+        what = `${foe.name}: ${foe.stats.hp}/${foe.stats.maxHp} HP. ${def?.help ?? fill(UI_TEXT.help.spare, { name: foe.name })}`;
+      } else if (p.kind === 'attack') {
         const dmg = baseDamage(weaponOf(state.player).damage, me.stats.str, foe.stats.armor) * (hasStatus(foe, 'hexed') ? 2 : 1);
         what = fill(UI_TEXT.help.target, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, chance: Math.round(hitChance(foe.stats.evasion) * 100), dmg });
       } else if (p.kind === 'ability') {
-        what = fill(UI_TEXT.help.hexTarget, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, turns: HEX_TURNS });
+        what = fill(UI_TEXT.help.hexTarget, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, turns: hexTurns(state) });
       } else {
         const def = ITEMS[state.player.inventory[p.slot]?.defId];
         what = `${foe.name}: ${foe.stats.hp}/${foe.stats.maxHp} HP. ${def?.help ?? ''}`;

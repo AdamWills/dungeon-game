@@ -3,6 +3,7 @@
 
 import { HAZARDS } from '../data/hazards';
 import { addGore } from '../battle/turns';
+import { eliminate } from '../game/report';
 import type { Entity, GameState } from '../game/types';
 
 /** Gas vents puff on and off; each vent's timing is offset by its position. */
@@ -36,15 +37,12 @@ function hurtIfOnHazard(state: GameState, e: Entity): void {
 
   e.stats.hp = Math.max(0, e.stats.hp - def.damage);
   state.events.push({ type: 'hazardHurt', id: e.id, kind: tile.hazard, dmg: def.damage });
+  if (e.kind === 'player') state.record.lastAction = { kind: 'walk' };
   if (e.stats.hp > 0) return;
 
   state.events.push({ type: 'entityDied', id: e.id, defId: e.defId, killerId: `hazard:${tile.hazard}` });
   if (e.kind === 'player') {
-    state.runEnd = { kind: 'died', enemy: def.name, move: def.deathMove };
-    const from = state.mode;
-    state.mode = 'dead';
-    state.events.push({ type: 'modeChanged', from, to: 'dead' });
-    state.events.push({ type: 'runEnded', end: state.runEnd });
+    eliminate(state, def.name, def.deathMove);
   } else {
     addGore(state, e.pos, 'gibs');
     state.floor.entities.splice(state.floor.entities.indexOf(e), 1);

@@ -15,6 +15,9 @@ import { buildEnemySprites } from './ui/enemySprites';
 import { Keyboard } from './ui/input';
 import { InventoryMenu } from './ui/inventory';
 import { Picker } from './ui/picker';
+import { LevelUpMenu } from './ui/levelUp';
+import { Host } from './host/host';
+import { ALLIES } from './data/allies';
 import { buildPlayerSprites } from './ui/playerSprite';
 import { Renderer, type Toast } from './ui/renderer';
 import { step } from './world/roam';
@@ -29,10 +32,12 @@ const bus = new EventBus();
 const menu = new BattleMenu();
 const inventory = new InventoryMenu();
 const picker = new Picker();
+const levelUp = new LevelUpMenu();
 const toasts: Toast[] = [];
 let renderer!: Renderer;
 let state: GameState | null = null;
 let pendingCommand: BattleCommand | InvCommand | null = null;
+const host = new Host(bus, () => state, () => performance.now());
 
 const toast = (text: string) => toasts.push({ text, until: performance.now() + 5000 });
 const itemName = (id: string) => ITEMS[id]?.name ?? id;
@@ -45,12 +50,20 @@ bus.on('itemUsed', (e) => state?.mode !== 'battle' && toast(fill(T.used, { item:
 bus.on('itemRefused', (e) => toast(fill(T[e.reason], { item: itemName(e.defId) })));
 bus.on('hazardHurt', (e) => e.id === 'player' && toast(fill(T.hurt, { hazard: HAZARDS[e.kind].name, dmg: e.dmg })));
 bus.on('corpseEaten', (e) => toast(fill(e.hp > 0 ? T.ateGood : T.ateBad, { hp: e.hp })));
+bus.on('bribeShort', (e) => toast(fill(T.bribeShort, { price: e.price, tokens: e.tokens })));
+bus.on('allyRecruited', (e) => toast(fill(T.joined, { name: ALLIES[e.allyId].short })));
+bus.on('allyLeft', (e) => toast(fill(T.left, { name: ALLIES[e.allyId].short })));
+bus.on('levelUp', () => {
+  levelUp.cursor = 0;
+});
 bus.onAny((e) => console.debug('[event]', e));
 
 function startRun(race: string, cls: string): void {
+  host.reset();
   state = createGameState(fixedSeed || randomSeed(), race, cls);
   menu.level = 'main';
   inventory.cursor = 0;
+  inventory.giving = null;
   (window as unknown as { game: GameState }).game = state;
   bus.drain(state.events);
 }
@@ -81,6 +94,7 @@ function frame(now: number) {
     const s = state;
     for (const key of keys) {
       if (s.mode === 'battle') pendingCommand = menu.handle(key, s) ?? pendingCommand;
+      else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
         if (key === 'confirm') pendingCommand = { kind: 'dismiss' };
       } else if (s.mode === 'menu') pendingCommand = inventory.handle(key, s) ?? pendingCommand;
@@ -91,7 +105,7 @@ function frame(now: number) {
     }
   }
   loop.advance(now);
-  if (state) renderer.render(state, { menu, inventory, toasts }, now);
+  if (state) renderer.render(state, { menu, inventory, levelUp, host, toasts }, now);
   else renderer.renderPicker(picker, now);
   if (toasts.length > 20) toasts.splice(0, toasts.length - 20);
   requestAnimationFrame(frame);

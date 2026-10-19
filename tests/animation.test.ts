@@ -37,6 +37,7 @@ describe('player animation', () => {
 
   it('blinks, breathes and glances around when left idle', () => {
     const state = createGameState(11);
+    state.floor.entities = []; // nobody interrupts the daydream
     const anim = new PlayerAnimator();
     const seen = { blink: false, bobs: new Set<number>(), dirs: new Set<string>() };
     for (let i = 0; i < ANIM.glanceAfter + ANIM.glancePeriod; i++) {

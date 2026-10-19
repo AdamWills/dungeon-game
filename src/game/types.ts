@@ -1,8 +1,10 @@
 // Core shapes, following docs/GDD.md "Data models". Later milestones extend
 // these rather than replace them.
 
+import type { Stance } from '../data/allies';
 import type { HazardKind } from '../data/hazards';
 import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
+import type { StatKey } from '../data/items';
 import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
 
@@ -109,6 +111,20 @@ export type Status = { kind: StatusKind; turnsLeft: number; then?: { status: Sta
 
 export type Equipment = { weapon?: ItemInstance; armor?: ItemInstance; trinket?: ItemInstance };
 
+/** An ally's hidden feelings and orders. Captives waiting on the map are not recruited yet. */
+export type AllyMind = {
+  recruited: boolean;
+  /** 0 to 100, hidden from the player. */
+  loyalty: number;
+  stance: Stance;
+  /** Chet has read out their profile. */
+  spotted?: boolean;
+  /** You healed them during the current fight. */
+  healedThisFight?: boolean;
+  /** Chet has already warned you they are unhappy. */
+  warned?: boolean;
+};
+
 export type Entity = {
   id: string;
   kind: 'player' | 'ally' | 'enemy';
@@ -122,6 +138,7 @@ export type Entity = {
   equipment?: Equipment; // player only for now
   patrol?: Patrol; // enemies only
   mind?: EnemyMind; // enemies only
+  ally?: AllyMind; // allies only
   /** Which hazard tile it stands on and for how long, for damage timing. */
   onHazard?: { key: string; ticks: number };
 };
@@ -148,6 +165,8 @@ export type Combatant = {
   defending: boolean;
   alive: boolean;
   statuses: Status[];
+  /** One of your allies (including an enemy you just spared). */
+  ally?: boolean;
 };
 
 export type BattleCommand =
@@ -156,6 +175,7 @@ export type BattleCommand =
   | { kind: 'item'; slot: number; targetId?: string }
   | { kind: 'defend' }
   | { kind: 'flee' }
+  | { kind: 'spare'; targetId: string }
   | { kind: 'improvise'; channel: 'prop'; propId: string; verb: PropVerb }
   | { kind: 'improvise'; channel: 'jank'; slots: [number, number] }
   | { kind: 'improvise'; channel: 'badIdea' }
@@ -167,7 +187,11 @@ export type InvCommand =
   | { kind: 'unequip'; slot: 'weapon' | 'armor' | 'trinket' }
   | { kind: 'use'; slot: number }
   | { kind: 'drop'; slot: number }
-  | { kind: 'dismiss' }; // close the prize card for a new item
+  | { kind: 'dismiss' } // close the prize card for a new item
+  | { kind: 'give'; slot: number; allyId: string }
+  | { kind: 'stance'; allyId: string; stance: Stance }
+  | { kind: 'train'; stat: StatKey } // spend a level-up point
+  | { kind: 'perk'; id: string };
 
 export type BattleState = {
   encounter: Encounter;
@@ -183,14 +207,51 @@ export type BattleState = {
   result: 'won' | 'fled' | 'lost' | null;
   /** Props within reach of the fight, up to 4. */
   props: ArenaProp[];
-  badIdeaUsed: boolean;
+  /** Bad Idea presses this fight. */
+  badIdeas: number;
+  /** Thick Skull: the first hit on you has been halved already. */
+  skullUsed?: boolean;
+  /** Enemies spared this fight: they leave with you as allies. */
+  spared: string[];
+  /** Ally ability cooldowns this fight, in that ally's turns. */
+  allyCooldowns: Record<string, number>;
+  /** XP and tokens won, worked out once when the fight is won. */
+  spoils?: { xp: number; tokens: number };
   /** You always get a first turn: until then, nothing can take you below 1 HP. */
   playerHasActed: boolean;
   /** What killed the player, for the death screen. */
   killedBy?: { enemy: string; move: string };
 };
 
-export type RunEnd = { kind: 'died'; enemy: string; move: string } | { kind: 'escaped' };
+/** The elimination report (GDD "EliminationReport"), with the run's numbers. */
+export type EliminationReport = {
+  runSeed: number;
+  floor: number;
+  race: string;
+  cls: string;
+  level: number;
+  enemy: string;
+  move: string;
+  fights: number;
+  badIdeas: number;
+  alliesRecruited: number;
+  alliesLost: number;
+  lastWords: string;
+  partingGift: string;
+  hostLine: string;
+  source: 'scripted' | 'llm';
+};
+
+export type RunEnd = { kind: 'died'; enemy: string; move: string; report: EliminationReport } | { kind: 'escaped' };
+
+/** Running totals for the report, and your last action for your last words. */
+export type RunRecord = {
+  fights: number;
+  badIdeas: number;
+  alliesRecruited: number;
+  alliesLost: number;
+  lastAction: { kind: string; item?: string };
+};
 
 export type GameEvent =
   | { type: 'floorEntered'; floor: number; seed: number }
@@ -210,7 +271,18 @@ export type GameEvent =
   | { type: 'itemRefused'; defId: string; reason: 'cursed' | 'battleOnly' | 'notUsable' }
   | { type: 'hazardHurt'; id: string; kind: HazardKind; dmg: number }
   | { type: 'corpseEaten'; hp: number }
-  | { type: 'improvised'; key: string; grade: Grade; firstThisRun: boolean };
+  | { type: 'improvised'; key: string; grade: Grade; firstThisRun: boolean }
+  | { type: 'tokensGained'; amount: number; from: 'chest' | 'battle' }
+  | { type: 'xpGained'; amount: number }
+  | { type: 'levelUp'; level: number }
+  | { type: 'perkTaken'; id: string }
+  | { type: 'lowHp'; hp: number }
+  | { type: 'captiveSpotted'; allyId: string }
+  | { type: 'bribeShort'; allyId: string; price: number; tokens: number }
+  | { type: 'allyRecruited'; allyId: string }
+  | { type: 'allyDied'; allyId: string; item: string | null }
+  | { type: 'allyLeft'; allyId: string; how: 'quit' | 'steal' | 'turn'; item: string | null }
+  | { type: 'loyaltyLow'; allyId: string };
 
 export type GameState = {
   seed: number;
@@ -231,6 +303,20 @@ export type GameState = {
   improvCounts: Record<string, number>;
   /** New items waiting to be shown on a prize card; time is paused while any are. */
   reveals: ItemInstance[];
+  /** Recruited allies, in following order. */
+  party: Entity[];
+  /** Tiles the player has just left, newest first: the party walks along this. */
+  trail: Vec[];
+  /** Prize Tokens, the in-run money. */
+  tokens: number;
+  xp: number;
+  level: number;
+  /** Level-up points spent on each stat. */
+  trained: Partial<Record<StatKey, number>>;
+  perks: string[];
+  /** A level-up waiting on the player: points to spend and perks to pick from. */
+  levelUp: { points: number; perkChoices: string[] | null } | null;
+  record: RunRecord;
   /** Events raised during the current step; the shell drains them onto the bus. */
   events: GameEvent[];
 };

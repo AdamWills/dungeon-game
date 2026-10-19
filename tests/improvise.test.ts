@@ -134,6 +134,7 @@ describe('props', () => {
     const vm = addProp(s, 'vending_machine', 1, 1);
     const b = fight(s, ['pipe_leech']);
     b.combatants[0].stats.hp = 2;
+    b.combatants[1].statuses.push({ kind: 'stunned', turnsLeft: 3 }); // only the disaster can hurt you here
     battleCommand(s, { kind: 'improvise', channel: 'prop', propId: vm.id, verb: 'eat' }); // biting a vending machine is a disaster
     expect(b.combatants[0].stats.hp).toBeGreaterThanOrEqual(1);
     expect(b.combatants[0].alive).toBe(true);
@@ -218,7 +219,7 @@ describe('through the game loop', () => {
     const s = cleanRun(3);
     const b = fight(s, ['pipe_leech']);
     step(s, { ...NO_INPUT, command: { kind: 'improvise', channel: 'badIdea' } });
-    expect(b.badIdeaUsed).toBe(true);
+    expect(b.badIdeas).toBe(1);
   });
 });
 
@@ -227,7 +228,7 @@ describe('the Bad Idea button', () => {
     const s = cleanRun(3);
     const b = fight(s, ['pipe_leech']);
     battleCommand(s, { kind: 'improvise', channel: 'badIdea' });
-    expect(b.badIdeaUsed).toBe(true);
+    expect(b.badIdeas).toBe(1);
     if (b.result || b.order[b.turn] !== 'player') return;
     const turn = [b.round, b.turn];
     battleCommand(s, { kind: 'improvise', channel: 'badIdea' });
@@ -241,7 +242,7 @@ describe('the Bad Idea button', () => {
       b.combatants[0].stats.charm = charm;
       let n = 0;
       for (let i = 0; i < 3000; i++) {
-        b.badIdeaUsed = false;
+        b.badIdeas = 0;
         const r = resolveImprov(s, b, { kind: 'improvise', channel: 'badIdea' })!;
         if (r.grade === 'brilliant' || r.grade === 'legendary') n++;
       }

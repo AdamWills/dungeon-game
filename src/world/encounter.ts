@@ -9,12 +9,13 @@ import { distance } from './motion';
 
 export function findContact(state: GameState): Entity | null {
   if (state.grace > 0 || state.dash.active > 0) return null;
-  const p = state.player.pos;
+  // Touching anyone in the party starts the fight (user decision).
+  const party = [state.player.pos, ...state.party.map((a) => a.pos)];
   let best: Entity | null = null;
   let bestD = Infinity;
   for (const e of state.floor.entities) {
     if (e.kind !== 'enemy') continue;
-    const d = Math.max(Math.abs(e.pos.x - p.x), Math.abs(e.pos.y - p.y));
+    const d = Math.min(...party.map((p) => Math.max(Math.abs(e.pos.x - p.x), Math.abs(e.pos.y - p.y))));
     if (d < TUNING.contactRadius && d < bestD) {
       best = e;
       bestD = d;

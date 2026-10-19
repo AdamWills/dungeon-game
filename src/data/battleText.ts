@@ -51,6 +51,30 @@ export const BATTLE_TEXT = {
   cantImprov: 'That is not going to work right now, contestant. Pick something else!',
   badIdeaSpent: 'One Bad Idea per fight, contestant! House rules!',
   propWrecked: 'The {prop} is wrecked. Somebody bill the contestant.',
+  // The party (M4).
+  enemyHitsAlly: [
+    '{actor} goes for {target} with {move}. {dmg} damage!',
+    '{actor} hits {target} with {move} for {dmg}. Rude!',
+    '{actor} uses {move} on {target}. {dmg} damage, and the cameras caught all of it!',
+  ],
+  enemyMissesAlly: ['{actor} tries {move} on {target} and misses!', '{target} dodges {actor}\'s {move}. Nice footwork!'],
+  allyMiss: ['{ally} misses {target}. Classic {ally}.', '{ally} swings at {target} and finds only air.'],
+  allyDefend: ['{ally} braces. Smart. Cowardly, but smart.', '{ally} hunkers down.'],
+  allyDown: ['{target} is DOWN! Eliminated! Oh, that one is going to hurt the ratings!', '{target} is OUT! A moment of silence! That will do!'],
+  spareOk: ['You spare {target}! And {target} switches sides, folks! Loyalty is so fluid down here!'],
+  spareFail: ['You offer {target} mercy. {target} offers you a nail. Rejected!', '{target} is not convinced. Try being more charming!'],
+  spareNotYet: 'Rough {target} up a bit more first, contestant! Nobody takes mercy from a full health bar!',
+  skitchSpotted: 'Ooh, is that Skitch? This little guy has been looking for the exit since the pilot episode! Rough him up, then show some mercy!',
+  partingHit: '{actor} gets a parting shot on {target} for {dmg} while you leg it!',
+  backfireAlly: 'It lands on {target} instead, for {dmg}! {target} will remember this.',
+  remedySide: 'Side effect: {target} is now {status}!',
+  secondOpinion: '{ally} gives everyone a second opinion: up to +{amount} HP all round.',
+  xp: '+{xp} XP.',
+  lateFees: '{name} pays {dmg} in late fees. Overdue Invoice!',
+  itemOnAlly: 'You give {target} the {item}. +{amount} HP. Teamwork!',
+  tokens: '+{amount} Prize Tokens.',
+  token: '+1 Prize Token.',
+  allyHolds: '{ally} holds back and looks at you. Mercy, or not?',
 } as const;
 
 /** Stable variant pick from a few integers, independent of the game RNG. */

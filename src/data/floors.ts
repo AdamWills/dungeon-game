@@ -18,6 +18,9 @@ export type FloorTheme = {
   /** Chests per floor, and the chance a slain enemy drops an item. */
   chests: [number, number];
   dropChance: number;
+  /** Allies waiting on this floor: captives (cells, bribes) and deserters among the enemies. */
+  captives: string[];
+  deserters: string[];
   /** Sludge pools (clusters), spike tiles and gas vents per floor. */
   hazards: { sludgePools: [number, number]; spikes: [number, number]; gasVents: [number, number] };
 };
@@ -43,6 +46,8 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     ],
     chests: [3, 5],
     dropChance: 0.3,
+    captives: ['marjorie', 'moss'],
+    deserters: ['skitch'],
     hazards: { sludgePools: [2, 4], spikes: [3, 5], gasVents: [1, 3] },
   },
 };

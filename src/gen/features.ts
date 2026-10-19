@@ -16,7 +16,8 @@ export function inRoom(r: Room, p: Vec): boolean {
   return p.x >= r.x1 && p.x <= r.x2 && p.y >= r.y1 && p.y <= r.y2;
 }
 
-export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): void {
+/** Returns where the captives stand: one tile each, in different rooms. */
+export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { allyId: string; pos: Vec }[] {
   const { tiles, width, height } = floor;
   const taken = new Set<string>([key(floor.start), key(floor.stairs)]);
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
@@ -40,8 +41,8 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): void {
     for (const d of dist) if (d >= 0) reached++;
     return reached === walkable - trial.size;
   };
-  const edgeSpot = (): Vec | null => {
-    const room = pick(rng, otherRooms);
+  const edgeSpot = (rooms = otherRooms): Vec | null => {
+    const room = pick(rng, rooms);
     const edge: Vec[] = [];
     for (let y = room.y1; y <= room.y2; y++)
       for (let x = room.x1; x <= room.x2; x++)
@@ -67,6 +68,21 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): void {
     if (!pos) continue;
     const def = weightedPick(rng, placeable);
     floor.props.push({ id: `prop-${floor.props.length}`, defId: def.id, pos, usesLeft: def.uses });
+  }
+
+  // Captives also stand still and block the way, so they get the same check.
+  const captives: { allyId: string; pos: Vec }[] = [];
+  const used = new Set<Room>();
+  for (const allyId of theme.captives) {
+    const rooms = otherRooms.filter((r) => !used.has(r) && !inRoom(r, floor.stairs));
+    if (!rooms.length) break;
+    for (let tries = 0; tries < 6; tries++) {
+      const pos = edgeSpot(rooms);
+      if (!pos) continue;
+      used.add(floor.rooms.find((r) => inRoom(r, pos))!);
+      captives.push({ allyId, pos });
+      break;
+    }
   }
 
   const setHazard = (p: Vec, kind: HazardKind) => {
@@ -111,4 +127,5 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): void {
     const p = { x: nextInt(rng, room.x1, room.x2), y: nextInt(rng, room.y1, room.y2) };
     if (free(p.x, p.y)) setHazard(p, 'gas_vent');
   }
+  return captives;
 }

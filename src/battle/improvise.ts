@@ -26,6 +26,7 @@ import { ITEMS } from '../data/items';
 import { PROP_RULES, PROPS, type PropTag } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { weightedPick } from '../game/combat';
+import { hasPerk } from '../game/progress';
 import { nextFloat, pick } from '../game/rng';
 import type { ArenaProp, BattleCommand, BattleState, Combatant, GameState, ImprovOutcome, Vec } from '../game/types';
 import { distance } from '../world/motion';
@@ -59,6 +60,11 @@ export function gatherArena(state: GameState, at: Vec): ArenaProp[] {
   return found.slice(0, PROP_RULES.arenaMax).map(({ d: _d, ...p }) => p);
 }
 
+/** Bad Idea presses allowed per fight (Bad Habits doubles it). */
+export function badIdeaLimit(state: GameState): number {
+  return hasPerk(state, 'bad_habits') ? 2 : 1;
+}
+
 /** Work out what an improvisation does. Null if it is not possible right now. */
 export function resolveImprov(state: GameState, battle: BattleState, cmd: ImprovCommand): (ImprovOutcome & { names: Record<string, string> }) | null {
   if (cmd.channel === 'prop') {
@@ -88,7 +94,7 @@ export function resolveImprov(state: GameState, battle: BattleState, cmd: Improv
     return { ...fromTemplate(t, 'table', `jank:${key}`), names: { ...names, name: t.name } };
   }
 
-  if (battle.badIdeaUsed) return null;
+  if (battle.badIdeas >= badIdeaLimit(state)) return null;
   const charm = battle.combatants[0].stats.charm;
   const table = BAD_IDEAS.map((b) => ({
     ...b,

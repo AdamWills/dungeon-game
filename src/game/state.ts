@@ -7,6 +7,7 @@ import { TUNING } from '../data/tuning';
 import { generateFloor } from '../gen/floor';
 import { updateFov } from '../world/fov';
 import { computeStats } from './equipment';
+import { gatherParty } from './party';
 import { createRng, deriveSeed } from './rng';
 import type { Entity, Equipment, Floor, GameState } from './types';
 
@@ -47,6 +48,15 @@ export function createGameState(seed: number, raceId = 'human', classId = 'brawl
     runEnd: null,
     improvCounts: {},
     reveals: [],
+    party: [],
+    trail: [],
+    tokens: 0,
+    xp: 0,
+    level: 1,
+    trained: {},
+    perks: [],
+    levelUp: null,
+    record: { fights: 0, badIdeas: 0, alliesRecruited: 0, alliesLost: 0, lastAction: { kind: 'none' } },
     events: [],
   };
   enterFloor(state, floor);
@@ -57,6 +67,7 @@ export function enterFloor(state: GameState, floor: Floor): void {
   state.floor = floor;
   state.player.pos = { ...floor.start };
   state.player.motion = undefined;
+  gatherParty(state);
   updateFov(floor, floor.start, TUNING.fovRadius);
   state.events.push({ type: 'floorEntered', floor: floor.index, seed: floor.seed });
 }

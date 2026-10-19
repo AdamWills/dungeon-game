@@ -1,5 +1,5 @@
-// Classes (GDD "Starting stats (level 1)"). Kits are real items now; the
-// favored-stat bonuses arrive with levelling in M4.
+// Classes (GDD "Starting stats (level 1)"): stats, kit, signature ability
+// and the favored stats that grow faster at level-up.
 
 import type { Stats } from '../game/types';
 
@@ -11,6 +11,8 @@ export type ClassDef = {
   help: string;
   base: Omit<Stats, 'maxHp'>;
   ability: string;
+  /** Every second point spent on a favored stat grants a free bonus point. */
+  favored: ('maxHp' | 'str' | 'speed' | 'evasion' | 'armor' | 'charm')[];
   /** Equipped at the start of a run. */
   kit: { weapon?: string; armor?: string; trinket?: string };
   startingItems: string[];
@@ -24,6 +26,7 @@ export const CLASSES: Record<string, ClassDef> = {
     help: 'Tough melee fighter. Rampage hits every enemy at once.',
     base: { hp: 28, str: 4, speed: 3, evasion: 2, armor: 2, charm: 1 },
     ability: 'rampage',
+    favored: ['maxHp', 'str'],
     kit: { weapon: 'rusted_pipe', armor: 'velour_tracksuit' },
     startingItems: ['suspicious_bandage', 'suspicious_bandage'],
   },
@@ -34,6 +37,7 @@ export const CLASSES: Record<string, ClassDef> = {
     help: 'Fragile and fast. Hex makes one enemy take double damage. Starts with 3 Hex Scrolls.',
     base: { hp: 18, str: 2, speed: 4, evasion: 3, armor: 0, charm: 3 },
     ability: 'hex',
+    favored: ['speed', 'charm'],
     kit: { weapon: 'cursed_clipboard' },
     startingItems: ['hex_scroll', 'hex_scroll', 'hex_scroll', 'suspicious_bandage'],
   },

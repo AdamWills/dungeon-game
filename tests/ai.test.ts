@@ -106,6 +106,7 @@ describe('enemy placement', () => {
       expect(floor.entities.length).toBeGreaterThan(0);
       for (const e of floor.entities) {
         expect(isWalkable(floor, e.pos.x, e.pos.y)).toBe(true);
+        if (e.kind !== 'enemy') continue; // captives are checked in the M4 tests
         const inStart = e.pos.x >= startRoom.x1 && e.pos.x <= startRoom.x2 && e.pos.y >= startRoom.y1 && e.pos.y <= startRoom.y2;
         expect(inStart).toBe(false);
         const k = `${e.pos.x},${e.pos.y}`;

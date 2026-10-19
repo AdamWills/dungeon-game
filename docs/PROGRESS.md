@@ -73,11 +73,21 @@
 - Used for the prize card (tube colours and badge sign by rarity; junk and cursed tubes flicker; special and Host's Pick rain confetti), the battle result banner (VICTORY, YOU GOT AWAY, YOU DIED), the end-of-run screens and the contestant picker with its DESCEND & WIN! sign. Headings stay plain; the corn is in the styling and badges. All original.
 - Fixed earlier while checking: the elimination report read "with a lovely a long, relaxing soak" and "the the Sludge Pool"; hazard and status deaths now read cleanly.
 
+### M4: Party and host
+- **Allies** (`src/data/allies.ts`, `src/game/party.ts`): Marjorie "The Forklift" Pyle (bruiser, in a cell: press E), Dr. Ignatius Moss (healer, bribe of 15 Prize Tokens minus your Charm, never below half) and Skitch (coward with a nail gun, among the enemies; a Spare command recruits him once he is under 40% HP, Charm helps). Each has a passive, an ability on a cooldown and a stance (Aggressive, Defensive, Support) set on the pause screen. They follow you in a line, catch up at a run, and an enemy touching any of you starts a fight with the whole party. Allies hold off a beaten Skitch so you get the chance to spare him.
+- **In battle** allies act on their own after you by stance; enemies pick targets among the party (Defensive allies draw fire, Skitch is only targeted when nobody else is standing). Healing items can go to an ally. Dead allies stay dead, leave gore and drop their item.
+- **Loyalty** (hidden): up for giving a consumable (G on the pause screen), healing them in a fight and winning together; down for fleeing (they also take a parting hit), Bad Idea or combo disasters that land on them, and finishing a fight under 25% HP without your help. Chet hints when it gets low. At zero Marjorie turns on you (a chasing enemy that sees all around), Dr. Moss quits and Skitch steals an item and runs.
+- **Prize Tokens**: dropped by enemies (per enemy type) and chests; shown in the HUD.
+- **XP and levels 1 to 5** (`src/game/progress.ts`): XP from kills (+25% after a sneak attack) and recruiting. The level-up screen (neon) opens as soon as you are back on the map: 3 points to spend, every second point in a favored stat free, and a perk pick at level 3 from 6 perks (`src/data/perks.ts`). Allies scale with your level.
+- **Chet on the map** (`src/host/host.ts`, `src/data/hostLines.ts`): listens to the event bus and plays a scripted line (5 per event, never the same twice in a row) in a neon strip with a hologram portrait of him; the pause screen shows his last lines. Captives get their contestant profile read out when you first see them.
+- **Elimination report** (`src/game/report.ts`, `src/data/report.ts`): the death screen lists class, race and level, the killer and move, fights, Bad Ideas and allies, your last words (from your last action), a useless parting gift and Chet's sign-off.
+- Tests: `tests/m4.test.ts` (placement and reachability, the three ways to recruit, following, fights started through an ally, allies acting and being targeted, ally death, flee costs, Second Opinion, loyalty and betrayals, XP thresholds, favored points, perks, Thick Skull, Bad Habits, spoils, the report, host lines). The bot now plays level-ups and tries sparing. 120 tests pass.
+
 ## Next
 
-M4: Party and host. 3 recruitable allies with stances and loyalty, scripted host lines for routine events, the death screen with a full elimination report, XP and the level-up screen.
+M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
 
-Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). Improvisation already records discovery keys and raises an `improvised` event for them. Items and inventory (about 30), the Hexer and Hex, Human and Gutterfolk traits, the Improvise menu (props, item jank, Bad Idea), and map hazards. Closed doors that block movement and sight also need a home; they fit with props in M3.
+Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). The writing for the allies and Chet's lines is first-draft placeholder text (user: "not good, but ok"); it all lives in `src/data` for a rewrite pass.
 
 ## Decisions from the user
 
@@ -85,6 +95,7 @@ Not yet built from the prototype scope: the free-text Improvise channel's verb-a
 - **Stairs:** in the one-floor prototype, taking the stairs (once the mini-boss is beaten) ends the run as a win.
 - **M2 battle menu:** Attack, Ability (the class signature, Rampage for the Brawler), Item (one healing consumable), Defend and Flee. Improvise and the full item list come in M3.
 - **Doors:** closed doors block both movement and sight.
+- **M4 (user decisions, GDD updated):** Prize Tokens are the in-run money; one recruiting method per ally (cell, bribe, spare); the full loyalty version with in-character betrayals; Chet's map lines in a neon strip with a portrait; the perk pick ships in M4; enemies touching any party member start a fight. Build the writing now and rewrite it later.
 
 - **Ambushes:** who moved decides. Sneaking into an unaware or sleeping enemy gives you the first round; a chasing enemy running into you gives it the first round; anything else is a normal fight. (GDD updated.)
 - **Hazards** move to M3. (GDD build plan updated.)
@@ -101,7 +112,6 @@ Not yet built from the prototype scope: the free-text Improvise channel's verb-a
 - **Vision cones are drawn on the map** for enemies you can see, so sneaking is a readable choice rather than a guess.
 - **A `won` mode** joins the GDD's four modes for the stairs ending; `dead` stays for deaths.
 - **Battle text variants** are picked by a stable hash, not the game RNG, so adding a line never changes how a fight plays out.
-- Enemy XP values are in the data but unused until levelling in M4.
 
 - `GDD.md` moved to `docs/GDD.md`, where CLAUDE.md and the build prompt expect it.
 - **Movement** is grid-stepped and interpolated: each step glides one tile over 9 ticks (about 6.7 tiles per second), holding a key chains steps with no pause, and the most recently pressed direction wins. 4-way only. Position is fractional only mid-step, so collision is exact against the grid.

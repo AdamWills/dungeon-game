@@ -40,4 +40,28 @@ export const TUNING = {
     fleeMin: 0.1,
     fleeMax: 0.9,
   },
+
+  /** XP and levels (GDD "Levelling"). Total XP to reach each level, from level 2. */
+  progression: {
+    xpToLevel: [30, 80, 160, 280],
+    maxLevel: 5,
+    pointsPerLevel: 3,
+    ambushXpBonus: 0.25,
+    recruitXp: 10,
+    discoveryXp: 4,
+  },
+
+  /** What one point buys at level-up (GDD "Stats"). */
+  pointValue: { maxHp: 4, str: 1, speed: 1, evasion: 1, armor: 1, charm: 1 },
+
+  /** Prize Tokens in chests, min and max. */
+  chestTokens: [3, 8] as [number, number],
+
+  party: {
+    /** Allies a party can hold besides you. */
+    maxAllies: 3,
+    /** Allies further than this many tiles behind catch up at a run. */
+    catchUpDistance: 3,
+    catchUpTicksPerTile: 5,
+  },
 };

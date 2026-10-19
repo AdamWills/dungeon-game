@@ -7,7 +7,8 @@ import { emptyRun, nearPlayer, spawn } from './helpers';
 const AWAY = 0; // facing right, away from a player approaching from the left
 
 describe('sneaking', () => {
-  for (const defId of Object.keys(ENEMIES)) {
+  // Turncoats see all around them on purpose: they know exactly who they are after.
+  for (const defId of Object.keys(ENEMIES).filter((id) => ENEMIES[id].roam.visionArcDeg < 360)) {
     it(`lets you walk up behind an awake ${defId} and strike first`, () => {
       const state = emptyRun();
       spawn(state, defId, nearPlayer(state, 2, 0), { facing: AWAY });

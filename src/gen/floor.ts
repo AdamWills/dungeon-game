@@ -92,8 +92,8 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
       props: [],
       visible: new Array(width * height).fill(0),
     };
-    placeFeatures(floor, rng, theme);
-    floor.entities = populate(floor, rng, theme);
+    const captives = placeFeatures(floor, rng, theme);
+    floor.entities = populate(floor, rng, theme, captives);
     return floor;
   }
   throw new Error(`Floor generation failed for seed ${seed} after ${MAX_ATTEMPTS} attempts`);

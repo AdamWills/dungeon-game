@@ -29,7 +29,12 @@ function playRun(seed: number, maxTicks = 40_000) {
 
   for (; steps < maxTicks && state.mode !== 'dead' && state.mode !== 'won'; steps++) {
     let input: InputFrame = NO_INPUT;
-    if (state.mode === 'menu') input = { ...NO_INPUT, command: { kind: 'dismiss' } };
+    if (state.mode === 'menu') {
+      const lu = state.levelUp;
+      if (lu?.points) input = { ...NO_INPUT, command: { kind: 'train', stat: pick(bot, ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'] as const) } };
+      else if (lu?.perkChoices) input = { ...NO_INPUT, command: { kind: 'perk', id: pick(bot, lu.perkChoices) } };
+      else input = { ...NO_INPUT, command: { kind: 'dismiss' } };
+    }
     else if (state.mode === 'battle') {
       const b = state.battle!;
       const foes = b.combatants.filter((c) => c.side === 'enemy' && c.alive);
@@ -41,6 +46,7 @@ function playRun(seed: number, maxTicks = 40_000) {
             { kind: 'ability', abilityId: state.cls === 'hexer' ? 'hex' : 'rampage', targetId: pick(bot, foes)?.id },
             { kind: 'item', slot: nextInt(bot, 0, 5), targetId: pick(bot, foes)?.id },
             { kind: 'defend' },
+            ...foes.map((c) => ({ kind: 'spare', targetId: c.id }) as BattleCommand),
             { kind: 'flee' },
             { kind: 'improvise', channel: 'badIdea' },
             { kind: 'improvise', channel: 'jank', slots: [nextInt(bot, 0, 4), nextInt(bot, 0, 4)] },
@@ -81,6 +87,11 @@ function checkInvariants(state: GameState) {
   for (const e of state.floor.entities) {
     expect(isWalkable(state.floor, Math.round(e.pos.x), Math.round(e.pos.y))).toBe(true);
     expect(e.stats.hp).toBeGreaterThan(0);
+  }
+  for (const a of state.party) {
+    expect(a.stats.hp).toBeGreaterThan(0);
+    expect(a.stats.hp).toBeLessThanOrEqual(a.stats.maxHp);
+    expect(isWalkable(state.floor, Math.round(a.pos.x), Math.round(a.pos.y))).toBe(true);
   }
   if (state.mode === 'battle') expect(state.battle).not.toBeNull();
 }

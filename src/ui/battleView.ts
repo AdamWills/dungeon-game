@@ -3,10 +3,11 @@
 // by whole numbers. Hit flashes and damage numbers are UI-only animation,
 // keyed off the battle's fx list and wall-clock time.
 
-import { currentActor } from '../battle/turns';
+import { currentActor, youIn } from '../battle/turns';
 import type { BattleState, Combatant, GameState } from '../game/types';
 import { SPRITE, TILE } from './atlas';
 import type { BattleMenu } from './battleMenu';
+import type { AllySprites } from './allySprites';
 import type { EnemySprites } from './enemySprites';
 import type { PlayerSprites } from './playerSprite';
 import type { PropSprites } from './propSprites';
@@ -25,6 +26,7 @@ export class BattleView {
   constructor(
     private playerSprites: PlayerSprites,
     private enemySprites: EnemySprites,
+    private allySprites: AllySprites,
     private propSprites: PropSprites,
     private floorTile: (ctx: CanvasRenderingContext2D, x: number, y: number) => void,
   ) {}
@@ -33,7 +35,7 @@ export class BattleView {
     const battle = state.battle!;
     for (const f of battle.fx) if (!this.fxStart.has(f.seq)) this.fxStart.set(f.seq, now);
     const scale = Math.max(2, Math.min(5, Math.floor(Math.min(w, h) / 170)));
-    const panelTop = Math.round(h - Math.min(300, Math.max(190, h * 0.32)));
+    const panelTop = Math.round(h - Math.min(310, Math.max(262, h * 0.34)));
 
     this.drawBackdrop(ctx, w, panelTop, scale);
     this.drawTurnBar(ctx, w, battle);
@@ -53,14 +55,28 @@ export class BattleView {
       });
     });
 
-    const me = battle.combatants.find((c) => c.side === 'player')!;
+    const me = youIn(battle);
     const meSize = SPRITE * (scale + 1);
-    this.drawCombatant(ctx, me, Math.round(w * 0.2), panelTop - meSize - 64, meSize, battle, now, {
+    const meX = Math.round(w * 0.12);
+    this.drawCombatant(ctx, me, meX, panelTop - meSize - 64, meSize, battle, now, {
       flip: false,
-      highlight: false,
+      highlight: me.id === targetId,
       acting: actor?.id === me.id,
       sprite: this.playerSprites('up', 'stand', false),
     });
+    // Your allies stand beside you, a little smaller.
+    const allies = battle.combatants.filter((c) => c.ally);
+    const allySize = SPRITE * scale;
+    const allyGap = Math.max(allySize * 1.25, 110);
+    allies.forEach((c, i) => {
+      this.drawCombatant(ctx, c, Math.round(meX + meSize * 0.6 + allyGap * (i + 0.6)), panelTop - allySize - 64, allySize, battle, now, {
+        flip: false,
+        highlight: c.id === targetId,
+        acting: actor?.id === c.id,
+        sprite: this.allySprites(c.defId),
+      });
+    });
+    const arenaX = Math.max(Math.round(w * 0.42), Math.round(meX + meSize * 0.6 + allyGap * (allies.length + 0.2)));
 
     // The arena: props you can Improvise with, between you and them.
     if (battle.props.length) {
@@ -68,9 +84,9 @@ export class BattleView {
       const baseY = panelTop - ps - 30;
       ctx.font = FONT;
       ctx.fillStyle = '#6f7d70';
-      ctx.fillText('ARENA', Math.round(w * 0.42), baseY - 22);
+      ctx.fillText('ARENA', arenaX, baseY - 22);
       battle.props.forEach((p, i) => {
-        const x = Math.round(w * 0.42 + i * (ps + 40));
+        const x = Math.round(arenaX + i * (ps + 40));
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         if (p.usesLeft <= 0) ctx.globalAlpha = 0.3;
@@ -241,7 +257,7 @@ export class BattleView {
     panel(ctx, x, y, w, h);
     const battle = state.battle!;
     ctx.font = FONT;
-    const yourTurn = currentActor(battle)?.side === 'player';
+    const yourTurn = currentActor(battle)?.id === 'player';
     if (!yourTurn || battle.result) return;
 
     let rows: { label: string; enabled: boolean }[];
@@ -261,7 +277,8 @@ export class BattleView {
     } else if (menu.level === 'target') {
       rows = [];
       cursor = -1;
-      title = menu.pending.kind === 'attack' ? 'ATTACK: CHOOSE A TARGET' : menu.pending.kind === 'ability' ? 'HEX: CHOOSE A TARGET' : 'ITEM: CHOOSE A TARGET';
+      const titles = { attack: 'ATTACK: CHOOSE A TARGET', ability: 'HEX: CHOOSE A TARGET', item: 'ITEM: CHOOSE A TARGET', friend: 'ITEM: WHO GETS IT?', spare: 'SPARE: CHOOSE WHO' };
+      title = titles[menu.pending.kind];
     } else {
       rows = menu.options(state);
       cursor = menu.cursor;
@@ -269,11 +286,12 @@ export class BattleView {
     }
     ctx.fillStyle = '#d9b310';
     ctx.fillText(title, x + 14, y + 12);
+    const rowH = rows.length > 6 ? 21 : 24;
     rows.forEach((r, i) => {
-      const ry = y + 40 + i * 24;
+      const ry = y + 40 + i * rowH;
       if (i === cursor) {
         ctx.fillStyle = '#2a2a12';
-        ctx.fillRect(x + 8, ry - 4, w - 16, 22);
+        ctx.fillRect(x + 8, ry - 4, w - 16, rowH - 2);
         ctx.fillStyle = '#d9b310';
         ctx.fillText('>', x + 14, ry);
       }
@@ -282,7 +300,7 @@ export class BattleView {
     });
 
     // Plain help for the highlighted choice, under the options.
-    const helpY = y + 40 + rows.length * 24 + 10;
+    const helpY = y + 40 + rows.length * rowH + 10;
     ctx.fillStyle = '#3a4a3a';
     ctx.fillRect(x + 12, helpY - 6, w - 24, 1);
     ctx.fillStyle = '#9aa89a';

@@ -6,18 +6,29 @@ import { CLASSES, FISTS } from '../data/classes';
 import { INVENTORY_CAP, ITEMS, type ItemDef, type StatKey } from '../data/items';
 import { RACES } from '../data/races';
 import type { StatusKind } from '../data/statuses';
+import { TUNING } from '../data/tuning';
+import { giveItem, setStance } from './party';
+import { takePerk, train } from './progress';
 import type { Entity, Equipment, GameState, InvCommand, ItemInstance, Stats } from './types';
 
 export const SLOTS = ['weapon', 'armor', 'trinket'] as const;
 export type Slot = (typeof SLOTS)[number];
 
-/** Stats from class, race and equipment. `hp` is the max; callers keep current HP. */
-export function computeStats(raceId: string, clsId: string, equipment: Equipment): Stats {
-  const base = CLASSES[clsId].base;
+/**
+ * Stats from class, race, level-up points and equipment. `hp` is the max;
+ * callers keep current HP. Every second point in a favored stat is free.
+ */
+export function computeStats(raceId: string, clsId: string, equipment: Equipment, trained: Partial<Record<StatKey, number>> = {}): Stats {
+  const cls = CLASSES[clsId];
+  const base = cls.base;
   const race = RACES[raceId];
   const s: Stats = { ...base, maxHp: base.hp };
   s.maxHp += race.mods.maxHp ?? 0;
   s.charm += race.mods.charm ?? 0;
+  for (const [k, n] of Object.entries(trained) as [StatKey, number][]) {
+    const points = n + (cls.favored.includes(k) ? Math.floor(n / 2) : 0);
+    s[k] += points * TUNING.pointValue[k];
+  }
   for (const slot of SLOTS) {
     const inst = equipment[slot];
     const mods = inst ? ITEMS[inst.defId]?.mods : undefined;
@@ -33,7 +44,7 @@ export function computeStats(raceId: string, clsId: string, equipment: Equipment
 export function refreshPlayerStats(state: GameState): void {
   const p = state.player;
   const lost = p.stats.maxHp - p.stats.hp;
-  const next = computeStats(state.race, state.cls, p.equipment ?? {});
+  const next = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained);
   next.hp = Math.max(1, Math.min(next.maxHp, next.maxHp - lost));
   if (p.stats.hp <= 0) next.hp = 0;
   p.stats = next;
@@ -78,6 +89,12 @@ export function addItem(state: GameState, item: ItemInstance, from: 'chest' | 'f
 export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   const p = state.player;
   p.equipment ??= {};
+  if (state.levelUp) {
+    // The level-up screen comes first: spend the points, pick the perk.
+    if (cmd.kind === 'train') train(state, cmd.stat);
+    else if (cmd.kind === 'perk') takePerk(state, cmd.id);
+    return;
+  }
   if (state.reveals.length) {
     // While a prize card is up, the only thing to do is close it.
     if (cmd.kind !== 'dismiss') return;
@@ -90,6 +107,14 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   }
   switch (cmd.kind) {
     case 'dismiss':
+    case 'train':
+    case 'perk':
+      return;
+    case 'give':
+      giveItem(state, cmd.slot, cmd.allyId);
+      return;
+    case 'stance':
+      setStance(state, cmd.allyId, cmd.stance);
       return;
     case 'equip': {
       const inst = p.inventory[cmd.slot];
@@ -131,6 +156,7 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
         state.events.push({ type: 'itemRefused', defId: def.id, reason: 'battleOnly' });
         return;
       }
+      state.record.lastAction = { kind: 'item', item: def.id };
       for (const eff of def.use.effects) {
         if (eff.kind === 'heal') p.stats.hp = Math.min(p.stats.maxHp, p.stats.hp + eff.amount);
         // Statuses only exist in battle, so cleanse has nothing to do out here.

@@ -7,6 +7,7 @@ import { TUNING } from '../data/tuning';
 import { battleCommand, startBattle } from '../battle/turns';
 import { updateEnemy } from '../game/ai';
 import { inventoryCommand } from '../game/equipment';
+import { captiveAt, leaveTrail, spotCaptives, tryRecruit, updateParty } from '../game/party';
 import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
@@ -23,7 +24,7 @@ const DELTA: Record<Dir, Vec> = {
 };
 
 export function step(state: GameState, input: InputFrame): void {
-  if (input.pause) {
+  if (input.pause && !state.levelUp) {
     if (state.mode === 'roaming') setMode(state, 'menu');
     else if (state.mode === 'menu') {
       state.reveals = []; // leaving the pause also closes any prize cards
@@ -58,7 +59,9 @@ export function step(state: GameState, input: InputFrame): void {
 
   if (state.mode !== 'roaming') return; // a prize card just went up; the world waits
 
+  updateParty(state, state.dash.active > 0 ? TUNING.dash.ticksPerTile : TUNING.playerTicksPerTile);
   for (const e of state.floor.entities) if (e.kind === 'enemy') updateEnemy(state, e);
+  spotCaptives(state);
 
   updateHazards(state);
   if (state.mode !== 'roaming') return; // a hazard finished you off
@@ -89,7 +92,14 @@ function tryMove(state: GameState, dir: Dir): void {
     openChest(state, to.x, to.y);
     return;
   }
+  // Bumping a captive asks them to join; they do not get out of the way.
+  const captive = captiveAt(state, to.x, to.y);
+  if (captive) {
+    if (state.dash.active === 0) tryRecruit(state, captive);
+    return;
+  }
   if (!isWalkable(state.floor, to.x, to.y) || propAt(state, to.x, to.y)) return;
+  leaveTrail(state, p.pos);
   startMotion(p, to, state.dash.active > 0 ? TUNING.dash.ticksPerTile : TUNING.playerTicksPerTile);
   // Look from the destination so the view opens up as the step begins.
   updateFov(state.floor, to, TUNING.fovRadius);
@@ -104,7 +114,7 @@ function facingDir(facing: number): Dir {
 
 /** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return !['equip', 'unequip', 'use', 'drop', 'dismiss'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'give', 'stance', 'train', 'perk'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */
@@ -114,6 +124,11 @@ function interact(state: GameState): boolean {
     if (eatRemains(state)) return true;
     const f = facingTile(state);
     if (openChest(state, f.x, f.y)) return true;
+    const captive = captiveAt(state, f.x, f.y);
+    if (captive) {
+      tryRecruit(state, captive);
+      return true;
+    }
     if (isClosedDoor(state, f.x, f.y)) {
       openDoor(state, f);
       return true;
