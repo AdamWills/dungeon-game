@@ -151,6 +151,15 @@ You start alone and can recruit up to 3 allies per run, found as captives, deser
 
 The prototype includes 3 hand-written allies, one per archetype: a bruiser, a healer and a coward with a gun.
 
+**Prototype details (user decisions)**
+
+- **Recruiting, one way each:** the bruiser is locked in a cell (open it with the interact key); the healer wants a bribe in Prize Tokens (Charm lowers the price); the coward turns up on the enemy side of a fight, and a Spare command works on him once he is low on HP (Charm raises the odds). The dumb contest waits for later.
+- **Loyalty up:** giving an ally a consumable, healing them, winning a fight together.
+- **Loyalty down:** fleeing a fight (allies take a parting hit covering you), hurting them with a Bad Idea or a backfired combo, leaving them under 25% HP without helping.
+- **At zero:** each ally leaves in character: the bruiser turns on you (an enemy in the next fight), the healer quits, the coward steals an item and runs.
+- **On the map:** allies follow in a line, and an enemy touching any party member starts a fight with the whole party.
+- **Stances** are set per ally on the pause screen.
+
 ## Floors
 
 Floors are hybrid: procedural room layouts with hand-authored set pieces and bosses slotted in. Each floor has a theme that sets its enemies, hazards, loot table and host commentary.
@@ -199,6 +208,8 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 | Special | Uncommon | One strong effect with a catch |
 | Cursed | Uncommon | Powerful, with a downside that changes how you play |
 | Host's Pick | Rare | Run-defining item with a mean description |
+
+**Prize Tokens** are the in-run money (user decision): enemies and chests drop them, bribes, the safe-room vendor and Chet's makeover take them, and they are lost on death. Credits stay the between-runs currency.
 
 **Absurd items (examples)**
 
@@ -293,6 +304,8 @@ The host speaks through two channels: fast scripted lines for routine events and
 | Free-text improv resolution | Live LLM, parser fallback | Player types an action in the Improvise menu |
 
 **Scripted lines:** a pool of 5 to 10 variants per event, with variables for the player's name, class, item and enemy. A no-repeat rule avoids the same line twice in a row.
+
+**On the map** (user decision), Chet's lines appear in a neon strip at the bottom of the screen with a small hologram portrait of him; each line types out and fades after a few seconds, and the pause screen keeps the recent history.
 
 **LLM moments:** the game sends a compact context object (event type, floor, class and race, last 5 actions, killer, item list, ally names) plus the host's voice rules and a length cap of 60 words. The response replaces the scripted line.
 
