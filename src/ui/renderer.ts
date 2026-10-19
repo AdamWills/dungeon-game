@@ -10,7 +10,7 @@ import { NOTICES } from '../data/notices';
 import { TUNING } from '../data/tuning';
 import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
-import { hazardActive } from '../world/hazards';
+import { hazardActive, hazardPhase } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, propAt } from '../world/interact';
 import { PROPS } from '../data/props';
 import { fill } from '../data/battleText';
@@ -59,6 +59,7 @@ export class Renderer {
   private propSprites: PropSprites;
   private allySprites: AllySprites;
   private chet: HTMLCanvasElement;
+  private floaters: { id: string; text: string; at: number }[] = [];
   /** When the current prize card (and other big moments) first appeared, for animations. */
   private shownAt = new WeakMap<object, number>();
 
@@ -301,6 +302,16 @@ export class Renderer {
       actors.push({ y: p.pos.y, draw: () => ctx.drawImage(this.propSprites(p.defId), p.pos.x * TILE - camX + TILE / 2 - SPRITE / 2, p.pos.y * TILE - camY + TILE - SPRITE) });
     }
     actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
+
+    // Damage taken on the map, floating up from whoever took it.
+    const now = performance.now();
+    this.floaters = this.floaters.filter((f) => now - f.at < FLOAT_MS);
+    for (const f of this.floaters) {
+      const e = f.id === 'player' ? player : (floor.entities.find((x) => x.id === f.id) ?? state.party.find((x) => x.id === f.id));
+      if (!e) continue;
+      const t = (now - f.at) / FLOAT_MS;
+      drawText(ctx, f.text, Math.round(e.pos.x * TILE - camX + TILE / 2), Math.round(e.pos.y * TILE - camY - 14 - t * 10), { color: '#ff5a40', outline: '#1a0000', align: 'center' });
+    }
     ctx.restore();
   }
 
@@ -329,7 +340,11 @@ export class Renderer {
   private drawHazard(state: GameState, kind: keyof typeof HAZARDS, x: number, y: number, sx: number, sy: number): void {
     const { ctx, atlas } = this;
     if (kind === 'spikes') {
-      atlas.draw(ctx, `floor_spikes_anim_f${Math.floor(state.tick / 15 + x + y) % 4}`, sx, sy);
+      // Down, then a warning twitch, then up: the art matches when they hurt.
+      const { on, off } = HAZARDS.spikes.cycle!;
+      const phase = hazardPhase('spikes', x, y, state.tick);
+      const frame = phase < on ? 3 : phase >= on + off - 12 ? 2 : phase >= on + off - 24 ? 1 : 0;
+      atlas.draw(ctx, `floor_spikes_anim_f${frame}`, sx, sy);
     } else if (kind === 'sludge') {
       ctx.fillStyle = 'rgba(90, 140, 40, 0.75)';
       ctx.fillRect(sx + 1, sy + 1, TILE - 2, TILE - 2);
@@ -420,7 +435,14 @@ export class Renderer {
     ctx.translate(sx + TILE / 2, sy + TILE - pose.bob);
     ctx.scale(pose.flip ? -sqX : sqX, sqY);
     ctx.drawImage(sprite, -SPRITE / 2, -SPRITE);
+    // Just got hurt: flash red.
+    if (this.floaters.some((f) => f.id === 'player' && performance.now() - f.at < 250)) ctx.drawImage(redOf(sprite), -SPRITE / 2, -SPRITE);
     ctx.restore();
+  }
+
+  /** Something on the map took damage (hazards): float the number and flash them. */
+  notifyHurt(id: string, dmg: number, now: number): void {
+    this.floaters.push({ id, text: `-${dmg}`, at: now });
   }
 
   // --- HUD and overlays -----------------------------------------------------
@@ -636,4 +658,19 @@ function reportLines(r: EliminationReport): string[] {
     signOff: r.hostLine,
   };
   return [L.who, L.cause, L.record, L.lastWords, L.gift, L.chet].map((l) => fill(l, vars));
+}
+
+const FLOAT_MS = 900;
+
+/** A red silhouette of a sprite, for hit flashes. */
+function redOf(sprite: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = sprite.width;
+  c.height = sprite.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(sprite, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = 'rgba(255, 60, 40, 0.7)';
+  g.fillRect(0, 0, c.width, c.height);
+  return c;
 }

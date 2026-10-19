@@ -25,11 +25,15 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
   const counts: Record<string, number> = {};
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
 
+  const fromStart = bfsDistances(floor, floor.start);
+  const total = Math.max(1, fromStart[floor.stairs.y * floor.width + floor.stairs.x]);
   for (const room of floor.rooms) {
     if (room === startRoom) continue;
-    const n = nextInt(rng, theme.enemiesPerRoom[0], theme.enemiesPerRoom[1]);
+    const depth = Math.max(0, fromStart[room.center.y * floor.width + room.center.x]) / total;
+    const most = depth < theme.quietDepth ? Math.min(1, theme.enemiesPerRoom[1]) : theme.enemiesPerRoom[1];
+    const n = nextInt(rng, theme.enemiesPerRoom[0], most);
     for (let i = 0; i < n; i++) {
-      const table = theme.enemies.filter((t) => t.maxPerFloor === undefined || (counts[t.id] ?? 0) < t.maxPerFloor);
+      const table = theme.enemies.filter((t) => (t.maxPerFloor === undefined || (counts[t.id] ?? 0) < t.maxPerFloor) && depth >= (t.minDepth ?? 0));
       if (!table.length) break;
       const def = ENEMIES[weightedPick(rng, table).id];
       const pos = freeTileIn(room, rng, taken, floor);

@@ -48,7 +48,10 @@ bus.on('inventoryFull', () => toast(fill(T.full, { cap: INVENTORY_CAP })));
 bus.on('itemEquipped', (e) => toast(fill(T.equipped, { item: itemName(e.defId) })));
 bus.on('itemUsed', (e) => state?.mode !== 'battle' && toast(fill(T.used, { item: itemName(e.defId) })));
 bus.on('itemRefused', (e) => toast(fill(T[e.reason], { item: itemName(e.defId) })));
-bus.on('hazardHurt', (e) => e.id === 'player' && toast(fill(T.hurt, { hazard: HAZARDS[e.kind].name, dmg: e.dmg })));
+bus.on('hazardHurt', (e) => {
+  renderer?.notifyHurt(e.id, e.dmg, performance.now());
+  if (e.id === 'player') toast(fill(T.hurt, { hazard: HAZARDS[e.kind].name, dmg: e.dmg }));
+});
 bus.on('corpseEaten', (e) => toast(fill(e.hp > 0 ? T.ateGood : T.ateBad, { hp: e.hp })));
 bus.on('bribeShort', (e) => toast(fill(T.bribeShort, { price: e.price, tokens: e.tokens })));
 bus.on('allyRecruited', (e) => toast(fill(T.joined, { name: ALLIES[e.allyId].short })));

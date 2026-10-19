@@ -13,6 +13,8 @@ export type HazardDef = {
   everyTicks: number;
   /** Also hurts on the step onto it. */
   onEnter: boolean;
+  /** Also hurts the moment it switches on under you (spikes popping up). */
+  onRise?: boolean;
   /** Active for `on` ticks out of every `on + off`; always active if absent. */
   cycle?: { on: number; off: number };
   /** For the elimination report: "with a lovely {deathMove}". */
@@ -28,8 +30,8 @@ export const HAZARDS: Record<HazardKind, HazardDef> = {
   },
   spikes: {
     kind: 'spikes', name: 'Floor Spikes',
-    help: 'Spikes: 3 damage when stepped on, and again every second you stay.',
-    damage: 3, everyTicks: 60, onEnter: true,
+    help: 'Spikes: pop up and drop back on a timer. 3 damage if they are up when you step on, or pop up under you. Wait for them to drop.',
+    damage: 3, everyTicks: 100_000, onEnter: true, onRise: true, cycle: { on: 50, off: 80 },
     deathMove: 'surprise pedicure',
   },
   gas_vent: {

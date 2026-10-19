@@ -10,8 +10,14 @@ import type { Entity, GameState } from '../game/types';
 export function hazardActive(kind: keyof typeof HAZARDS, x: number, y: number, tick: number): boolean {
   const cycle = HAZARDS[kind].cycle;
   if (!cycle) return true;
-  const period = cycle.on + cycle.off;
-  return (tick + x * 37 + y * 53) % period < cycle.on;
+  return hazardPhase(kind, x, y, tick) < cycle.on;
+}
+
+/** Where a cycling hazard is in its cycle: below `on` it is active. Each tile is offset. */
+export function hazardPhase(kind: keyof typeof HAZARDS, x: number, y: number, tick: number): number {
+  const cycle = HAZARDS[kind].cycle;
+  if (!cycle) return 0;
+  return (tick + x * 37 + y * 53) % (cycle.on + cycle.off);
 }
 
 export function updateHazards(state: GameState): void {
@@ -30,10 +36,15 @@ function hurtIfOnHazard(state: GameState, e: Entity): void {
   const def = HAZARDS[tile.hazard];
   const key = `${x},${y}`;
   const entering = e.onHazard?.key !== key;
-  if (entering) e.onHazard = { key, ticks: 0 };
-  else e.onHazard!.ticks++;
-  const due = (entering && def.onEnter) || (!entering && e.onHazard!.ticks % def.everyTicks === 0);
-  if (!due || !hazardActive(tile.hazard, x, y, state.tick)) return;
+  const active = hazardActive(tile.hazard, x, y, state.tick);
+  const rising = !entering && active && !e.onHazard!.active;
+  if (entering) e.onHazard = { key, ticks: 0, active };
+  else {
+    e.onHazard!.ticks++;
+    e.onHazard!.active = active;
+  }
+  const due = (entering && def.onEnter) || (rising && !!def.onRise) || (!entering && e.onHazard!.ticks % def.everyTicks === 0);
+  if (!due || !active) return;
 
   e.stats.hp = Math.max(0, e.stats.hp - def.damage);
   state.events.push({ type: 'hazardHurt', id: e.id, kind: tile.hazard, dmg: def.damage });

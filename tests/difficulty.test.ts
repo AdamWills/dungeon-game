@@ -22,6 +22,8 @@ function battleChoice(s: GameState): BattleCommand {
   const heal = s.player.inventory.findIndex((i) => ITEMS[i.defId]?.use?.effects.some((e) => e.kind === 'heal'));
   if (me.stats.hp < me.stats.maxHp * 0.4 && heal >= 0) return { kind: 'item', slot: heal };
   const ab = s.cls === 'hexer' ? 'hex' : 'rampage';
+  const scroll = s.player.inventory.findIndex((i) => i.defId === 'hex_scroll');
+  if (ab === 'hex' && s.player.cooldowns[ab] && scroll >= 0 && hexed(foes[0]) === 1 && foes[0].stats.hp > 6) return { kind: 'item', slot: scroll, targetId: foes[0].id };
   if (!s.player.cooldowns[ab] && (ab === 'hex' ? hexed(foes[0]) === 1 : foes.length > 1)) return { kind: 'ability', abilityId: ab, targetId: foes[0].id };
   return { kind: 'attack', targetId: foes[0].id };
 }
@@ -60,7 +62,7 @@ function play(seed: number, cls: string, maxTicks = 60_000) {
     s.events.length = 0;
     if (was !== 'battle' && s.mode === 'battle') fights++;
   }
-  return { mode: s.mode, fights, level: s.level };
+  return { mode: s.mode, fights, level: s.level, killer: s.runEnd?.kind === 'died' ? `${s.runEnd.enemy} (${s.runEnd.move})` : '' };
 }
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -72,6 +74,9 @@ describe.skipIf(!env.SIM)('difficulty', () => {
       const died = res.filter((r) => r.mode === 'dead');
       const won = res.filter((r) => r.mode === 'won').length;
       const avg = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)).toFixed(1);
+      const killers: Record<string, number> = {};
+      for (const r of died) killers[r.killer] = (killers[r.killer] ?? 0) + 1;
+      console.log(cls, JSON.stringify(killers));
       console.log(`${cls}: won ${won}/60, died ${died.length}/60, fights before death ${avg(died.map((r) => r.fights))}, fights per run ${avg(res.map((r) => r.fights))}`);
     }
   }, 600_000);

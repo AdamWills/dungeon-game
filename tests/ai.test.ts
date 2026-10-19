@@ -1,7 +1,7 @@
 import { TUNING } from '../src/data/tuning';
 import { describe, expect, it } from 'vitest';
 import { type Dir, NO_INPUT } from '../src/game/types';
-import { isWalkable } from '../src/gen/reach';
+import { bfsDistances, isWalkable } from '../src/gen/reach';
 import { generateFloor } from '../src/gen/floor';
 import { step } from '../src/world/roam';
 import { emptyRun, nearPlayer, spawn } from './helpers';
@@ -116,6 +116,27 @@ describe('enemy placement', () => {
         for (const w of e.patrol!.route) expect(isWalkable(floor, w.x, w.y)).toBe(true);
       }
       expect(floor.entities.filter((e) => e.defId === 'grudge_gator').length).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
+describe('the first floor teaches before it kills', () => {
+  it('keeps tough residents deep and the rooms near the start quiet', () => {
+    for (let seed = 1; seed < 40; seed++) {
+      const floor = generateFloor(seed * 4243, 1);
+      const dist = bfsDistances(floor, floor.start);
+      const total = dist[floor.stairs.y * floor.width + floor.stairs.x];
+      const depthAt = (x: number, y: number) => dist[y * floor.width + x] / total;
+      const perRoom = new Map<number, number>();
+      for (const e of floor.entities) {
+        if (e.kind !== 'enemy' || e.defId === 'skitch') continue;
+        const room = floor.rooms.find((r) => e.pos.x >= r.x1 && e.pos.x <= r.x2 && e.pos.y >= r.y1 && e.pos.y <= r.y2)!;
+        const depth = depthAt(room.center.x, room.center.y);
+        if (e.defId === 'grudge_gator') expect(depth).toBeGreaterThanOrEqual(0.6);
+        if (e.defId === 'pipe_leech') expect(depth).toBeGreaterThanOrEqual(0.4);
+        if (depth < 0.35) perRoom.set(room.id, (perRoom.get(room.id) ?? 0) + 1);
+      }
+      for (const n of perRoom.values()) expect(n).toBeLessThanOrEqual(1);
     }
   });
 });

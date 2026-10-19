@@ -140,7 +140,7 @@ export type Entity = {
   mind?: EnemyMind; // enemies only
   ally?: AllyMind; // allies only
   /** Which hazard tile it stands on and for how long, for damage timing. */
-  onHazard?: { key: string; ticks: number };
+  onHazard?: { key: string; ticks: number; active?: boolean };
 };
 
 export type Mode = 'roaming' | 'battle' | 'menu' | 'dead' | 'won';

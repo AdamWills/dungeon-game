@@ -98,6 +98,11 @@
 - The prize card and inventory show what wearing any gear would change against what you have on ("Strength 4 -> 9", green for up, red for down), including weapon damage (`equipPreview`).
 - Tests: `tests/loot.test.ts`.
 
+### Floor 1 as a learning floor, Hexer fix, readable spikes (user feedback)
+- User: "Level 1 should be more get to know the game and less dying." Residents now have a minimum depth (`minDepth` in `src/data/floors.ts`, 0 = start, 1 = stairs): Feral Interns from 0.2, Pipe Leeches from 0.4, Grudge Gators from 0.6. Rooms closer to the start than 0.35 hold at most one resident.
+- Hexer: starts with the Velour Tracksuit too, and has 4 Evasion. Measured with the sensible-player bot (`SIM=1`, 60 runs each): Brawler wins 49, dies 0; Hexer wins 45, dies 6 (was 59 deaths out of 60 before the first pass).
+- User: spikes were dull, always hurt, and you only noticed from the HP bar. Spikes now pop up and drop on a visible timer (down, a two-step warning twitch, up) and only hurt while up: when you step on them up, or when they pop up under you, once per pop. Any hazard hit on the map now flashes the victim red and floats the damage over their head.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

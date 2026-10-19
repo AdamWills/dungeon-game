@@ -14,7 +14,13 @@ export type FloorTheme = {
   enemiesPerRoom: [number, number];
   /** Chance an enemy's patrol route leads out to a neighbouring room. */
   roamChance: number;
-  enemies: { id: string; weight: number; maxPerFloor?: number }[];
+  /**
+   * Who turns up. `minDepth` keeps tougher residents away from the start
+   * (0 = start room, 1 = stairs), so the first rooms teach rather than kill.
+   */
+  enemies: { id: string; weight: number; maxPerFloor?: number; minDepth?: number }[];
+  /** Rooms closer to the start than this hold at most one resident. */
+  quietDepth: number;
   /** Chests per floor, and the chance a slain enemy drops an item. */
   chests: [number, number];
   dropChance: number;
@@ -39,11 +45,12 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     roamChance: 0.35,
     enemies: [
       { id: 'intake_rat', weight: 5 },
-      { id: 'feral_intern', weight: 3 },
+      { id: 'feral_intern', weight: 3, minDepth: 0.2 },
       { id: 'sludge_hopper', weight: 3 },
-      { id: 'pipe_leech', weight: 2 },
-      { id: 'grudge_gator', weight: 1, maxPerFloor: 2 },
+      { id: 'pipe_leech', weight: 2, minDepth: 0.4 },
+      { id: 'grudge_gator', weight: 1, maxPerFloor: 2, minDepth: 0.6 },
     ],
+    quietDepth: 0.35,
     chests: [3, 5],
     dropChance: 0.3,
     captives: ['marjorie', 'moss'],

@@ -333,3 +333,29 @@ describe('generation and loot', () => {
     for (let i = 0; i < 2000; i++) expect(ITEMS[rollItem(rng).defId].noLoot).toBeFalsy();
   });
 });
+
+describe('spikes on a timer', () => {
+  it('only hurt while up, and catch you if they pop up under you', async () => {
+    const { hazardActive, hazardPhase, updateHazards } = await import('../src/world/hazards');
+    const s = cleanRun();
+    const p = s.player.pos;
+    s.floor.tiles[p.y][p.x].terrain = 'hazard';
+    s.floor.tiles[p.y][p.x].hazard = 'spikes';
+    // Find a tick where they are down, stand there, and wait for them to rise.
+    while (hazardActive('spikes', p.x, p.y, s.tick)) s.tick++;
+    const hp = s.player.stats.hp;
+    updateHazards(s);
+    expect(s.player.stats.hp).toBe(hp); // down: stepping on is safe
+    while (!hazardActive('spikes', p.x, p.y, s.tick)) {
+      s.tick++;
+      updateHazards(s);
+    }
+    expect(s.player.stats.hp).toBe(hp - 3); // they popped up under you
+    for (let i = 0; i < 30; i++) {
+      s.tick++;
+      updateHazards(s);
+    }
+    expect(s.player.stats.hp).toBe(hp - 3); // once per pop, not every tick
+    expect(hazardPhase('spikes', p.x, p.y, s.tick)).toBeGreaterThanOrEqual(0);
+  });
+});
