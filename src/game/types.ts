@@ -113,7 +113,9 @@ export type ItemInstance = { defId: string; charges?: number; identified: boolea
 
 export type Status = { kind: StatusKind; turnsLeft: number; then?: { status: StatusKind; turns: number } };
 
-export type Equipment = { weapon?: ItemInstance; armor?: ItemInstance; trinket?: ItemInstance };
+/** Worn gear by paper-doll slot (see SLOTS in game/equipment). */
+export type Equipment = Partial<Record<EquipSlot, ItemInstance>>;
+export type EquipSlot = 'head' | 'neck' | 'shoulders' | 'body' | 'belt' | 'legs' | 'weapon' | 'offhand' | 'hands' | 'ring1' | 'ring2' | 'feet';
 
 /** An ally's hidden feelings and orders. Captives waiting on the map are not recruited yet. */
 export type AllyMind = {
@@ -190,7 +192,7 @@ export type BattleCommand =
 /** Inventory screen commands (time is paused). Slots index player.inventory. */
 export type InvCommand =
   | { kind: 'equip'; slot: number }
-  | { kind: 'unequip'; slot: 'weapon' | 'armor' | 'trinket' }
+  | { kind: 'unequip'; slot: EquipSlot }
   | { kind: 'use'; slot: number }
   | { kind: 'drop'; slot: number }
   | { kind: 'dismiss' } // take the item on the prize card
@@ -278,7 +280,7 @@ export type GameEvent =
   | { type: 'chestOpened'; id: string }
   | { type: 'doorOpened'; at: Vec }
   | { type: 'itemUsed'; defId: string }
-  | { type: 'itemEquipped'; defId: string; slot: 'weapon' | 'armor' | 'trinket' }
+  | { type: 'itemEquipped'; defId: string; slot: EquipSlot }
   | { type: 'itemRefused'; defId: string; reason: 'cursed' | 'battleOnly' | 'notUsable' }
   | { type: 'hazardHurt'; id: string; kind: HazardKind; dmg: number }
   | { type: 'corpseEaten'; hp: number }

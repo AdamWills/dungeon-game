@@ -118,6 +118,12 @@
 - New items no longer go straight into your pockets: the prize card asks. ENTER takes it, X (or ESC) leaves it where it was found. Things you leave or drop stay put and do not pop up again when you walk over them; the bottom bar says they are there and E picks them up.
 - Fixed: with full pockets, a chest's item used to land on the chest's own tile, which you cannot stand on, so it was lost. Anything from a chest now lands at your feet.
 
+### Paper doll: twelve gear slots (user request)
+- Slots: Head, Neck, Shoulders, Body, Belt, Legs, Weapon, Off-hand, Hands, Ring, Ring, Feet (user picked the full set). Existing gear moved to fitting slots (cone and crown on Head, bin lid and microphone in the Off-hand, handcuff on Hands, vests and jackets on Body, poncho on Shoulders, rabbit's foot and buzzer on the Neck). 18 new items fill the new slots, 49 in all. Rings fill the free ring slot first.
+- Worn gear no longer counts against your pockets (10 slots); taking something off into full pockets is refused.
+- The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
+- Later: drawing gear on the character sprite itself.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

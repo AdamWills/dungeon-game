@@ -1,5 +1,5 @@
-// Items (GDD "Loot"): 12 weapons and armour, 10 consumables, 8 junk and
-// cursed things. Names and jokes first; every number is a placeholder until
+// Items (GDD "Loot"): weapons and gear for every paper-doll slot,
+// consumables, junk and cursed things. Names and jokes first; every number is a placeholder until
 // M5. Adding an item is a one-entry change here (plus an icon if you like).
 
 import type { StatusKind } from './statuses';
@@ -7,6 +7,15 @@ import type { StatusKind } from './statuses';
 export type Rarity = 'junk' | 'standard' | 'special' | 'cursed' | 'hosts_pick';
 
 export type StatKey = 'maxHp' | 'str' | 'speed' | 'evasion' | 'armor' | 'charm';
+
+/** Where an item is worn (user decision: a full paper doll). Rings fit either ring slot. */
+export type ItemSlot = 'head' | 'neck' | 'shoulders' | 'body' | 'hands' | 'belt' | 'legs' | 'feet' | 'weapon' | 'offhand' | 'ring';
+
+/** Plain names for slots, for menus and help. */
+export const SLOT_NAMES: Record<ItemSlot, string> = {
+  head: 'Head', neck: 'Neck', shoulders: 'Shoulders', body: 'Body', hands: 'Hands', belt: 'Belt',
+  legs: 'Legs', feet: 'Feet', weapon: 'Weapon', offhand: 'Off-hand', ring: 'Ring',
+};
 
 export type EffectRef =
   | { kind: 'heal'; amount: number }
@@ -18,7 +27,7 @@ export type ItemDef = {
   id: string;
   name: string;
   rarity: Rarity;
-  slot?: 'weapon' | 'armor' | 'trinket';
+  slot?: ItemSlot;
   weapon?: { damage: number; onHit?: { status: StatusKind; turns: number; chance: number } };
   /** Stat changes while equipped. */
   mods?: Partial<Record<StatKey, number>>;
@@ -91,40 +100,40 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   // --- armour ----------------------------------------------------------------
   velour_tracksuit: {
-    id: 'velour_tracksuit', name: 'Velour Tracksuit', rarity: 'standard', slot: 'armor', noLoot: true,
+    id: 'velour_tracksuit', name: 'Velour Tracksuit', rarity: 'standard', slot: 'body', noLoot: true,
     mods: { armor: 1 },
     description: 'Breathable. Absorbent. Regrettably not stab-proof.',
-    help: 'Armour. +1 Armor.',
+    help: 'Body. +1 Armor.',
   },
   traffic_cone_helmet: {
-    id: 'traffic_cone_helmet', name: 'Traffic Cone Helmet', rarity: 'junk', slot: 'armor',
+    id: 'traffic_cone_helmet', name: 'Traffic Cone Helmet', rarity: 'junk', slot: 'head',
     mods: { armor: 1, evasion: -1 },
     description: 'Visible from orbit. Mostly protects your dignity, badly.',
-    help: 'Armour. +1 Armor, -1 Evasion.',
+    help: 'Head. +1 Armor, -1 Evasion.',
   },
   sequin_jacket: {
-    id: 'sequin_jacket', name: 'Contestant Sequin Jacket', rarity: 'special', slot: 'armor',
+    id: 'sequin_jacket', name: 'Contestant Sequin Jacket', rarity: 'special', slot: 'body',
     mods: { armor: 1, charm: 2 },
     description: 'Catches the light. Also blades, but mostly the light.',
-    help: 'Armour. +1 Armor, +2 Charm.',
+    help: 'Body. +1 Armor, +2 Charm.',
   },
   bin_lid_shield: {
-    id: 'bin_lid_shield', name: 'Bin Lid Shield', rarity: 'standard', slot: 'armor',
+    id: 'bin_lid_shield', name: 'Bin Lid Shield', rarity: 'standard', slot: 'offhand',
     mods: { armor: 2, speed: -1 },
     description: 'Smells like Tuesday. Stops a staple.',
-    help: 'Armour. +2 Armor, -1 Speed.',
+    help: 'Off-hand. +2 Armor, -1 Speed.',
   },
   bubble_wrap_vest: {
-    id: 'bubble_wrap_vest', name: 'Bubble Wrap Vest', rarity: 'standard', slot: 'armor',
+    id: 'bubble_wrap_vest', name: 'Bubble Wrap Vest', rarity: 'standard', slot: 'body',
     mods: { armor: 2 },
     description: 'Pops reassuringly with every blow. Folks at home find it very satisfying.',
-    help: 'Armour. +2 Armor.',
+    help: 'Body. +2 Armor.',
   },
   hazmat_poncho: {
-    id: 'hazmat_poncho', name: 'Hazmat Poncho', rarity: 'special', slot: 'armor',
+    id: 'hazmat_poncho', name: 'Hazmat Poncho', rarity: 'special', slot: 'shoulders',
     mods: { armor: 1 }, resists: ['poison'],
     description: 'Rated for most hazards. Which ones is printed on the inside, in the dark.',
-    help: 'Armour. +1 Armor, immune to poison.',
+    help: 'Shoulders. +1 Armor, immune to poison.',
   },
   // --- consumables -----------------------------------------------------------
   suspicious_bandage: {
@@ -220,36 +229,145 @@ export const ITEMS: Record<string, ItemDef> = {
     useLine: 'You hurl the jar at {target}! The previous contestant finally makes an impact!',
   },
   sewer_rabbit_foot: {
-    id: 'sewer_rabbit_foot', name: 'Sewer Rabbit\'s Foot', rarity: 'junk', slot: 'trinket',
+    id: 'sewer_rabbit_foot', name: 'Sewer Rabbit\'s Foot', rarity: 'junk', slot: 'neck',
     mods: { evasion: 1 },
     description: 'It was not lucky for the rabbit. Or, frankly, for the sewer.',
-    help: 'Trinket. +1 Evasion.',
+    help: 'Neck. +1 Evasion.',
+  },
+  // --- more to wear (one per new paper-doll slot, and then some) ---------------
+  novelty_hard_hat: {
+    id: 'novelty_hard_hat', name: 'Novelty Hard Hat', rarity: 'standard', slot: 'head',
+    mods: { armor: 1, maxHp: 3 },
+    description: 'It says NOVELTY on the inside. In very small print. After the accident.',
+    help: 'Head. +1 Armor, +3 max HP.',
+  },
+  all_access_lanyard: {
+    id: 'all_access_lanyard', name: 'All-Access Lanyard', rarity: 'standard', slot: 'neck',
+    mods: { charm: 1, speed: 1 },
+    description: 'Gets you anywhere backstage. Nobody checks. There is no backstage.',
+    help: 'Neck. +1 Charm, +1 Speed.',
+  },
+  referees_whistle: {
+    id: 'referees_whistle', name: 'Referee\'s Whistle', rarity: 'junk', slot: 'neck',
+    mods: { evasion: 1 },
+    description: 'One blast and everyone stops for a second. Everyone except the things that eat people.',
+    help: 'Neck. +1 Evasion.',
+  },
+  power_shoulder_pads: {
+    id: 'power_shoulder_pads', name: 'Power Shoulder Pads', rarity: 'standard', slot: 'shoulders',
+    mods: { armor: 1, charm: 1 },
+    description: 'Business up top. Business underneath, also. Mostly foam.',
+    help: 'Shoulders. +1 Armor, +1 Charm.',
+  },
+  judgemental_pigeon: {
+    id: 'judgemental_pigeon', name: 'Judgemental Pigeon', rarity: 'junk', slot: 'shoulders',
+    mods: { evasion: 2, charm: -1 },
+    description: 'It sits on your shoulder. It does not talk. It does not need to.',
+    help: 'Shoulders. +2 Evasion, -1 Charm.',
+  },
+  oven_mitts: {
+    id: 'oven_mitts', name: 'Oven Mitts', rarity: 'junk', slot: 'hands',
+    mods: { armor: 1, str: -1 },
+    description: 'Heatproof. Grip-proof. Dignity-proof.',
+    help: 'Hands. +1 Armor, -1 Strength.',
+  },
+  brass_knuckledusters: {
+    id: 'brass_knuckledusters', name: 'Brass Knuckledusters', rarity: 'standard', slot: 'hands',
+    mods: { str: 2 },
+    description: 'Shiny, heavy, and technically jewellery, which is how they got past security.',
+    help: 'Hands. +2 Strength.',
+  },
+  tool_belt: {
+    id: 'tool_belt', name: 'Tool Belt', rarity: 'standard', slot: 'belt',
+    mods: { armor: 1, str: 1 },
+    description: 'Full of tools. None of them yours. One of them is a sandwich.',
+    help: 'Belt. +1 Armor, +1 Strength.',
+  },
+  championship_belt: {
+    id: 'championship_belt', name: 'Championship Belt (Replica)', rarity: 'special', slot: 'belt',
+    mods: { str: 2, charm: 2 },
+    description: 'Never won by anyone. Sold at the gift shop. Worn, now, by a champion. You.',
+    help: 'Belt. +2 Strength, +2 Charm.',
+  },
+  cargo_shorts: {
+    id: 'cargo_shorts', name: 'Cargo Shorts', rarity: 'junk', slot: 'legs',
+    mods: { speed: 1 },
+    description: 'Twelve pockets. All of them already full of something damp.',
+    help: 'Legs. +1 Speed.',
+  },
+  sewer_waders: {
+    id: 'sewer_waders', name: 'Sewer Waders', rarity: 'standard', slot: 'legs',
+    mods: { armor: 1, maxHp: 2 }, resists: ['poison'],
+    description: 'Waterproof up to the chest. Sewage-proof up to the waist. Plan accordingly.',
+    help: 'Legs. +1 Armor, +2 max HP, immune to poison.',
+  },
+  squeaky_sneakers: {
+    id: 'squeaky_sneakers', name: 'Squeaky Sneakers', rarity: 'standard', slot: 'feet',
+    mods: { speed: 2, evasion: 1 },
+    description: 'Everyone hears you coming. They just cannot catch you.',
+    help: 'Feet. +2 Speed, +1 Evasion.',
+  },
+  one_flip_flop: {
+    id: 'one_flip_flop', name: 'One Flip-Flop', rarity: 'junk', slot: 'feet',
+    mods: { speed: 1 },
+    description: 'The other one is somewhere in the sewer. Floating. Waiting.',
+    help: 'Feet. +1 Speed.',
+  },
+  gator_skin_boots: {
+    id: 'gator_skin_boots', name: 'Gator Skin Boots', rarity: 'special', slot: 'feet',
+    mods: { armor: 2, str: 1 },
+    description: 'Made from a Grudge Gator. The other gators know. They remember.',
+    help: 'Feet. +2 Armor, +1 Strength.',
+  },
+  broken_umbrella: {
+    id: 'broken_umbrella', name: 'Broken Umbrella', rarity: 'junk', slot: 'offhand',
+    mods: { evasion: 2, armor: -1 },
+    description: 'Keeps off nothing. Opens at random. Startles everyone, including you.',
+    help: 'Off-hand. +2 Evasion, -1 Armor.',
+  },
+  mood_ring: {
+    id: 'mood_ring', name: 'Mood Ring', rarity: 'junk', slot: 'ring',
+    mods: { charm: 1 },
+    description: 'Currently showing: alarm. It has never shown anything else.',
+    help: 'Ring. +1 Charm.',
+  },
+  contestant_class_ring: {
+    id: 'contestant_class_ring', name: 'Contestant Class Ring', rarity: 'standard', slot: 'ring',
+    mods: { str: 1, armor: 1 },
+    description: 'Class of whenever. Nobody remembers graduating. Nobody remembers enrolling.',
+    help: 'Ring. +1 Strength, +1 Armor.',
+  },
+  ring_pull: {
+    id: 'ring_pull', name: 'Ring Pull', rarity: 'junk', slot: 'ring',
+    mods: { evasion: 1 },
+    description: 'From a can of something. You said yes anyway.',
+    help: 'Ring. +1 Evasion.',
   },
   // --- cursed ----------------------------------------------------------------
   chets_spare_microphone: {
-    id: 'chets_spare_microphone', name: 'Chet\'s Spare Microphone', rarity: 'cursed', slot: 'trinket', cursed: true,
+    id: 'chets_spare_microphone', name: 'Chet\'s Spare Microphone', rarity: 'cursed', slot: 'offhand', cursed: true,
     mods: { str: 5, evasion: -3, armor: -2 },
     description: 'Still warm. Still on. Everything you say is now broadcast, and you cannot put it down.',
-    help: 'Cursed trinket: +5 Strength, but -3 Evasion and -2 Armor.',
+    help: 'Cursed off-hand: +5 Strength, but -3 Evasion and -2 Armor.',
   },
   paper_crown: {
-    id: 'paper_crown', name: 'Paper Crown of Champions', rarity: 'cursed', slot: 'trinket', cursed: true,
+    id: 'paper_crown', name: 'Paper Crown of Champions', rarity: 'cursed', slot: 'head', cursed: true,
     mods: { charm: 4, evasion: 3, speed: 2, maxHp: -10 },
     description: 'From the one season someone won. It has not stopped judging you since.',
-    help: 'Cursed trinket: +4 Charm, +3 Evasion, +2 Speed, but -10 max HP.',
+    help: 'Cursed headwear: +4 Charm, +3 Evasion, +2 Speed, but -10 max HP.',
   },
   lucky_handcuff: {
-    id: 'lucky_handcuff', name: 'Lucky Handcuff', rarity: 'cursed', slot: 'armor', cursed: true,
+    id: 'lucky_handcuff', name: 'Lucky Handcuff', rarity: 'cursed', slot: 'hands', cursed: true,
     mods: { armor: 5, maxHp: 6, speed: -3 },
     description: 'Lucky for whoever was on the other end. Locks on contact.',
-    help: 'Cursed armour: +5 Armor, +6 max HP, but -3 Speed (you act last and fleeing gets hard).',
+    help: 'Cursed hands: +5 Armor, +6 max HP, but -3 Speed (you act last and fleeing gets hard).',
   },
   // --- host's pick -----------------------------------------------------------
   golden_buzzer: {
-    id: 'golden_buzzer', name: 'The Golden Buzzer', rarity: 'hosts_pick', slot: 'trinket',
+    id: 'golden_buzzer', name: 'The Golden Buzzer', rarity: 'hosts_pick', slot: 'neck',
     mods: { str: 2, speed: 2, evasion: 1 },
     description: 'Chet\'s own. He wants it back. He will get it back. Enjoy it until then.',
-    help: 'Trinket. +2 Strength, +2 Speed, +1 Evasion.',
+    help: 'Neck. +2 Strength, +2 Speed, +1 Evasion.',
   },
 };
 
@@ -260,5 +378,5 @@ export const RARITY_NAMES: Record<Rarity, string> = {
   junk: 'Poor', standard: 'Common', special: 'Rare', cursed: 'Cursed', hosts_pick: 'Legendary',
 };
 
-/** Most items a contestant can carry, equipped ones included. */
-export const INVENTORY_CAP = 12;
+/** Most items a contestant can carry in their pockets. Worn gear does not count. */
+export const INVENTORY_CAP = 10;

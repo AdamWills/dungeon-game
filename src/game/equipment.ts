@@ -3,17 +3,29 @@
 // paused.
 
 import { CLASSES, FISTS } from '../data/classes';
-import { INVENTORY_CAP, ITEMS, type ItemDef, type StatKey } from '../data/items';
+import { INVENTORY_CAP, ITEMS, type ItemDef, type ItemSlot, type StatKey } from '../data/items';
 import { RACES } from '../data/races';
 import type { StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { giveItem, setStance } from './party';
 import { takePerk, train } from './progress';
 import { tileOf } from '../world/motion';
-import type { Entity, Equipment, GameState, InvCommand, ItemInstance, Stats, Vec } from './types';
+import type { Entity, EquipSlot, Equipment, GameState, InvCommand, ItemInstance, Stats, Vec } from './types';
 
-export const SLOTS = ['weapon', 'armor', 'trinket'] as const;
-export type Slot = (typeof SLOTS)[number];
+/** Paper-doll slots, in the order the pause screen shows them (two columns of six). */
+export const SLOTS: readonly EquipSlot[] = ['head', 'neck', 'shoulders', 'body', 'belt', 'legs', 'weapon', 'offhand', 'hands', 'ring1', 'ring2', 'feet'];
+export type Slot = EquipSlot;
+
+/** Which equipment slot(s) an item of this kind can go in. */
+export function slotsFor(kind: ItemSlot): Slot[] {
+  return kind === 'ring' ? ['ring1', 'ring2'] : [kind];
+}
+
+/** Where equipping this would put it: an empty fitting slot first, else the first one. */
+export function targetSlot(player: Entity, kind: ItemSlot): Slot {
+  const options = slotsFor(kind);
+  return options.find((s) => !player.equipment?.[s]) ?? options.find((s) => !ITEMS[player.equipment![s]!.defId]?.cursed) ?? options[0];
+}
 
 /**
  * Stats from class, race, level-up points and equipment. `hp` is the max;
@@ -66,8 +78,9 @@ export function playerResists(state: GameState): StatusKind[] {
   return out;
 }
 
+/** Items in your pockets (worn gear does not count against the cap). */
 export function carriedCount(player: Entity): number {
-  return player.inventory.length + SLOTS.filter((s) => player.equipment?.[s]).length;
+  return player.inventory.length;
 }
 
 /**
@@ -138,16 +151,17 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
       const inst = p.inventory[cmd.slot];
       const def = inst && ITEMS[inst.defId];
       if (!def?.slot) return;
-      const worn = p.equipment[def.slot];
+      const slot = targetSlot(p, def.slot);
+      const worn = p.equipment[slot];
       if (worn && ITEMS[worn.defId]?.cursed) {
         state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
         return;
       }
       p.inventory.splice(cmd.slot, 1);
       if (worn) p.inventory.push(worn);
-      p.equipment[def.slot] = inst;
+      p.equipment[slot] = inst;
       refreshPlayerStats(state);
-      state.events.push({ type: 'itemEquipped', defId: inst.defId, slot: def.slot });
+      state.events.push({ type: 'itemEquipped', defId: inst.defId, slot });
       return;
     }
     case 'unequip': {
@@ -155,6 +169,10 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
       if (!worn) return;
       if (ITEMS[worn.defId]?.cursed) {
         state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
+        return;
+      }
+      if (carriedCount(p) >= INVENTORY_CAP) {
+        state.events.push({ type: 'inventoryFull', defId: worn.defId });
         return;
       }
       p.equipment[cmd.slot] = undefined;
@@ -206,7 +224,7 @@ export function equipPreview(state: GameState, defId: string): { name: string; b
   if (!def?.slot) return [];
   const p = state.player;
   const now = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained);
-  const next = computeStats(state.race, state.cls, { ...p.equipment, [def.slot]: { defId, identified: true } }, state.trained);
+  const next = computeStats(state.race, state.cls, { ...p.equipment, [targetSlot(p, def.slot)]: { defId, identified: true } }, state.trained);
   const out = (Object.keys(STAT_NAMES) as StatKey[])
     .filter((k) => now[k] !== next[k])
     .map((k) => ({ name: STAT_NAMES[k], before: now[k], after: next[k] }));

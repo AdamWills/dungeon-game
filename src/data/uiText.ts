@@ -49,7 +49,8 @@ export const UI_TEXT = {
   },
   inventory: {
     sub: 'COMMERCIAL BREAK! Time is paused. Rummage away, folks.',
-    keys: 'UP/DOWN choose   ENTER equip, take off or use   G give to an ally   X drop   ESC back to the show',
+    keys: 'ARROWS move   ENTER wear, take off or use   G give to an ally   X drop   ESC back to the show',
+    emptySlot: 'Nothing worn here. Find something for this slot in chests and on the floor, then wear it from your pockets.',
     giveKeys: 'UP/DOWN choose who gets it   ENTER give   ESC cancel',
     give: 'G gives it to an ally (they use it right away, and like you more for it).',
     allyKeys: 'LEFT/RIGHT or ENTER changes the stance. Allies act on their own in fights, following their stance.',

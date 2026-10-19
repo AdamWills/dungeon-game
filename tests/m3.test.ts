@@ -60,7 +60,7 @@ describe('races and classes', () => {
   it('gives the Brawler pipe and tracksuit', () => {
     const s = createGameState(3, 'human', 'brawler');
     expect(s.player.stats.armor).toBe(3); // 2 + tracksuit
-    expect(s.player.equipment?.armor?.defId).toBe('velour_tracksuit');
+    expect(s.player.equipment?.body?.defId).toBe('velour_tracksuit');
   });
 });
 
@@ -82,8 +82,8 @@ describe('inventory', () => {
     give(s, 'paper_crown');
     inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'paper_crown') });
     expect(s.player.stats.maxHp).toBe(18); // 28 - 10
-    inventoryCommand(s, { kind: 'unequip', slot: 'trinket' });
-    expect(s.player.equipment?.trinket?.defId).toBe('paper_crown');
+    inventoryCommand(s, { kind: 'unequip', slot: 'head' });
+    expect(s.player.equipment?.head?.defId).toBe('paper_crown');
     expect(s.events.some((e) => e.type === 'itemRefused' && e.reason === 'cursed')).toBe(true);
   });
 
@@ -135,7 +135,7 @@ describe('inventory', () => {
   it('caps what you can carry', () => {
     const s = cleanRun();
     for (let i = 0; i < 20; i++) give(s, 'rubber_chicken');
-    s.player.inventory.length = 12 - 2; // 2 worn + 10 carried = full
+    s.player.inventory.length = 10; // full pockets (worn gear does not count)
     s.floor.items.push({ id: 'x', pos: { ...s.player.pos }, item: { defId: 'pipe_bomb', identified: true } });
     const p = s.player.pos;
     const dir = isWalkable(s.floor, p.x + 1, p.y) ? 'right' : 'left';
@@ -383,5 +383,28 @@ describe('spikes on a timer', () => {
     }
     expect(s.player.stats.hp).toBe(hp - 3); // once per pop, not every tick
     expect(hazardPhase('spikes', p.x, p.y, s.tick)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('the paper doll', () => {
+  it('fills both ring slots before swapping, and every wearable has a slot that exists', async () => {
+    const { SLOTS, slotsFor } = await import('../src/game/equipment');
+    const { ITEMS } = await import('../src/data/items');
+    for (const def of Object.values(ITEMS)) if (def.slot) for (const sl of slotsFor(def.slot)) expect(SLOTS).toContain(sl);
+    const s = cleanRun();
+    give(s, 'mood_ring');
+    give(s, 'ring_pull');
+    inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'mood_ring') });
+    inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'ring_pull') });
+    expect(s.player.equipment?.ring1?.defId).toBe('mood_ring');
+    expect(s.player.equipment?.ring2?.defId).toBe('ring_pull');
+  });
+
+  it('does not let you take something off into full pockets', () => {
+    const s = cleanRun();
+    while (s.player.inventory.length < 10) give(s, 'rubber_chicken');
+    inventoryCommand(s, { kind: 'unequip', slot: 'body' });
+    expect(s.player.equipment?.body?.defId).toBe('velour_tracksuit');
+    expect(s.events.some((e) => e.type === 'inventoryFull')).toBe(true);
   });
 });

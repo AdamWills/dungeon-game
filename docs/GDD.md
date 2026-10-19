@@ -211,6 +211,8 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 
 **Prize Tokens** are the in-run money (user decision): enemies and chests drop them, bribes, the safe-room vendor and Chet's makeover take them, and they are lost on death. Credits stay the between-runs currency.
 
+**Equipment (user decision):** a full paper doll of twelve slots: Head, Neck, Shoulders, Body, Belt, Legs, Weapon, Off-hand, Hands, two Rings and Feet. Worn gear does not count against the 10 pocket slots. The pause screen shows your character with the slots around them. Gear drawn on the character sprite itself comes later.
+
 **Absurd items (examples)**
 
 - *Motivational Poster:* hang it in a room; allies in it gain +1 Strength, enemies gain +1 morale.

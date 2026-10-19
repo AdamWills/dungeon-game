@@ -14,7 +14,7 @@ export type ClassDef = {
   /** Every second point spent on a favored stat grants a free bonus point. */
   favored: ('maxHp' | 'str' | 'speed' | 'evasion' | 'armor' | 'charm')[];
   /** Equipped at the start of a run. */
-  kit: { weapon?: string; armor?: string; trinket?: string };
+  kit: Partial<Record<'head' | 'neck' | 'shoulders' | 'body' | 'belt' | 'legs' | 'weapon' | 'offhand' | 'hands' | 'ring1' | 'ring2' | 'feet', string>>;
   startingItems: string[];
 };
 
@@ -27,7 +27,7 @@ export const CLASSES: Record<string, ClassDef> = {
     base: { hp: 28, str: 4, speed: 3, evasion: 2, armor: 2, charm: 1 },
     ability: 'rampage',
     favored: ['maxHp', 'str'],
-    kit: { weapon: 'rusted_pipe', armor: 'velour_tracksuit' },
+    kit: { weapon: 'rusted_pipe', body: 'velour_tracksuit' },
     startingItems: ['suspicious_bandage', 'suspicious_bandage'],
   },
   hexer: {
@@ -38,7 +38,7 @@ export const CLASSES: Record<string, ClassDef> = {
     base: { hp: 26, str: 3, speed: 4, evasion: 4, armor: 1, charm: 3 },
     ability: 'hex',
     favored: ['speed', 'charm'],
-    kit: { weapon: 'cursed_clipboard', armor: 'velour_tracksuit' },
+    kit: { weapon: 'cursed_clipboard', body: 'velour_tracksuit' },
     startingItems: ['hex_scroll', 'hex_scroll', 'hex_scroll', 'suspicious_bandage'],
   },
 };
