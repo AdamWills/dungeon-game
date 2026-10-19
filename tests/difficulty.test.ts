@@ -5,7 +5,9 @@
 import { describe, it } from 'vitest';
 import { ITEMS } from '../src/data/items';
 import { createRng, nextFloat, pick } from '../src/game/rng';
+import { ENEMIES } from '../src/data/enemies';
 import { createGameState } from '../src/game/state';
+import { talkView } from '../src/game/talk';
 import type { BattleCommand, Dir, GameState, InputFrame, Vec } from '../src/game/types';
 import { NO_INPUT } from '../src/game/types';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
@@ -21,6 +23,9 @@ function battleChoice(s: GameState): BattleCommand {
   const foes = b.combatants.filter((c) => c.side === 'enemy' && c.alive).sort((a, c) => hexed(a) - hexed(c) || a.stats.hp - c.stats.hp);
   const heal = s.player.inventory.findIndex((i) => ITEMS[i.defId]?.use?.effects.some((e) => e.kind === 'heal'));
   if (me.stats.hp < me.stats.maxHp * 0.4 && heal >= 0) return { kind: 'item', slot: heal };
+  // Brace for a telegraphed big hit; back out of a room boss that is winning.
+  if (foes.some((c) => ENEMIES[c.defId].moves.find((m) => m.id === c.intent?.moveId)?.windup && c.intent?.targetId === 'player')) return { kind: 'defend' };
+  if (me.stats.hp < me.stats.maxHp * 0.5 && foes.some((c) => ENEMIES[c.defId].tier === 'room')) return { kind: 'flee' };
   const ab = s.cls === 'hexer' ? 'hex' : 'rampage';
   const scroll = s.player.inventory.findIndex((i) => i.defId === 'hex_scroll');
   if (ab === 'hex' && s.player.cooldowns[ab] && scroll >= 0 && hexed(foes[0]) === 1 && foes[0].stats.hp > 6) return { kind: 'item', slot: scroll, targetId: foes[0].id };
@@ -28,7 +33,7 @@ function battleChoice(s: GameState): BattleCommand {
   return { kind: 'attack', targetId: foes[0].id };
 }
 
-function play(seed: number, cls: string, maxTicks = 60_000) {
+function play(seed: number, cls: string, maxTicks = 250_000) {
   const s = createGameState(seed, 'human', cls);
   const bot = createRng(seed ^ 0xbeef);
   const rooms = [...s.floor.rooms].sort(() => 0).map((r) => r.center);
@@ -39,7 +44,10 @@ function play(seed: number, cls: string, maxTicks = 60_000) {
     let input: InputFrame = NO_INPUT;
     if (s.mode === 'menu') {
       const lu = s.levelUp;
-      input = { ...NO_INPUT, command: lu?.points ? { kind: 'train', stat: 'maxHp' } : lu?.perkChoices ? { kind: 'perk', id: lu.perkChoices[0] } : { kind: 'dismiss' } };
+      const talk = s.talk ? talkView(s)!.choices : null;
+      // Talking: take them on if that is offered, else walk away.
+      const recruitAt = talk ? talk.findIndex((c) => c.effects?.some((e) => e.kind === 'recruit')) : -1;
+      input = { ...NO_INPUT, command: talk ? { kind: 'say', choice: recruitAt >= 0 ? recruitAt : talk.length - 1 } : lu?.points ? { kind: 'train', stat: 'maxHp' } : lu?.perkChoices ? { kind: 'perk', id: lu.perkChoices[0] } : { kind: 'dismiss' } };
     } else if (s.mode === 'battle') {
       if (s.battle!.wait === 0) input = { ...NO_INPUT, command: battleChoice(s) };
     } else if (!s.player.motion) {
@@ -62,6 +70,7 @@ function play(seed: number, cls: string, maxTicks = 60_000) {
     s.events.length = 0;
     if (was !== 'battle' && s.mode === 'battle') fights++;
   }
+  if (env.SIM_DEBUG && s.mode !== 'dead') console.log('end', seed, s.mode, s.level, JSON.stringify(s.player.pos), JSON.stringify(s.floor.stairs), JSON.stringify(s.floor.lair), s.battle ? `battle r${s.battle.round} ${s.battle.combatants.map((c) => `${c.name}:${c.stats.hp}`).join(',')}` : '', targets.length);
   return { mode: s.mode, fights, level: s.level, killer: s.runEnd?.kind === 'died' ? `${s.runEnd.enemy} (${s.runEnd.move})` : '' };
 }
 
@@ -70,14 +79,15 @@ const env = (globalThis as { process?: { env: Record<string, string | undefined>
 describe.skipIf(!env.SIM)('difficulty', () => {
   it('reports win and death rates for a sensible player', () => {
     for (const cls of ['brawler', 'hexer']) {
-      const res = Array.from({ length: 60 }, (_, i) => play(1000 + i * 37, cls));
+      const n = Number(env.SIM_N) || 60;
+      const res = Array.from({ length: n }, (_, i) => play(1000 + i * 37, cls));
       const died = res.filter((r) => r.mode === 'dead');
       const won = res.filter((r) => r.mode === 'won').length;
       const avg = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)).toFixed(1);
       const killers: Record<string, number> = {};
       for (const r of died) killers[r.killer] = (killers[r.killer] ?? 0) + 1;
       console.log(cls, JSON.stringify(killers));
-      console.log(`${cls}: won ${won}/60, died ${died.length}/60, fights before death ${avg(died.map((r) => r.fights))}, fights per run ${avg(res.map((r) => r.fights))}`);
+      console.log(`${cls}: won ${won}/${n}, died ${died.length}/${n}, fights before death ${avg(died.map((r) => r.fights))}, fights per run ${avg(res.map((r) => r.fights))}`);
     }
   }, 600_000);
 });

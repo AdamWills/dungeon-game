@@ -57,6 +57,10 @@ export class Host {
     bus.on('bribeShort', (e) => this.say('bribeShort', { ally: ally(e.allyId), price: e.price, tokens: e.tokens }, true));
     bus.on('corpseEaten', (e) => this.say(e.hp > 0 ? 'ateGood' : 'ateBad', {}));
     bus.on('doorOpened', () => this.say('doorOpened', {}));
+    const enemy = (id: string) => ENEMIES[id]?.name ?? id;
+    bus.on('bossRoared', (e) => this.say('bossRoared', { boss: enemy(e.defId) }, true));
+    bus.on('stairsSealed', (e) => this.say('stairsSealed', { boss: enemy(e.defId) }, true));
+    bus.on('bossDefeated', (e) => this.say(e.tier === 'floor' ? 'floorBossDown' : e.tier === 'room' ? 'roomBossDown' : 'eliteDown', { name: e.name }, true));
     bus.on('skillUp', (e) => this.say('skillUp', { skill: SKILLS[e.id].name, level: e.level }, true));
   }
 

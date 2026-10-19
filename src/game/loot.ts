@@ -33,3 +33,9 @@ export function depthOf(floor: Floor, at: Vec): number {
   const total = dist[floor.stairs.y * floor.width + floor.stairs.x];
   return d < 0 || total <= 0 ? 1 : Math.min(1, d / total);
 }
+
+/** A guaranteed prize: an item of one of these rarities (bosses). */
+export function rollItemOf(rng: Rng, rarities: Rarity[]): ItemInstance {
+  const pool = rarities.flatMap((r) => POOL[r]);
+  return { defId: pick(rng, pool.length ? pool : POOL.standard), identified: true };
+}

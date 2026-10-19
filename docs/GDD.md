@@ -169,6 +169,11 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 
 - A procedural layout of roughly 60 to 100 rooms (192 by 120 tiles; user decision, up from 8 to 12) connected by corridors, with enemies patrolling set routes and map hazards (sludge, spikes, gas vents).
 - 1 stairwell down, always guarded or locked behind a simple condition.
+- **Boss tiers (user decision):**
+  - **Elites:** a few ordinary residents per floor carry a trait (Rabid, Unionized, Overcaffeinated, Enormous). They are tougher, worth 2.5 times the XP and twice the tokens, always drop an item, and glow gold.
+  - **Room bosses:** 2 to 3 per floor, deeper in, each alone in its own room. They never leave it, so the fight is optional, and each drops a Rare or Legendary prize.
+  - **Floor boss:** waits in the stairs room (its lair). It roars when you get near, or once you have seen half the rooms, which marks the lair on your map. Walking in starts the fight. You can flee, but you land outside the door and it heals back up. The stairs stay sealed until it dies.
+  - Bosses telegraph a big wind-up move a turn ahead (always shown, whatever your Read the Room), and some hit the whole party or call in help.
 - 1 to 2 hand-authored set pieces (a vault, a rigged game show, a fountain with a catch) placed in random rooms.
 - A "safe room" with a vendor and a recruitable ally, once per floor.
 - Every 5th floor ends with a hand-authored boss.
@@ -181,7 +186,7 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 | 5 to 9 | The Commissary | Roaming vending machines, spoiled food buffs and debuffs |
 | 10 to 14 | The Backlot | Falling scenery, runaway spotlights |
 
-**Prototype floor:** one themed floor, The Intake Sewers, with a procedural layout, 5 enemy types, 2 set pieces, 1 safe room, and a hand-authored mini-boss guarding the stairs.
+**Prototype floor:** one themed floor, The Intake Sewers, with a procedural layout, 5 enemy types, 2 set pieces, 1 safe room, elites, 3 room bosses (the Sump Crab, Old Flushy, the Hairball Hydra) and a floor boss, the Fatberg, guarding the stairs.
 
 **Generation notes:** layouts use a rooms-and-corridors generator with a fixed seed per run so a run can be replayed. Set pieces are authored as small tile templates that the generator stamps into eligible rooms.
 
@@ -324,7 +329,7 @@ The prototype proves one thing: a single floor is fun to play and the host makes
 
 - Browser game, keyboard controls, simple tile sprites on a canvas: tile-smooth real-time roaming plus a separate turn-based battle screen (free or placeholder art).
 - 2 races (Human, Gutterfolk) and 2 classes (Brawler, Hexer).
-- 1 floor (The Intake Sewers): procedural layout, 5 enemy types that patrol with vision cones, 2 set pieces, 1 safe room, 1 mini-boss, ambush bonuses and 3 hazard types (sludge, spikes, gas vent).
+- 1 floor (The Intake Sewers): procedural layout, 5 enemy types that patrol with vision cones, 2 set pieces, 1 safe room, elites, room bosses and a floor boss, ambush bonuses and 3 hazard types (sludge, spikes, gas vent).
 - 3 recruitable allies with stances and loyalty.
 - About 30 items, 20 achievements, and Credits with a minimal Intake Desk of 5 unlocks.
 - Scripted host lines for routine events (at least 5 variants each).
@@ -343,7 +348,7 @@ The prototype proves one thing: a single floor is fun to play and the host makes
 
 **Definition of done**
 
-1. A new player can start a run, descend through the floor and fight the mini-boss without instructions beyond on-screen House Rules.
+1. A new player can start a run, descend through the floor and fight the floor boss without instructions beyond on-screen House Rules.
 2. A run takes 10 to 20 minutes, ending in either death or stairs.
 3. Dying grants credits and an elimination report, and the next run reflects an unlock.
 4. At least 5 achievements trigger in normal play.
@@ -536,7 +541,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 | M2: Fight | Saturday afternoon | Patrolling enemies with vision cones, battle screen with Speed-based turns and an Attack, Ability, Item and Flee menu, 5 enemy types, HP and death, message log | You can kill rats and die to them |
 | M3: Loot and classes | Saturday evening | Items, inventory, Brawler and Hexer abilities, Human and Gutterfolk traits, Improvise menu (props, item jank, Bad Idea), map hazards (sludge, spikes, gas vent) | Two classes feel different in play |
 | M4: Party and host | Sunday morning | 3 recruitable allies with stances and loyalty, scripted host lines, death screen with elimination report, XP and level-up screen | A run ends with a funny report |
-| M5: Meta and polish | Sunday afternoon | Credits, Intake Desk with 5 unlocks, 20 achievements, local save, mini-boss, gore pass | The second run differs from the first |
+| M5: Meta and polish | Sunday afternoon | Credits, Intake Desk with 5 unlocks, 20 achievements, local save, gore pass | The second run differs from the first |
 
 **Cut list (drop from the top first)**
 

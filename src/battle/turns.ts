@@ -7,14 +7,15 @@ import { ALLIES, LOYALTY, REMEDY_SIDE_EFFECTS, SPARE } from '../data/allies';
 import { PROPS } from '../data/props';
 import { BATTLE_TEXT as T, fill, variant } from '../data/battleText';
 import { CLASSES } from '../data/classes';
-import { ENEMIES } from '../data/enemies';
+import { ELITE, eliteName } from '../data/bosses';
+import { ENEMIES, type EnemyMove } from '../data/enemies';
 import { FLOOR_THEMES } from '../data/floors';
 import { type EffectRef, ITEMS } from '../data/items';
 import { STATUSES, type StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../game/combat';
 import { playerResists, weaponOf } from '../game/equipment';
-import { depthOf, rollItem } from '../game/loot';
+import { depthOf, rollItem, rollItemOf } from '../game/loot';
 import { changeLoyalty, makeAlly, settleLoyalty } from '../game/party';
 import { startTalk } from '../game/talk';
 import { gainXp, hasPerk, openLevelUp } from '../game/progress';
@@ -22,6 +23,7 @@ import { eliminate } from '../game/report';
 import { practice, skillLevel } from '../game/skills';
 import { SKILLS } from '../data/skills';
 import { nextFloat, nextInt, pick } from '../game/rng';
+import { leaveLair } from '../world/lair';
 import { applyOutcome, applyRepeats, gatherArena, resolveImprov, validateOutcome } from './improvise';
 import type { BattleCommand, BattleState, Combatant, Encounter, Entity, GameState, LogLine, Vec } from '../game/types';
 
@@ -66,7 +68,7 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   for (const id of encounter.enemyIds) {
     const e = floor.entities.find((x) => x.id === id)!;
     snapToTile(e);
-    combatants.push({ id, side: 'enemy', defId: e.defId, name: ENEMIES[e.defId].name, stats: { ...e.stats }, defending: false, alive: true, statuses: [] });
+    combatants.push({ id, side: 'enemy', defId: e.defId, name: eliteName(ENEMIES[e.defId].name, e.elite), stats: { ...e.stats }, defending: false, alive: true, statuses: [], elite: e.elite });
   }
   const battle: BattleState = {
     encounter,
@@ -101,6 +103,12 @@ export function startBattle(state: GameState, encounter: Encounter): void {
     .slice(1)
     .forEach((c, i) => say(battle, fill(variant(T.joined, salt, i), { name: c.name }), 'info'));
   if (enemiesOf(battle).some((c) => ENEMIES[c.defId].spare)) say(battle, T.skitchSpotted, 'host');
+  for (const c of enemiesOf(battle)) {
+    const intro = ENEMIES[c.defId].intro;
+    if (intro) say(battle, intro, 'host');
+    else if (c.elite) say(battle, fill(T.eliteSpotted, { name: c.name }), 'host');
+  }
+  for (const c of enemiesOf(battle)) announceWindup(battle, c);
 
   beginRound(battle);
   // The opening line gets a moment on screen before anyone moves.
@@ -551,8 +559,17 @@ function pickVictim(state: GameState, battle: BattleState): Combatant {
  * can show it. Targets that fall (or switch sides) are re-picked.
  */
 function planIntent(state: GameState, battle: BattleState, enemy: Combatant): void {
-  const move = weightedPick(state.rng, ENEMIES[enemy.defId].moves);
+  // A summon only while there is room for more of its kind.
+  const up = (defId: string) => battle.combatants.filter((c) => c.alive && c.side === 'enemy' && c.defId === defId).length;
+  const moves = ENEMIES[enemy.defId].moves.filter((m) => !m.summon || up(m.summon.defId) < m.summon.max);
+  const move = weightedPick(state.rng, moves);
   enemy.intent = { moveId: move.id, targetId: pickVictim(state, battle).id };
+}
+
+/** A big move lined up: say so, whatever your Read the Room. */
+function announceWindup(battle: BattleState, enemy: Combatant): void {
+  const move = ENEMIES[enemy.defId].moves.find((m) => m.id === enemy.intent?.moveId);
+  if (move?.windup && enemy.alive) say(battle, fill(move.hitsAll ? T.windupAll : T.windup, { actor: enemy.name, move: move.name }), 'host');
 }
 
 function retarget(state: GameState, battle: BattleState): void {
@@ -570,13 +587,26 @@ function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void
   const plan = actor.intent!;
   const move = def.moves.find((m) => m.id === plan.moveId) ?? def.moves[0];
   const target = battle.combatants.find((c) => c.id === plan.targetId && c.alive && c.side === 'player') ?? pickVictim(state, battle);
-  const mine = isYou(target);
   // Watching them work is how you learn to read them.
   const knew = skillLevel(state, 'read_the_room');
   practice(state, 'read_the_room');
   const now = skillLevel(state, 'read_the_room');
   if (now > knew) say(battle, fill(T.skillUp, { skill: SKILLS.read_the_room.name, level: now, help: SKILLS.read_the_room.levels[now] }), 'host');
-  planIntent(state, battle, actor);
+  if (move.summon) {
+    summon(state, battle, actor, move);
+  } else if (move.hitsAll) {
+    for (const t of battle.combatants.filter((c) => c.side === 'player' && c.alive)) enemyStrike(state, battle, actor, move, t);
+  } else enemyStrike(state, battle, actor, move, target);
+  // Line up the next move (after this one, so a summon sees its own blobs).
+  if (battle.combatants.some((c) => c.side === 'player' && c.alive)) {
+    planIntent(state, battle, actor);
+    announceWindup(battle, actor);
+  }
+}
+
+function enemyStrike(state: GameState, battle: BattleState, actor: Combatant, move: EnemyMove, target: Combatant): void {
+  const def = ENEMIES[actor.defId];
+  const mine = isYou(target);
   const salt = [battle.round, battle.turn, battle.log.length];
   if (!rollHit(state.rng, target.stats.evasion)) {
     say(battle, fill(variant(mine ? T.enemyMiss : T.enemyMissesAlly, ...salt), { actor: actor.name, move: move.name, target: target.name }), 'info');
@@ -596,6 +626,20 @@ function enemyAct(state: GameState, battle: BattleState, actor: Combatant): void
     if (mine) battle.killedBy = undefined;
     if (move.status && nextFloat(state.rng) < move.status.chance) applyStatus(state, battle, target, move.status.kind, move.status.turns);
   }
+}
+
+/** Call in reinforcements; they join the turn order next round. */
+function summon(state: GameState, battle: BattleState, actor: Combatant, move: EnemyMove): void {
+  const s = move.summon!;
+  const def = ENEMIES[s.defId];
+  const up = battle.combatants.filter((c) => c.alive && c.side === 'enemy' && c.defId === def.id).length;
+  for (let i = 0; i < Math.min(s.count, s.max - up); i++) {
+    const id = `${actor.id}-s${battle.combatants.length}`;
+    const c: Combatant = { id, side: 'enemy', defId: def.id, name: def.name, stats: { ...def.stats, maxHp: def.stats.hp }, defending: false, alive: true, statuses: [] };
+    battle.combatants.push(c);
+    planIntent(state, battle, c);
+  }
+  say(battle, variant(move.hit, battle.round, battle.log.length).replace('{actor}', actor.name), 'bad');
 }
 
 /** Fleeing: each ally still standing takes a parting hit while covering you, and remembers it. */
@@ -738,8 +782,9 @@ function battleSpoils(state: GameState, battle: BattleState): { xp: number; toke
   for (const c of battle.combatants) {
     if (c.side !== 'enemy' || c.alive) continue;
     const def = ENEMIES[c.defId];
-    xp += def.xp;
-    tokens += nextInt(state.rng, def.tokens[0], def.tokens[1]);
+    const elite = c.elite ? ELITE : null;
+    xp += Math.round(def.xp * (elite?.xpMult ?? 1));
+    tokens += Math.round(nextInt(state.rng, def.tokens[0], def.tokens[1]) * (elite?.tokenMult ?? 1));
   }
   if (battle.ambushSide === 'player') xp = Math.round(xp * (1 + TUNING.progression.ambushXpBonus));
   battle.spoils = { xp, tokens };
@@ -763,11 +808,17 @@ function endBattle(state: GameState): void {
     if (!c.alive) {
       addGore(state, e.pos, 'gibs');
       floor.entities.splice(idx, 1);
-      if (nextFloat(state.rng) < theme.dropChance)
-        floor.items.push({ id: `loot-${c.id}`, pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) }, item: rollItem(state.rng, depthOf(floor, { x: Math.round(e.pos.x), y: Math.round(e.pos.y) })) });
+      const at = { x: Math.round(e.pos.x), y: Math.round(e.pos.y) };
+      const def = ENEMIES[c.defId];
+      // Bosses always drop their prize, elites always drop something; the rest sometimes.
+      if (def.prize) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItemOf(state.rng, def.prize) });
+      else if (c.elite || nextFloat(state.rng) < theme.dropChance) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItem(state.rng, depthOf(floor, at)) });
+      const tier = def.tier ?? (c.elite ? 'elite' : null);
+      if (tier) state.events.push({ type: 'bossDefeated', defId: c.defId, tier, name: c.name });
+      if (floor.lair?.bossId === c.id) floor.lair.beaten = true;
     } else {
       e.stats.hp = c.stats.hp;
-      if (result === 'fled' && e.patrol && e.mind) {
+      if (result === 'fled' && e.patrol && e.mind && ENEMIES[e.defId].tier !== 'floor') {
         e.patrol.alert = 'chasing';
         e.mind.asleep = false;
         e.mind.lastSeen = { ...player.pos };
@@ -835,6 +886,7 @@ function endBattle(state: GameState): void {
     return;
   }
   if (result === 'fled') state.grace = TUNING.fleeGraceTicks;
+  if (result === 'fled' && floor.lair && battle.encounter.enemyIds.includes(floor.lair.bossId)) leaveLair(state);
   setMode(state, 'roaming');
 
   if (result === 'won') {

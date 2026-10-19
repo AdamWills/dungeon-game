@@ -29,6 +29,11 @@ export type FloorTheme = {
   /** Allies waiting on this floor: captives (cells, bribes) and deserters among the enemies. */
   captives: string[];
   deserters: string[];
+  /** Elites per floor (residents with a trait), from this far along. */
+  elites: { count: [number, number]; minDepth: number };
+  /** Room bosses (each holds a room of its own) and the floor boss in the stairs lair. */
+  roomBosses: { ids: string[]; count: [number, number]; minDepth: number };
+  floorBoss: string;
   /** Sludge pools (clusters), spike tiles and gas vents per floor. */
   hazards: { sludgePools: [number, number]; spikes: [number, number]; gasVents: [number, number] };
 };
@@ -59,6 +64,9 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     dropChance: 0.3,
     captives: ['marjorie', 'moss'],
     deserters: ['skitch'],
+    elites: { count: [4, 6], minDepth: 0.2 },
+    roomBosses: { ids: ['sump_crab', 'old_flushy', 'hairball_hydra'], count: [2, 3], minDepth: 0.45 },
+    floorBoss: 'fatberg',
     hazards: { sludgePools: [12, 20], spikes: [18, 28], gasVents: [8, 14] },
   },
 };

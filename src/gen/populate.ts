@@ -2,6 +2,7 @@
 // each with a patrol route around its room and sometimes out to a neighbour.
 // Also the captives waiting to be recruited and any deserters (Skitch).
 
+import { ELITE, ELITES } from '../data/bosses';
 import { ENEMIES, type EnemyDef } from '../data/enemies';
 import type { FloorTheme } from '../data/floors';
 import { weightedPick } from '../game/combat';
@@ -27,9 +28,38 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
 
   const fromStart = bfsDistances(floor, floor.start);
   const total = Math.max(1, fromStart[floor.stairs.y * floor.width + floor.stairs.x]);
+  const depthOf = (p: Vec) => Math.max(0, fromStart[p.y * floor.width + p.x]) / total;
+  const depthOfRoom = (room: Room) => depthOf(room.center);
+
+  // The floor boss waits in the stairs room (its lair), beside the stairs.
+  const lair = floor.rooms.find((r) => inRoom(r, floor.stairs))!;
+  const bossAt = [[0, -1], [0, 1], [-1, 0], [1, 0]].map(([dx, dy]) => ({ x: floor.stairs.x + dx, y: floor.stairs.y + dy })).find((p) => inRoom(lair, p) && !taken.has(key(p)) && floor.tiles[p.y][p.x].terrain === 'floor') ?? freeTileIn(lair, rng, taken, floor);
+  if (bossAt) {
+    taken.add(key(bossAt));
+    const boss = guard(floor, ENEMIES[theme.floorBoss], bossAt, rng, entities.length);
+    entities.push(boss);
+    floor.lair = { room: lair.id, bossId: boss.id, found: false, beaten: false };
+  }
+
+  // Room bosses: each alone in a room of its own, deeper in.
+  const hasCaptive = (r: Room) => captives.some((c) => inRoom(r, c.pos));
+  const bossRooms: Room[] = [];
+  const candidates = floor.rooms.filter((r) => r !== startRoom && r !== lair && !hasCaptive(r) && depthOfRoom(r) >= theme.roomBosses.minDepth);
+  const ids = [...theme.roomBosses.ids];
+  for (let i = nextInt(rng, theme.roomBosses.count[0], theme.roomBosses.count[1]); i > 0 && ids.length && candidates.length; i--) {
+    const room = candidates.splice(nextInt(rng, 0, candidates.length - 1), 1)[0];
+    const pos = taken.has(key(room.center)) || floor.tiles[room.center.y][room.center.x].terrain !== 'floor' ? freeTileIn(room, rng, taken, floor) : room.center;
+    if (!pos) continue;
+    taken.add(key(pos));
+    const def = ENEMIES[ids.splice(nextInt(rng, 0, ids.length - 1), 1)[0]];
+    entities.push(guard(floor, def, pos, rng, entities.length));
+    bossRooms.push(room);
+  }
+
+  const firstResident = entities.length;
   for (const room of floor.rooms) {
-    if (room === startRoom) continue;
-    const depth = Math.max(0, fromStart[room.center.y * floor.width + room.center.x]) / total;
+    if (room === startRoom || room === lair || bossRooms.includes(room)) continue;
+    const depth = depthOfRoom(room);
     const most = depth < theme.quietDepth ? Math.min(1, theme.enemiesPerRoom[1]) : theme.enemiesPerRoom[1];
     const n = nextInt(rng, theme.enemiesPerRoom[0], most);
     for (let i = 0; i < n; i++) {
@@ -43,9 +73,16 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
       entities.push(resident(floor, room, def, pos, rng, theme, entities.length));
     }
   }
+  // Elites: a few ordinary residents, past the first rooms, get a trait.
+  const plain = entities.slice(firstResident).filter((e) => depthOf(e.pos) >= theme.elites.minDepth);
+  for (let i = nextInt(rng, theme.elites.count[0], theme.elites.count[1]); i > 0 && plain.length; i--) {
+    const e = plain.splice(nextInt(rng, 0, plain.length - 1), 1)[0];
+    makeElite(e, pick(rng, Object.keys(ELITES)));
+  }
+
   // Deserters hang around with a gang somewhere away from the start.
   for (const id of theme.deserters) {
-    const rooms = floor.rooms.filter((r) => r !== startRoom && !inRoom(r, floor.stairs));
+    const rooms = floor.rooms.filter((r) => r !== startRoom && r !== lair && !bossRooms.includes(r));
     if (!rooms.length) break;
     const room = pick(rng, rooms);
     const pos = freeTileIn(room, rng, taken, floor);
@@ -56,10 +93,27 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
   return entities;
 }
 
+/** A boss: awake, standing its ground in its room. */
+function guard(floor: Floor, def: EnemyDef, pos: Vec, rng: Rng, n: number): Entity {
+  const e = resident(floor, null, def, pos, rng, null, n);
+  e.patrol!.route = [{ ...pos }];
+  e.mind!.asleep = false;
+  return e;
+}
+
+/** Give a resident an elite trait: tougher and worth more (data/bosses). */
+export function makeElite(e: Entity, trait: string): void {
+  e.elite = trait;
+  const mult = trait === 'enormous' ? ELITE.enormousHpMult : ELITE.hpMult;
+  const s = e.stats;
+  s.maxHp = s.hp = Math.round(s.maxHp * mult);
+  for (const [k, v] of Object.entries(ELITES[trait].add)) if (k !== 'hp') s[k as keyof typeof s] += v ?? 0;
+}
+
 /** One resident with its patrol route. */
-function resident(floor: Floor, room: Room, def: EnemyDef, pos: Vec, rng: Rng, theme: FloorTheme, n: number): Entity {
+function resident(floor: Floor, room: Room | null, def: EnemyDef, pos: Vec, rng: Rng, theme: FloorTheme | null, n: number): Entity {
   const asleep = nextFloat(rng) < def.roam.sleepChance;
-  const route = asleep ? [pos] : patrolRoute(floor, room, pos, rng, theme.roamChance);
+  const route = asleep || !room || !theme ? [pos] : patrolRoute(floor, room, pos, rng, theme.roamChance);
   return {
     id: `f${floor.index}-e${n}`,
     kind: 'enemy',

@@ -71,6 +71,8 @@ export type Floor = {
   chests: Chest[];
   items: FloorItem[];
   props: MapProp[];
+  /** The floor boss's lair: the stairs room. Found once it roars; beaten unlocks the stairs. */
+  lair?: { room: number; bossId: string; found: boolean; beaten: boolean };
   /** 1 where the player can currently see, flat index y * width + x. */
   visible: number[];
 };
@@ -152,6 +154,8 @@ export type Entity = {
   patrol?: Patrol; // enemies only
   mind?: EnemyMind; // enemies only
   ally?: AllyMind; // allies only
+  /** Enemies only: an elite trait (see data/bosses). */
+  elite?: string;
   /** Which hazard tile it stands on and for how long, for damage timing. */
   onHazard?: { key: string; ticks: number; active?: boolean };
 };
@@ -180,6 +184,8 @@ export type Combatant = {
   statuses: Status[];
   /** One of your allies (including an enemy you just spared). */
   ally?: boolean;
+  /** Enemies only: an elite trait. */
+  elite?: string;
   /** Enemies only: the move and target it has lined up for its next turn. */
   intent?: { moveId: string; targetId: string };
 };
@@ -306,7 +312,10 @@ export type GameEvent =
   | { type: 'allyLeft'; allyId: string; how: 'quit' | 'steal' | 'turn'; item: string | null }
   | { type: 'loyaltyLow'; allyId: string }
   | { type: 'skillUp'; id: string; level: number }
-  | { type: 'allyDismissed'; allyId: string };
+  | { type: 'allyDismissed'; allyId: string }
+  | { type: 'bossRoared'; defId: string }
+  | { type: 'bossDefeated'; defId: string; tier: 'elite' | 'room' | 'floor'; name: string }
+  | { type: 'stairsSealed'; defId: string };
 
 export type GameState = {
   seed: number;

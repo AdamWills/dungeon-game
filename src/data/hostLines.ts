@@ -24,9 +24,49 @@ export type HostEvent =
   | 'ateGood'
   | 'ateBad'
   | 'doorOpened'
-  | 'skillUp';
+  | 'skillUp'
+  | 'bossRoared'
+  | 'eliteDown'
+  | 'roomBossDown'
+  | 'floorBossDown'
+  | 'stairsSealed';
 
 export const HOST_LINES: Record<HostEvent, string[]> = {
+  bossRoared: [
+    'Did you hear that, folks? That was {boss}! Its lair is on your map now, contestant. The stairs are right behind it!',
+    'Ooh, {boss} is AWAKE and it is CRANKY! Check your map, contestant: that is where the stairs are!',
+    'That rumble you feel is {boss} clearing its throat, folks! The lair is on the map. Do NOT keep it waiting!',
+    'Hear that? {boss} knows you are here! Its lair, and your way down, is marked on the map. Good luck! You will need it!',
+    'Folks, {boss} just announced itself! Contestant, check your map: the stairs are behind that roar!',
+  ],
+  eliteDown: [
+    'The {name} is down! Elite, schmelite!',
+    'Down goes the {name}! Check the floor, contestant, it was carrying something!',
+    'So long, {name}! All that attitude, and for what? A lovely parting gift for YOU!',
+    'The {name} has been eliminated! It had a prize on it, folks. Go on. Rummage.',
+    'Well, well! The {name} was not so special after all! Loot the remains, contestant!',
+  ],
+  roomBossDown: [
+    'A ROOM BOSS falls! {name}, everybody! Let us all pretend we liked it!',
+    'And that is the end of {name}! Grab the prize, contestant, you earned it. Technically.',
+    '{name} is DONE! Nine seasons undefeated, and you ruined it in an afternoon!',
+    'Give it up for {name}, folks! Not literally. It is in pieces.',
+    'Room boss ELIMINATED! {name} leaves us with nothing but a prize and a smell!',
+  ],
+  floorBossDown: [
+    'THE FLOOR BOSS IS DOWN! {name} has been ELIMINATED! The stairs are OPEN, folks!',
+    '{name} is finished! Contestant, those stairs are all yours!',
+    'Unbelievable! {name}, beaten! Somebody tell the stairs they are free to go!',
+    'The floor boss has fallen! {name}, ladies and gentlemen, in several pieces! Stairs: open!',
+    'And THAT is how you deal with {name}! The way down is open, contestant!',
+  ],
+  stairsSealed: [
+    'Not so fast! {boss} is still guarding those stairs! House Rules, contestant!',
+    'The stairs are sealed until {boss} is beaten. I do not make the rules. I just read them, beautifully.',
+    'Nice try! Nobody goes down while {boss} is still breathing. Or whatever it does instead.',
+    'Locked, contestant! {boss} has the key. The key is: beat {boss}.',
+    'Ah ah ah! {boss} first, stairs second! That is the show!',
+  ],
   skillUp: [
     '{skill} level {level}! Our contestant is learning! Slowly! Painfully!',
     'Look who\'s paying attention, folks! {skill}, level {level}!',

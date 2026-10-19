@@ -124,6 +124,15 @@
 - The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
 - Later: drawing gear on the character sprite itself.
 
+### Boss tiers and the Fatberg (user request)
+- The stairs now sit in the floor boss's lair and stay sealed until it dies (user: "I should need to defeat a boss to proceed"). Three tiers, user-chosen: elites, room bosses, the floor boss (see the GDD, Floors). Names are our own, not the book's.
+- Content: 4 elite traits (`src/data/bosses.ts`); room bosses the Sump Crab, Old Flushy and the Hairball Hydra; the floor boss, the Fatberg, which sheds Grease Blobs (at most two at once), and the Grease Blob itself (`src/data/enemies.ts`). New move kinds: wind-ups (announced a turn ahead and always shown in the intent line), hit-the-whole-party, and summons.
+- Placement (`src/gen/populate.ts`): no residents in the lair or the room-boss rooms; room bosses from 45% of the way in; 4 to 6 elites from 20%.
+- The lair (`src/world/lair.ts`): roars within 30 tiles or once half the rooms are seen, marking the lair on the map; walking in starts the fight; fleeing puts you outside the door and the boss heals. The HUD shows the floor boss status, and House Rule #2 now says to beat it.
+- Art: hand-drawn Fatberg (48 px, drawn at twice size), the three room bosses (36 px) and the Grease Blob; elites glow gold and bosses red on the map; elites have a gold shadow in battle.
+- Tuning (sensible-player sim, 12 runs each, a bot that explores only 6 rooms before heading down): first pass lost every run, mostly to room bosses chasing you down. Room bosses now never leave their room and have less HP and smaller wind-ups. The Fatberg is down to 60 HP, weapon 2, armor 2. Result: Brawler won 6 of 12, Hexer 3 of 12, nearly all deaths to the Fatberg. The sim now has 250,000 ticks per run, because 60,000 was not enough to cross the big floor.
+- Tests (`tests/bosses.test.ts`): placement over 24 seeds, the roar, the lair fight and flee, beating the Fatberg opens the stairs and drops its prize, Grease Blob cap, wind-up warning, hit-everyone, elites. The random bot now answers conversations and checks that it reaches the floor boss.
+
 ### Full-screen map (user request)
 - TAB opens the whole explored floor full screen, with a legend. Time is paused while it is open. Arrows scroll, +/- zoom (fit the floor, then three close-ups), C recentres on you, TAB or ESC closes. You and the stairs pulse so they are easy to spot; chests are now orange so they no longer look like stairs.
 
@@ -134,14 +143,14 @@
 
 ## Next
 
-M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
+Weak spots (user pick from the combat-fun options, to stop Enter-mashing): enemies have weaknesses and resistances (blunt, sharp, fire, gross), learned as you fight them; hitting a weakness knocks them off balance for an extra turn. Then M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
 
 Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). The writing for the allies and Chet's lines is first-draft placeholder text (user: "not good, but ok"); it all lives in `src/data` for a rewrite pass.
 
 ## Decisions from the user
 
 - Work is committed directly to `main` and pushed; no branches or pull requests.
-- **Stairs:** in the one-floor prototype, taking the stairs (once the mini-boss is beaten) ends the run as a win.
+- **Stairs:** in the one-floor prototype, taking the stairs (once the floor boss is beaten) ends the run as a win.
 - **M2 battle menu:** Attack, Ability (the class signature, Rampage for the Brawler), Item (one healing consumable), Defend and Flee. Improvise and the full item list come in M3.
 - **Doors:** closed doors block both movement and sight.
 - **M4 (user decisions, GDD updated):** Prize Tokens are the in-run money; one recruiting method per ally (cell, bribe, spare); the full loyalty version with in-character betrayals; Chet's map lines in a neon strip with a portrait; the perk pick ships in M4; enemies touching any party member start a fight. Build the writing now and rewrite it later.
@@ -166,7 +175,7 @@ Not yet built from the prototype scope: the free-text Improvise channel's verb-a
 - **Movement** is grid-stepped and interpolated: each step glides one tile over 9 ticks (about 6.7 tiles per second), holding a key chains steps with no pause, and the most recently pressed direction wins. 4-way only. Position is fractional only mid-step, so collision is exact against the grid.
 - **Generator** uses rot.js `Uniform` (separate rooms joined by corridors) rather than `Digger`, because it gives clean rooms for set pieces later. Settings live in `src/data/floors.ts`. If a layout misses the 8 to 12 room range, the generator retries with the next derived seed. rot.js has its own global RNG, so it is seeded from our RNG for the call and restored afterwards; its wall-clock time limit is set high enough to never fire, so output depends only on the seed.
 - **Doors** are open archways (passable, see-through) for now. Closed doors and opening them with interact come when there is something behind them.
-- **Stairs placeholder:** taking the stairs generates a fresh floor (index + 1) so you can keep walking. The real behaviour, guarded by the mini-boss, comes later.
+- **Stairs placeholder:** taking the stairs generates a fresh floor (index + 1) so you can keep walking. (Superseded: the stairs now end the run, behind the floor boss.)
 - **Pause** uses the `menu` mode, so time freezes exactly as it will for real menus.
 - **Events** are pushed onto `state.events` inside a step and drained onto the bus by the browser shell after it, so listeners never run inside game logic.
 - **Seeds:** the shell picks a random seed at launch, or uses `?seed=123` from the URL to replay a floor.

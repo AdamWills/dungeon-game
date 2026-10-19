@@ -9,10 +9,13 @@ import type { BattleState, Combatant } from '../game/types';
 import { fill } from '../data/battleText';
 
 export function intentText(battle: BattleState, enemy: Combatant, level: number): string | null {
-  if (level <= 0 || !enemy.alive || !enemy.intent) return null;
+  if (!enemy.alive || !enemy.intent) return null;
   const def = ENEMIES[enemy.defId];
   const move = def.moves.find((m) => m.id === enemy.intent!.moveId);
   if (!move) return null;
+  // Big wind-ups are telegraphed to everyone, skill or not.
+  if (move.windup) level = Math.max(level, 3);
+  if (level <= 0) return null;
   const kind = move.status
     ? fill(INTENT_KINDS.status, { status: STATUSES[move.status.kind].name.toLowerCase() })
     : move.bonus >= HEAVY_BONUS

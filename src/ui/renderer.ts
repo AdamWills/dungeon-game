@@ -12,6 +12,7 @@ import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
 import { hazardActive, hazardPhase } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, leftItemHere, propAt } from '../world/interact';
+import { ENEMIES } from '../data/enemies';
 import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
 import { fill } from '../data/battleText';
@@ -386,13 +387,21 @@ export class Renderer {
     const moving = !!e.motion;
     const bob = moving ? (Math.floor(e.motion!.tick / 4) % 2) : mind.asleep ? 0 : Math.floor(state.tick / 40) % 2;
     const flip = Math.cos(e.facing) < -0.01;
+    const sprite = this.enemySprites(e.defId);
+    if (e.elite || ENEMIES[e.defId]?.tier) {
+      // Elites glow gold underfoot; bosses red.
+      ctx.fillStyle = e.elite ? 'rgba(255, 210, 58, 0.55)' : 'rgba(255, 60, 60, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(sx + TILE / 2, sy + TILE - 2, sprite.width * 0.32, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.save();
     ctx.translate(sx + TILE / 2, sy + TILE - bob);
     ctx.scale(flip ? -1 : 1, mind.asleep ? 0.85 : 1);
-    ctx.drawImage(this.enemySprites(e.defId), -SPRITE / 2, -SPRITE);
+    ctx.drawImage(sprite, -sprite.width / 2, -sprite.height);
     ctx.restore();
 
-    const top = sy + TILE - SPRITE; // top of the sprite box
+    const top = sy + TILE - sprite.height; // top of the sprite box
     if (mind.asleep) bubble(ctx, sx, top, 'z', '#a0b8d8', state.tick);
     else if (state.tick - mind.alertedAt < TUNING.ai.alertBubbleTicks) bubble(ctx, sx, top, '!', '#ff5a40', 0);
     else if (e.patrol!.alert === 'suspicious') bubble(ctx, sx, top, '?', '#ffb040', 0);
@@ -687,6 +696,15 @@ export class Renderer {
       x += 52;
     }
 
+    const lair = state.floor.lair;
+    if (lair) {
+      const B = NOTICES.bossHud;
+      const boss = state.floor.entities.find((e) => e.id === lair.bossId);
+      const text = lair.beaten ? B.beaten : lair.found ? fill(B.found, { boss: boss ? ENEMIES[boss.defId].name : '' }) : B.hidden;
+      ctx.fillStyle = lair.beaten ? '#9fd68a' : lair.found ? '#ff7a5a' : '#8a7aa8';
+      ctx.fillText(text, w - 14 - ctx.measureText(text).width, 34);
+    }
+
     const notice = this.prompt(state);
     ctx.fillStyle = '#9aa89a';
     wrapText(ctx, notice, 14, 58, w - 28, 18);
@@ -697,7 +715,7 @@ export class Renderer {
     const P = UI_TEXT.prompts;
     const { x, y } = playerTile(state);
     const tile = state.floor.tiles[y][x];
-    if (tile.terrain === 'stairs') return NOTICES.onStairs;
+    if (tile.terrain === 'stairs') return state.floor.lair && !state.floor.lair.beaten ? NOTICES.onSealedStairs : NOTICES.onStairs;
     const left = leftItemHere(state);
     if (left) return fill(P.leftItem, { item: ITEMS[left.item.defId]?.name ?? left.item.defId });
     if (tile.hazard) return HAZARDS[tile.hazard].help;

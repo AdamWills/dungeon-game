@@ -189,7 +189,8 @@ export class BattleView {
     const shake = hit ? Math.round(Math.sin(now / 25) * 3) : 0;
     const bob = opts.acting && c.alive ? Math.round(Math.sin(now / 160) * 2) : 0;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    // Elites stand in a gold glow.
+    ctx.fillStyle = c.elite ? 'rgba(255, 210, 58, 0.6)' : 'rgba(0,0,0,0.45)';
     ctx.beginPath();
     ctx.ellipse(cx, top + size - size / 12, size * 0.32, size / 12, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -203,7 +204,9 @@ export class BattleView {
       ctx.globalAlpha = 0.25;
       ctx.filter = 'grayscale(1)';
     }
-    ctx.drawImage(sprite, -size / 2, 0, size, size);
+    // Bigger art (bosses) stands on the same spot and grows upward.
+    const big = (size * sprite.width) / SPRITE;
+    ctx.drawImage(sprite, -big / 2, size - big, big, big);
     ctx.restore();
     if (hit) {
       // White flash: redraw the sprite as a silhouette.
@@ -212,7 +215,7 @@ export class BattleView {
       ctx.filter = 'brightness(5)';
       ctx.translate(cx + shake, top + bob);
       if (opts.flip) ctx.scale(-1, 1);
-      ctx.drawImage(sprite, -size / 2, 0, size, size);
+      ctx.drawImage(sprite, -big / 2, size - big, big, big);
       ctx.restore();
     }
     if (!c.alive) {

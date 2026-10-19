@@ -1,6 +1,7 @@
 // Sewer fauna. Names and lines first, numbers untuned until M5.
 
 import type { Stats } from '../game/types';
+import type { Rarity } from './items';
 import type { StatusKind } from './statuses';
 
 export type EnemyMove = {
@@ -13,7 +14,16 @@ export type EnemyMove = {
   hit: string[];
   /** A status this move can inflict on a hit. */
   status?: { kind: StatusKind; turns: number; chance: number };
+  /** Telegraphed a turn ahead, always visible (whatever your Read the Room). */
+  windup?: boolean;
+  /** Hits everyone on your side. */
+  hitsAll?: boolean;
+  /** Calls in more of these instead of attacking (only while fewer than `max` are up). */
+  summon?: { defId: string; count: number; max: number };
 };
+
+/** Bosses: a room boss holds its own room; the floor boss guards the stairs. */
+export type BossTier = 'room' | 'floor';
 
 export type EnemyDef = {
   id: string;
@@ -28,6 +38,14 @@ export type EnemyDef = {
   spare?: string;
   /** Never placed by the floor generator (deserters and turncoats are placed by hand). */
   special?: boolean;
+  /** A boss (placed by the generator in its own room, never at random). */
+  tier?: BossTier;
+  /** Chet's line when the fight starts (bosses). */
+  intro?: string;
+  /** Always drops an item of one of these rarities. */
+  prize?: Rarity[];
+  /** Drawn this many times bigger than a normal enemy. */
+  size?: number;
   moves: EnemyMove[];
   roam: {
     patrolTicksPerTile: number;
@@ -144,5 +162,102 @@ export const ENEMIES: Record<string, EnemyDef> = {
       { id: 'forklift', name: 'Forklift', weight: 1, bonus: 3, hit: ['{actor} lifts you with her legs and drops you for {dmg}. Perfect form.'] },
     ],
     roam: { patrolTicksPerTile: 14, chaseTicksPerTile: 10, visionRange: 8, visionArcDeg: 360, hearingRadius: 4, sleepChance: 0, giveUpTicks: 600, smart: true },
+  },
+
+  // --- Room bosses: each holds a room on its own, with a prize. They never
+  // leave it: the fight starts only if you go up to them. ------------------
+  sump_crab: {
+    id: 'sump_crab',
+    name: 'The Sump Crab',
+    blurb: 'Lives in the sump. Pays no rent. Has two claws and one rule, and the rule is "no".',
+    stats: { hp: 30, str: 4, speed: 2, evasion: 1, armor: 4, charm: 0 },
+    weapon: 3,
+    xp: 40,
+    tokens: [10, 16],
+    special: true,
+    tier: 'room',
+    size: 1.5,
+    prize: ['special', 'hosts_pick'],
+    intro: 'Folks, it is a ROOM BOSS! The Sump Crab has held this sump for nine seasons. Nobody has made it say yes!',
+    moves: [
+      { id: 'pinch', name: 'Pinch', weight: 3, bonus: 0, hit: ['{actor} pinches you for {dmg}. It does not let go until it is finished.', '{actor} pinches you for {dmg}, then pinches the air, for emphasis.'] },
+      { id: 'claw_clap', name: 'Claw Clap', weight: 1, bonus: 4, windup: true, hit: ['{actor} claps both claws together with you in the middle. {dmg} damage and a round of applause.'] },
+    ],
+    roam: { patrolTicksPerTile: 30, chaseTicksPerTile: 30, visionRange: 0, visionArcDeg: 0, hearingRadius: 0, sleepChance: 0, giveUpTicks: 0, smart: true },
+  },
+  old_flushy: {
+    id: 'old_flushy',
+    name: 'Old Flushy',
+    blurb: 'A goldfish flushed in 1974. It has been eating ever since. It remembers you. It does not, but it acts like it does.',
+    stats: { hp: 28, str: 4, speed: 4, evasion: 3, armor: 2, charm: 0 },
+    weapon: 3,
+    xp: 40,
+    tokens: [10, 16],
+    special: true,
+    tier: 'room',
+    size: 1.5,
+    prize: ['special', 'hosts_pick'],
+    intro: 'A ROOM BOSS! Old Flushy, folks! Somebody\'s childhood pet, all grown up and full of feelings!',
+    moves: [
+      { id: 'gulp', name: 'Gulp', weight: 3, bonus: 0, hit: ['{actor} gulps at you for {dmg}. Three seconds later it has forgotten, and gulps again.'], status: { kind: 'bleed', turns: 3, chance: 0.4 } },
+      { id: 'thrash', name: 'Thrash', weight: 2, bonus: 0, hitsAll: true, hit: ['{actor} thrashes around the room. {dmg} damage to you, and to everybody else.'] },
+      { id: 'belly_flop', name: 'Belly Flop', weight: 1, bonus: 4, windup: true, hit: ['{actor} leaps out of the muck and lands on you. {dmg} damage. Ten out of ten from the judges.'] },
+    ],
+    roam: { patrolTicksPerTile: 30, chaseTicksPerTile: 30, visionRange: 0, visionArcDeg: 0, hearingRadius: 0, sleepChance: 0, giveUpTicks: 0, smart: true },
+  },
+  hairball_hydra: {
+    id: 'hairball_hydra',
+    name: 'The Hairball Hydra',
+    blurb: 'Every hair that ever went down a plughole, braided into three heads. Each head thinks it is in charge.',
+    stats: { hp: 30, str: 4, speed: 3, evasion: 2, armor: 3, charm: 0 },
+    weapon: 3,
+    xp: 40,
+    tokens: [10, 16],
+    special: true,
+    tier: 'room',
+    size: 1.5,
+    prize: ['special', 'hosts_pick'],
+    intro: 'ROOM BOSS! The Hairball Hydra! Three heads, no shampoo, and a whole lot of attitude!',
+    moves: [
+      { id: 'tangle', name: 'Tangle', weight: 3, bonus: 0, hit: ['{actor} tangles you up for {dmg}. You will be finding hair in places for weeks.'], status: { kind: 'stunned', turns: 1, chance: 0.15 } },
+      { id: 'three_heads', name: 'All Three Heads', weight: 1, bonus: 1, hitsAll: true, hit: ['All three heads of {actor} lunge at once. {dmg} damage to everyone, and they argue about who did it.'] },
+      { id: 'hairspray', name: 'Big Hair', weight: 1, bonus: 4, windup: true, hit: ['{actor} puffs itself up to twice its size and falls on you. {dmg} damage. Volume!'] },
+    ],
+    roam: { patrolTicksPerTile: 30, chaseTicksPerTile: 30, visionRange: 0, visionArcDeg: 0, hearingRadius: 0, sleepChance: 0, giveUpTicks: 0, smart: true },
+  },
+
+  // --- The floor boss: guards the stairs from its lair. ---------------------
+  fatberg: {
+    id: 'fatberg',
+    name: 'The Fatberg',
+    blurb: 'Forty tonnes of grease, wet wipes and bad decisions, given life by a lightning strike and a lack of oversight.',
+    stats: { hp: 60, str: 4, speed: 2, evasion: 0, armor: 2, charm: 0 },
+    weapon: 2,
+    xp: 120,
+    tokens: [30, 40],
+    special: true,
+    tier: 'floor',
+    size: 2,
+    prize: ['hosts_pick'],
+    intro: 'Ladies and gentlemen, the FLOOR BOSS! Built from everything you ever flushed and said "it\'ll be fine"! It is THE FATBERG! Beat it, and the stairs are yours!',
+    moves: [
+      { id: 'engulf', name: 'Engulf', weight: 3, bonus: 1, hit: ['{actor} engulfs you for {dmg}. It is warm in there. That is the worst part.'], status: { kind: 'stunned', turns: 1, chance: 0.25 } },
+      { id: 'wipe_lash', name: 'Wet Wipe Lash', weight: 2, bonus: 0, hitsAll: true, hit: ['{actor} lashes out with a rope of "flushable" wipes. {dmg} damage to everybody. They were not flushable.'] },
+      { id: 'shed', name: 'Shed', weight: 1, bonus: 0, summon: { defId: 'grease_blob', count: 2, max: 2 }, hit: ['{actor} wobbles, and two Grease Blobs slop off it. Mitosis, folks!'] },
+      { id: 'landslide', name: 'Landslide', weight: 1, bonus: 6, windup: true, hit: ['{actor} rolls its entire mass over you. {dmg} damage, and you are now partly fatberg.'] },
+    ],
+    roam: { patrolTicksPerTile: 30, chaseTicksPerTile: 30, visionRange: 0, visionArcDeg: 0, hearingRadius: 0, sleepChance: 0, giveUpTicks: 0, smart: true },
+  },
+  grease_blob: {
+    id: 'grease_blob',
+    name: 'Grease Blob',
+    blurb: 'A piece of the Fatberg with ambitions of its own.',
+    stats: { hp: 6, str: 2, speed: 3, evasion: 1, armor: 0, charm: 0 },
+    weapon: 1,
+    xp: 2,
+    tokens: [0, 1],
+    special: true,
+    moves: [{ id: 'slap', name: 'Slap', weight: 1, bonus: 0, hit: ['{actor} slaps you wetly for {dmg}.', '{actor} gets grease on you for {dmg}. It will not wash out.'] }],
+    roam: { patrolTicksPerTile: 16, chaseTicksPerTile: 16, visionRange: 4, visionArcDeg: 120, hearingRadius: 2, sleepChance: 0, giveUpTicks: 60, smart: false },
   },
 };

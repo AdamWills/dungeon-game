@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRng, nextFloat, nextInt, pick } from '../src/game/rng';
 import { createGameState } from '../src/game/state';
+import { talkView } from '../src/game/talk';
 import type { BattleCommand, Dir, GameState, InputFrame, Vec } from '../src/game/types';
 import { NO_INPUT } from '../src/game/types';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
@@ -20,6 +21,7 @@ function playRun(seed: number, maxTicks = 40_000) {
   const blocked = (x: number, y: number) => state.floor.props.some((p) => p.pos.x === x && p.pos.y === y);
   let dist = bfsDistances(state.floor, target, blocked);
   let battles = 0;
+  let bossFights = 0;
   let steps = 0;
 
   const newTarget = () => {
@@ -31,7 +33,8 @@ function playRun(seed: number, maxTicks = 40_000) {
     let input: InputFrame = NO_INPUT;
     if (state.mode === 'menu') {
       const lu = state.levelUp;
-      if (lu?.points) input = { ...NO_INPUT, command: { kind: 'train', stat: pick(bot, ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'] as const) } };
+      if (state.talk) input = { ...NO_INPUT, command: { kind: 'say', choice: nextInt(bot, 0, talkView(state)!.choices.length - 1) } };
+      else if (lu?.points) input = { ...NO_INPUT, command: { kind: 'train', stat: pick(bot, ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'] as const) } };
       else if (lu?.perkChoices) input = { ...NO_INPUT, command: { kind: 'perk', id: pick(bot, lu.perkChoices) } };
       else input = { ...NO_INPUT, command: { kind: 'dismiss' } };
     }
@@ -71,10 +74,13 @@ function playRun(seed: number, maxTicks = 40_000) {
     const wasBattle = state.mode === 'battle';
     step(state, input);
     state.events.length = 0;
-    if (!wasBattle && state.mode === 'battle') battles++;
+    if (!wasBattle && state.mode === 'battle') {
+      battles++;
+      if (state.battle!.encounter.enemyIds.includes(state.floor.lair?.bossId ?? '')) bossFights++;
+    }
     checkInvariants(state);
   }
-  return { mode: state.mode, battles, steps, state };
+  return { mode: state.mode, battles, bossFights, steps, state };
 }
 
 function checkInvariants(state: GameState) {
@@ -97,11 +103,12 @@ function checkInvariants(state: GameState) {
 }
 
 describe('random-play bot', () => {
-  it('plays 16 runs without crashing, and runs end both ways', () => {
-    const tally = { dead: 0, won: 0, other: 0, battles: 0 };
+  it('plays 16 runs without crashing, dies, and reaches the floor boss', () => {
+    const tally = { dead: 0, won: 0, other: 0, battles: 0, bossFights: 0 };
     for (let seed = 1; seed <= 16; seed++) {
       const r = playRun(seed * 7907);
       tally.battles += r.battles;
+      tally.bossFights += r.bossFights;
       if (r.mode === 'dead') tally.dead++;
       else if (r.mode === 'won') tally.won++;
       else {
@@ -113,6 +120,7 @@ describe('random-play bot', () => {
     console.log('bot tally', JSON.stringify(tally));
     expect(tally.battles).toBeGreaterThan(16);
     expect(tally.dead).toBeGreaterThan(0);
-    expect(tally.won).toBeGreaterThan(0);
+    // A random bot rarely beats the floor boss, but it must reach it (wins are tested directly).
+    expect(tally.bossFights + tally.won).toBeGreaterThan(0);
   }, 300_000);
 });

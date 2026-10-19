@@ -129,5 +129,8 @@ export const UI_TEXT = {
     joined: '{name} joined your party. Set their stance on the pause screen (ESC).',
     left: '{name} has left your party.',
     dismissed: '{name} scurries off into the dark.',
+    roared: 'A roar shakes the sewer. The floor boss lair is now on your map (TAB). The stairs are inside.',
+    sealed: 'The stairs are sealed. Beat {boss} first.',
+    bossDown: '{name} is beaten. The stairs are open!',
   },
 };

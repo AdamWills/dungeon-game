@@ -6,13 +6,15 @@ export const NOTICES = {
   movement:
     'HOUSE RULE #1: Contestants move with the ARROW KEYS or WASD. The walls are real, folks. Mostly.',
   stairs:
-    'HOUSE RULE #2: Find the stairwell, stand on it and press E or SPACE to finish the round. The clock is not running. Probably.',
+    'HOUSE RULE #2: The stairs down are in the FLOOR BOSS\'s lair! Find it, beat it, then stand on the stairs and press E or SPACE to finish the round. Bigger residents along the way carry bigger prizes!',
   pause: 'HOUSE RULE #3: ESC means a commercial break! Nothing moves until we are back on air.',
   dash: 'HOUSE RULE #4: SHIFT for a quick sprint past the residents! Sprinting is loud, and the sneakers need a moment to recharge.',
   inventory: 'HOUSE RULE #6: ESC or I opens your pockets and pauses the show. Equip something nice for the cameras!',
   sneak: 'HOUSE RULE #5: Residents see in cones and hear footsteps. Tiptoe up behind them for a big surprise bonus!',
   paused: 'COMMERCIAL BREAK. Stay right where you are. Press ESC when you are ready to go back on air.',
   onStairs: 'You are on the stairs. Press E to take them and finish the run.',
+  bossHud: { hidden: 'FLOOR BOSS: not found', found: 'FLOOR BOSS: {boss} (TAB map)', beaten: 'FLOOR BOSS: beaten, stairs open' },
+  onSealedStairs: 'The stairs are sealed until the floor boss is beaten.',
 
   died: {
     title: 'YOU DIED',

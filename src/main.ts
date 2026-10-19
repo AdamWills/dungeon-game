@@ -19,6 +19,7 @@ import { LevelUpMenu } from './ui/levelUp';
 import { TalkMenu } from './ui/talk';
 import { Host } from './host/host';
 import { ALLIES } from './data/allies';
+import { ENEMIES } from './data/enemies';
 import { buildPlayerSprites } from './ui/playerSprite';
 import { Renderer, type Toast } from './ui/renderer';
 import { step } from './world/roam';
@@ -58,6 +59,9 @@ bus.on('corpseEaten', (e) => toast(fill(e.hp > 0 ? T.ateGood : T.ateBad, { hp: e
 bus.on('bribeShort', (e) => toast(fill(T.bribeShort, { price: e.price, tokens: e.tokens })));
 bus.on('allyRecruited', (e) => toast(fill(T.joined, { name: ALLIES[e.allyId].short })));
 bus.on('allyLeft', (e) => toast(fill(T.left, { name: ALLIES[e.allyId].short })));
+bus.on('bossRoared', () => toast(T.roared));
+bus.on('stairsSealed', (e) => toast(fill(T.sealed, { boss: ENEMIES[e.defId]?.name ?? 'the boss' })));
+bus.on('bossDefeated', (e) => e.tier === 'floor' && toast(fill(T.bossDown, { name: e.name })));
 bus.on('allyDismissed', (e) => toast(fill(T.dismissed, { name: ALLIES[e.allyId].short })));
 bus.on('levelUp', () => {
   levelUp.cursor = 0;

@@ -86,9 +86,18 @@ describe('roaming', () => {
     if (state.floor.index === 1) expect(explored()).toBeGreaterThanOrEqual(before);
   });
 
+  it('keeps the stairs sealed until the floor boss is beaten', () => {
+    const state = createGameState(31);
+    state.player.pos = { ...state.floor.stairs };
+    step(state, { ...NO_INPUT, interact: true });
+    expect(state.events.map((e) => e.type)).toContain('stairsSealed');
+    expect(state.mode).not.toBe('won');
+  });
+
   it('ends the run as a win when taking the stairs', () => {
     const state = createGameState(31);
     state.floor.entities = [];
+    state.floor.lair!.beaten = true;
     state.player.pos = { ...state.floor.stairs };
     step(state, { ...NO_INPUT, interact: true });
     expect(state.events.map((e) => e.type)).toEqual(['floorEntered', 'stairsTaken', 'runEnded', 'modeChanged']);

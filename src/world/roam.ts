@@ -15,6 +15,7 @@ import { buildEncounter, findContact } from './encounter';
 import { updateFov } from './fov';
 import { updateHazards } from './hazards';
 import { chestAt, eatRemains, facingTile, isClosedDoor, leftItemHere, openChest, openDoor, pickUp, propAt } from './interact';
+import { lairBoss, stairsSealed, updateLair } from './lair';
 import { advanceMotion, FACING, startMotion, tileOf } from './motion';
 
 const DELTA: Record<Dir, Vec> = {
@@ -72,6 +73,9 @@ export function step(state: GameState, input: InputFrame): void {
 
   updateHazards(state);
   if (state.mode !== 'roaming') return; // a hazard finished you off
+
+  updateLair(state);
+  if (state.mode !== 'roaming') return; // walked into the boss's lair
 
   const contact = findContact(state);
   if (contact) startBattle(state, buildEncounter(state, contact));
@@ -143,8 +147,12 @@ function interact(state: GameState): boolean {
     }
     return false;
   }
-  // Prototype rule (user decision): the stairs end the run as a win. The
-  // mini-boss that guards them arrives in M5.
+  // The floor boss guards the stairs until it is beaten (user decision).
+  if (stairsSealed(state)) {
+    state.events.push({ type: 'stairsSealed', defId: lairBoss(state)?.defId ?? '' });
+    return true;
+  }
+  // Prototype rule (user decision): the stairs end the run as a win.
   state.events.push({ type: 'stairsTaken', floor: state.floor.index, tick: state.tick });
   state.runEnd = { kind: 'escaped' };
   state.events.push({ type: 'runEnded', end: state.runEnd });
