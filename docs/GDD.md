@@ -203,11 +203,11 @@ Floors are hybrid: procedural room layouts with hand-authored set pieces and bos
 
 | Rarity | Frequency | Rule |
 | --- | --- | --- |
-| Junk | Common | Funny, mostly useless, occasionally secretly great |
-| Standard | Common | Plain stat upgrades |
-| Special | Uncommon | One strong effect with a catch |
+| Poor | Common | Funny, mostly useless, occasionally secretly great |
+| Common | Common | Plain stat upgrades |
+| Rare | Uncommon | One strong effect with a catch |
 | Cursed | Uncommon | Powerful, with a downside that changes how you play |
-| Host's Pick | Rare | Run-defining item with a mean description |
+| Legendary | Rare | Run-defining item with a mean description |
 
 **Prize Tokens** are the in-run money (user decision): enemies and chests drop them, bribes, the safe-room vendor and Chet's makeover take them, and they are lost on death. Credits stay the between-runs currency.
 

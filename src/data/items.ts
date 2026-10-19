@@ -257,7 +257,7 @@ export const ITEMS: Record<string, ItemDef> = {
 export const RARITY_WEIGHTS: Record<Rarity, number> = { junk: 30, standard: 36, special: 18, cursed: 12, hosts_pick: 4 };
 
 export const RARITY_NAMES: Record<Rarity, string> = {
-  junk: 'Junk', standard: 'Standard', special: 'Special', cursed: 'Cursed', hosts_pick: 'Host\'s Pick',
+  junk: 'Poor', standard: 'Common', special: 'Rare', cursed: 'Cursed', hosts_pick: 'Legendary',
 };
 
 /** Most items a contestant can carry, equipped ones included. */

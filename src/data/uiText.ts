@@ -84,8 +84,8 @@ export const UI_TEXT = {
   },
   prize: {
     heading: 'NEW ITEM!',
-    // Plain rarity names (user: "What the heck is Booby Prize?"), as in the inventory.
-    badges: { junk: 'JUNK', standard: 'STANDARD', special: 'SPECIAL', cursed: 'CURSED!', hosts_pick: "HOST'S PICK!" } as Record<string, string>,
+    // The usual game rarity names, worst to best (user picked against game-show slang), as in the inventory.
+    badges: { junk: 'POOR', standard: 'COMMON', special: 'RARE', cursed: 'CURSED', hosts_pick: 'LEGENDARY' } as Record<string, string>,
     cursedHint: 'Cursed: once worn, it stays on for the rest of the run.',
     equipHint: 'Wear it from the inventory (I or ESC).',
     useHint: 'Use it any time from the inventory (I or ESC), or in a fight.',

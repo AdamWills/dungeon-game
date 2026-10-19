@@ -112,7 +112,7 @@
 
 ### Plainer ambushes and prize badges (user feedback)
 - "An enemy walks right into my face... how is that being ambushed?" An enemy now only ambushes you if it reaches you from behind (the side you are not facing); walking into your face is a normal fight. The battle banner says why in plain words ("SNEAK ATTACK: they had not noticed you..." / "AMBUSHED FROM BEHIND: it caught you with your back turned..."). GDD updated.
-- "What the heck is Booby Prize?" Prize card badges now show the plain rarity, as in the inventory: JUNK, STANDARD, SPECIAL, CURSED!, HOST'S PICK!.
+- "What the heck is Booby Prize?" Prize card badges and the inventory now use the usual game rarity names: Poor, Common, Rare, Legendary, plus Cursed (user rejected Junk/Standard/Special/Host's Pick as unclear). Internal ids are unchanged.
 
 ## Next
 
