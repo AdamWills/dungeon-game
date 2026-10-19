@@ -14,6 +14,8 @@ const PAUSE_KEYS = new Set(['Escape', 'KeyP', 'KeyI']);
 const DROP_KEYS = new Set(['KeyX', 'Delete']);
 const GIVE_KEYS = new Set(['KeyG']);
 const MAP_KEYS = new Set(['KeyM']);
+const ZOOM_IN_KEYS = new Set(['Equal', 'NumpadAdd']);
+const ZOOM_OUT_KEYS = new Set(['Minus', 'NumpadSubtract']);
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 const BACK_KEYS = new Set(['Escape', 'Backspace']);
 
@@ -27,6 +29,8 @@ export class Keyboard {
   private menu: MenuKey[] = [];
   /** Presses of the map key since last asked (a UI toggle, not game input). */
   mapToggles = 0;
+  /** Net zoom steps for the map since last asked (+ in, - out). */
+  mapZoom = 0;
 
   constructor(target: Window) {
     target.addEventListener('keydown', (e) => {
@@ -45,6 +49,8 @@ export class Keyboard {
         if (!e.repeat) this.menu.push('drop');
       } else if (MAP_KEYS.has(e.code)) {
         if (!e.repeat) this.mapToggles++;
+      } else if (ZOOM_IN_KEYS.has(e.code) || ZOOM_OUT_KEYS.has(e.code)) {
+        if (!e.repeat) this.mapZoom += ZOOM_IN_KEYS.has(e.code) ? 1 : -1;
       } else if (GIVE_KEYS.has(e.code)) {
         if (!e.repeat) this.menu.push('give');
       } else if (!PAUSE_KEYS.has(e.code) && !BACK_KEYS.has(e.code)) return;

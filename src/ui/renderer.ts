@@ -64,6 +64,8 @@ export class Renderer {
   private floaters: { id: string; text: string; at: number }[] = [];
   /** The corner map of explored tiles (M toggles it). */
   showMap = true;
+  /** Screen pixels per map tile: 1 shows the whole floor, 6 is a close-up. */
+  private mapScale = 3;
   private mapCanvas: HTMLCanvasElement | null = null;
   /** When the current prize card (and other big moments) first appeared, for animations. */
   private shownAt = new WeakMap<object, number>();
@@ -446,7 +448,14 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Explored tiles in the top right: one pixel per tile, scaled up a little. */
+  zoomMap(steps: number): void {
+    const levels = [1, 2, 3, 4, 6];
+    const i = Math.max(0, Math.min(levels.length - 1, levels.indexOf(this.mapScale) + steps));
+    this.mapScale = levels[i];
+    this.showMap = true;
+  }
+
+  /** Explored tiles in the top right, in a window around you; + and - zoom. */
   private drawMinimap(state: GameState): void {
     const { ctx, dpr } = this;
     const f = state.floor;
@@ -483,11 +492,11 @@ export class Renderer {
     px(Math.round(state.player.pos.x), Math.round(state.player.pos.y), 255, 255, 255);
     g.putImageData(img, 0, 0);
 
-    // A window of the map around you, 3 screen pixels per tile.
+    // A window of the map around you, zoomed with + and -.
     const w = this.canvas.width / dpr;
-    const scale = 3;
-    const vw = Math.min(f.width, 80);
-    const vh = Math.min(f.height, 50);
+    const scale = this.mapScale;
+    const vw = Math.min(f.width, Math.floor(Math.min(w * 0.3, 260) / scale));
+    const vh = Math.min(f.height, Math.floor(Math.min((this.worldH / dpr) * 0.35, 170) / scale));
     const vx = Math.max(0, Math.min(f.width - vw, Math.round(state.player.pos.x) - vw / 2));
     const vy = Math.max(0, Math.min(f.height - vh, Math.round(state.player.pos.y) - vh / 2));
     const mw = vw * scale;

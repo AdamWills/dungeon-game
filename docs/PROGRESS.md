@@ -106,7 +106,7 @@
 ### A big floor (user decision: 192x120)
 - The floor is now 192 by 120 tiles with 60 to 100 rooms (about nine times the first version), with chests (20 to 30), props (30 to 45), hazards and Grudge Gators scaled to match. Props per floor moved from `PROP_RULES` into the floor theme.
 - Speed: residents more than 30 tiles from you hold still; distance maps are shared by every resident heading for the same tile in a tick; the breadth-first search uses flat arrays; and placing chests and props checks the 8 tiles around a spot before falling back to a full reachability check. A floor generates in 25 to 75 ms and the game holds 60 updates a second.
-- A minimap in the top right shows a window of what you have explored around you (you, stairs, unopened chests, residents in view, your party); M hides it.
+- A minimap in the top right shows a window of what you have explored around you (you, stairs, unopened chests, residents in view, your party); + and - zoom it from the whole floor to a close-up (user request); M hides it.
 - The HUD now has a second row with your stats (Strength, Speed, Evasion, Armor, Charm, weapon) always in view (user: "How can I view my character stats?").
 - Tests: the generator tests use 60 seeds, the bot plays 16 runs, and the test timeout is 60 s.
 

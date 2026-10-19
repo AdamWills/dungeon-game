@@ -38,7 +38,7 @@ export const UI_TEXT = {
     yours: 'SNEAK ATTACK: they had not noticed you. You all act first, +50% damage this round.',
     theirs: 'AMBUSHED FROM BEHIND: it caught you with your back turned. It acts first, +50% damage this round.',
   },
-  mapHint: 'MAP (M hides)  you: white',
+  mapHint: 'MAP  +/- zoom  M hides',
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep', $: 'for hire' } as Record<string, string>,
   picker: {
     show: 'DESCEND & WIN!',
