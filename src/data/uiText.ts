@@ -44,7 +44,20 @@ export const UI_TEXT = {
     keys: 'UP/DOWN choose   ENTER say it',
     loyalty: 'Loyalty {loyalty}',
   },
-  mapHint: 'MAP  +/- zoom  M hides',
+  mapHint: 'MAP  +/- zoom  M hides  TAB full map',
+  bigMap: {
+    title: 'MAP OF THE FLOOR',
+    legend: [
+      ['#ffffff', 'You'],
+      ['#ffd23a', 'Stairs down'],
+      ['#c87828', 'Chest'],
+      ['#78e65a', 'Ally'],
+      ['#3cc8ff', 'Captive'],
+      ['#ff4632', 'Enemy (in sight)'],
+      ['#78aa3c', 'Hazard'],
+    ] as [string, string][],
+    keys: 'ARROWS scroll   +/- zoom   C back to you   TAB or ESC close.   Time is paused while the map is open.',
+  },
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep', $: 'for hire' } as Record<string, string>,
   picker: {
     show: 'DESCEND & WIN!',

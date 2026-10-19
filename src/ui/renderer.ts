@@ -40,7 +40,7 @@ import { counted, REPORT } from '../data/report';
 import { type AllySprites, buildAllySprites, buildChetPortrait } from './allySprites';
 import type { PlayerSprites } from './playerSprite';
 import { floorVariant, MAP_SPRITES, wallFaceVariant } from './tileset';
-import { bar, FONT, wrapText } from './text';
+import { bar, FONT, FONT_BIG, wrapText } from './text';
 
 export type Toast = { text: string; until: number };
 
@@ -50,6 +50,8 @@ export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: Le
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
 const HUD_CSS_H = 96;
+/** Close-up zoom steps for the full-screen map, in screen pixels per tile. */
+const BIG_MAP_ZOOMS = [8, 12, 18];
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -68,6 +70,8 @@ export class Renderer {
   /** Screen pixels per map tile: 1 shows the whole floor, 6 is a close-up. */
   private mapScale = 3;
   private mapCanvas: HTMLCanvasElement | null = null;
+  /** The full-screen map (Tab), when open: view centre in tiles and zoom step. */
+  bigMap: { cx: number; cy: number; scale: number } | null = null;
   /** When the current prize card (and other big moments) first appeared, for animations. */
   private shownAt = new WeakMap<object, number>();
 
@@ -141,6 +145,7 @@ export class Renderer {
       else ui.inventory.draw(ctx, w, h, state, this.icons, this.playerSprites, ui.host.history);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);
+    if (this.bigMap && state.mode === 'roaming') this.drawBigMap(state, now);
   }
 
   /** Size of one art pixel in CSS pixels: the map's zoom, so overlays match it. */
@@ -457,9 +462,8 @@ export class Renderer {
     this.showMap = true;
   }
 
-  /** Explored tiles in the top right, in a window around you; + and - zoom. */
-  private drawMinimap(state: GameState): void {
-    const { ctx, dpr } = this;
+  /** Paint explored tiles, one pixel per tile, onto the map canvas. */
+  private paintMap(state: GameState): HTMLCanvasElement {
     const f = state.floor;
     if (!this.mapCanvas || this.mapCanvas.width !== f.width || this.mapCanvas.height !== f.height) {
       this.mapCanvas = document.createElement('canvas');
@@ -482,7 +486,7 @@ export class Renderer {
         else if (t.terrain === 'door') px(x, y, 150, 100, 60);
         else px(x, y, lit ? 120 : 70, lit ? 110 : 64, lit ? 100 : 60);
       }
-    for (const c of f.chests) if (!c.opened && f.tiles[c.pos.y][c.pos.x].explored) px(c.pos.x, c.pos.y, 255, 200, 40);
+    for (const c of f.chests) if (!c.opened && f.tiles[c.pos.y][c.pos.x].explored) px(c.pos.x, c.pos.y, 200, 120, 40);
     for (const e of f.entities) {
       const x = Math.round(e.pos.x);
       const y = Math.round(e.pos.y);
@@ -493,8 +497,14 @@ export class Renderer {
     for (const a of state.party) px(Math.round(a.pos.x), Math.round(a.pos.y), 120, 230, 90);
     px(Math.round(state.player.pos.x), Math.round(state.player.pos.y), 255, 255, 255);
     g.putImageData(img, 0, 0);
+    return this.mapCanvas;
+  }
 
-    // A window of the map around you, zoomed with + and -.
+  /** Explored tiles in the top right, in a window around you; + and - zoom. */
+  private drawMinimap(state: GameState): void {
+    const { ctx, dpr } = this;
+    const f = state.floor;
+    this.paintMap(state);
     const w = this.canvas.width / dpr;
     const scale = this.mapScale;
     const vw = Math.min(f.width, Math.floor(Math.min(w * 0.3, 260) / scale));
@@ -507,11 +517,115 @@ export class Renderer {
     ctx.fillStyle = 'rgba(8, 6, 12, 0.72)';
     ctx.fillRect(w - mw - 18, 10, mw + 8, mh + 24);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.mapCanvas, vx, vy, vw, vh, w - mw - 14, 14, mw, mh);
+    ctx.drawImage(this.mapCanvas!, vx, vy, vw, vh, w - mw - 14, 14, mw, mh);
     ctx.font = '11px ui-monospace, Menlo, Consolas, monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#9aa89a';
     ctx.fillText(UI_TEXT.mapHint, w - mw - 14, mh + 18);
+  }
+
+  /** Open or close the full-screen map, centred on you. */
+  toggleBigMap(state: GameState): void {
+    if (this.bigMap) this.bigMap = null;
+    else this.bigMap = { cx: state.player.pos.x, cy: state.player.pos.y, scale: 0 };
+  }
+
+  /** Keys while the full-screen map is open: arrows pan, C recentres. */
+  bigMapKey(key: string, state: GameState): void {
+    const m = this.bigMap;
+    if (!m) return;
+    const step = Math.max(2, Math.round(48 / this.bigMapScale(state)));
+    if (key === 'left') m.cx -= step;
+    else if (key === 'right') m.cx += step;
+    else if (key === 'up') m.cy -= step;
+    else if (key === 'down') m.cy += step;
+    else if (key === 'center') [m.cx, m.cy] = [state.player.pos.x, state.player.pos.y];
+    else if (key === 'back') this.bigMap = null;
+    if (!this.bigMap) return;
+    m.cx = Math.max(0, Math.min(state.floor.width, m.cx));
+    m.cy = Math.max(0, Math.min(state.floor.height, m.cy));
+  }
+
+  /** Zoom steps on the full-screen map: 0 fits the whole floor, then closer. */
+  zoomBigMap(steps: number): void {
+    if (this.bigMap) this.bigMap.scale = Math.max(0, Math.min(BIG_MAP_ZOOMS.length, this.bigMap.scale + steps));
+  }
+
+  private bigMapArea(): { x: number; y: number; w: number; h: number } {
+    const w = this.canvas.width / this.dpr;
+    const h = this.canvas.height / this.dpr;
+    return { x: 16, y: 44, w: w - 32, h: h - 44 - 56 };
+  }
+
+  /** Screen pixels per tile on the full-screen map. */
+  private bigMapScale(state: GameState): number {
+    const a = this.bigMapArea();
+    const fit = Math.max(1, Math.floor(Math.min(a.w / state.floor.width, a.h / state.floor.height)));
+    const z = this.bigMap?.scale ?? 0;
+    return z === 0 ? fit : Math.max(fit + 1, BIG_MAP_ZOOMS[z - 1]);
+  }
+
+  /** The whole explored floor, filling the screen (Tab). Time is paused. */
+  private drawBigMap(state: GameState, now: number): void {
+    const { ctx, dpr } = this;
+    const m = this.bigMap!;
+    const f = state.floor;
+    const map = this.paintMap(state);
+    const W = this.canvas.width / dpr;
+    const H = this.canvas.height / dpr;
+    const T = UI_TEXT.bigMap;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#06040a';
+    ctx.fillRect(0, 0, W, H);
+    const a = this.bigMapArea();
+    const scale = this.bigMapScale(state);
+    // Keep the view on the floor; a floor smaller than the area sits centred.
+    const vw = a.w / scale;
+    const vh = a.h / scale;
+    const cx = f.width <= vw ? f.width / 2 : Math.max(vw / 2, Math.min(f.width - vw / 2, m.cx));
+    const cy = f.height <= vh ? f.height / 2 : Math.max(vh / 2, Math.min(f.height - vh / 2, m.cy));
+    m.cx = cx;
+    m.cy = cy;
+    const ox = Math.round(a.x + a.w / 2 - cx * scale);
+    const oy = Math.round(a.y + a.h / 2 - cy * scale);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(a.x, a.y, a.w, a.h);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(map, ox, oy, f.width * scale, f.height * scale);
+    // Pulsing rings so you and the stairs stand out.
+    const pulse = (x: number, y: number, color: string) => {
+      const r = scale * 1.5 + 4 + 3 * Math.sin(now / 200);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ox + (x + 0.5) * scale, oy + (y + 0.5) * scale, r, 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    pulse(state.player.pos.x, state.player.pos.y, '#ffffff');
+    for (let y = 0; y < f.height; y++)
+      for (let x = 0; x < f.width; x++) if (f.tiles[y][x].terrain === 'stairs' && f.tiles[y][x].explored) pulse(x, y, '#ffd23a');
+    ctx.restore();
+    ctx.strokeStyle = '#3a2a4a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(a.x - 0.5, a.y - 0.5, a.w + 1, a.h + 1);
+
+    ctx.font = FONT_BIG;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#d9b310';
+    ctx.fillText(T.title, a.x, 12);
+    let x = a.x + ctx.measureText(T.title).width + 32;
+    ctx.font = FONT;
+    for (const [color, label] of T.legend) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, 18, 10, 10);
+      ctx.fillStyle = '#c8d0c4';
+      ctx.fillText(label, x + 14, 16);
+      x += 14 + ctx.measureText(label).width + 18;
+    }
+    ctx.fillStyle = '#9aa89a';
+    ctx.fillText(T.keys, a.x, H - 40);
   }
 
   /** Something on the map took damage (hazards): float the number and flash them. */

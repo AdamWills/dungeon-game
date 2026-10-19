@@ -94,6 +94,16 @@ function frame(now: number) {
         break;
       }
     }
+  } else if (renderer.bigMap) {
+    // The full-screen map: its own keys, and time stands still.
+    for (const key of keys) renderer.bigMapKey(key, state);
+    if (keyboard.mapZoom) renderer.zoomBigMap(keyboard.mapZoom);
+    keyboard.mapZoom = 0;
+    keyboard.mapToggles = 0;
+    if (keyboard.bigMapToggles % 2 || state.mode !== 'roaming') renderer.bigMap = null;
+    keyboard.bigMapToggles = 0;
+    keyboard.clearAll();
+    loop.reset();
   } else if (state.mode !== 'roaming') {
     // Menu keys belong to the menu: Enter here must not also take the stairs.
     if (keys.length) keyboard.clearActionEdges();
@@ -112,6 +122,13 @@ function frame(now: number) {
       }
     }
   }
+  if (keyboard.bigMapToggles) {
+    if (keyboard.bigMapToggles % 2 && state?.mode === 'roaming') {
+      renderer.toggleBigMap(state);
+      keyboard.clearAll();
+    }
+    keyboard.bigMapToggles = 0;
+  }
   if (keyboard.mapToggles) {
     if (keyboard.mapToggles % 2) renderer.showMap = !renderer.showMap;
     keyboard.mapToggles = 0;
@@ -120,7 +137,7 @@ function frame(now: number) {
     renderer.zoomMap(keyboard.mapZoom);
     keyboard.mapZoom = 0;
   }
-  loop.advance(now);
+  if (!renderer.bigMap) loop.advance(now);
   if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts }, now);
   else renderer.renderPicker(picker, now);
   if (toasts.length > 20) toasts.splice(0, toasts.length - 20);

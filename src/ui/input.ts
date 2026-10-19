@@ -15,12 +15,13 @@ const DROP_KEYS = new Set(['KeyX', 'Delete']);
 const GIVE_KEYS = new Set(['KeyG']);
 const TALK_KEYS = new Set(['KeyT']);
 const MAP_KEYS = new Set(['KeyM']);
+const BIG_MAP_KEYS = new Set(['Tab']);
 const ZOOM_IN_KEYS = new Set(['Equal', 'NumpadAdd']);
 const ZOOM_OUT_KEYS = new Set(['Minus', 'NumpadSubtract']);
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 const BACK_KEYS = new Set(['Escape', 'Backspace']);
 
-export type MenuKey = Dir | 'confirm' | 'back' | 'drop' | 'give' | 'talk';
+export type MenuKey = Dir | 'confirm' | 'back' | 'drop' | 'give' | 'talk' | 'center';
 
 export class Keyboard {
   private held: Dir[] = []; // most recently pressed last
@@ -30,6 +31,8 @@ export class Keyboard {
   private menu: MenuKey[] = [];
   /** Presses of the map key since last asked (a UI toggle, not game input). */
   mapToggles = 0;
+  /** Presses of the full-screen map key since last asked. */
+  bigMapToggles = 0;
   /** Net zoom steps for the map since last asked (+ in, - out). */
   mapZoom = 0;
 
@@ -48,6 +51,10 @@ export class Keyboard {
         if (!e.repeat) this.dashPressed = true;
       } else if (DROP_KEYS.has(e.code)) {
         if (!e.repeat) this.menu.push('drop');
+      } else if (BIG_MAP_KEYS.has(e.code)) {
+        if (!e.repeat) this.bigMapToggles++;
+      } else if (e.code === 'KeyC') {
+        if (!e.repeat) this.menu.push('center');
       } else if (MAP_KEYS.has(e.code)) {
         if (!e.repeat) this.mapToggles++;
       } else if (ZOOM_IN_KEYS.has(e.code) || ZOOM_OUT_KEYS.has(e.code)) {
@@ -89,6 +96,14 @@ export class Keyboard {
   clearActionEdges(): void {
     this.interactPressed = false;
     this.dashPressed = false;
+  }
+
+  /** Forget every pending press and held key (after a screen that ate them). */
+  clearAll(): void {
+    this.interactPressed = false;
+    this.pausePressed = false;
+    this.dashPressed = false;
+    this.menu = [];
   }
 
   /** Menu presses since the last call (battle menus, end screens). */
