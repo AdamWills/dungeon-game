@@ -57,6 +57,7 @@ export function createGameState(seed: number, raceId = 'human', classId = 'brawl
     perks: [],
     skills: {},
     levelUp: null,
+    talk: null,
     record: { fights: 0, badIdeas: 0, alliesRecruited: 0, alliesLost: 0, lastAction: { kind: 'none' } },
     events: [],
   };

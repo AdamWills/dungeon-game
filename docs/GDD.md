@@ -154,6 +154,7 @@ The prototype includes 3 hand-written allies, one per archetype: a bruiser, a he
 **Prototype details (user decisions)**
 
 - **Recruiting, one way each:** the bruiser is locked in a cell (open it with the interact key); the healer wants a bribe in Prize Tokens (Charm lowers the price); the coward turns up on the enemy side of a fight, and a Spare command works on him once he is low on HP (Charm raises the odds). The dumb contest waits for later.
+- **Meeting is a conversation (user request):** walking up to a captive, or the spared coward after the fight, opens a short scripted conversation instead of an instant join. You can ask about them (what you learn is kept on their card), and your answers matter: promising the bruiser a share raises her loyalty, the healer's price can be haggled once on a Charm roll (cheaper on a win, dearer and a little resentful on a loss), and the coward can be sent away for good. Party members can be chatted with from the pause screen (T): a kind word adds a little loyalty, at most once every two fights.
 - **Loyalty up:** giving an ally a consumable, healing them, winning a fight together.
 - **Loyalty down:** fleeing a fight (allies take a parting hit covering you), hurting them with a Bad Idea or a backfired combo, leaving them under 25% HP without helping.
 - **At zero:** each ally leaves in character: the bruiser turns on you (an enemy in the next fight), the healer quits, the coward steals an item and runs.

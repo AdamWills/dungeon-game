@@ -124,6 +124,11 @@
 - The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
 - Later: drawing gear on the character sprite itself.
 
+### Ally conversations (user request)
+- Meeting an ally is now a conversation on a neon talk screen (`src/data/dialogue.ts`, `src/game/talk.ts`, `src/ui/talk.ts`) instead of an instant join. Marjorie: ask about her, then open the cell, or promise her a share (+15 loyalty). Dr. Moss: ask if he is a real doctor, pay, or haggle once (Charm roll; win takes 4 tokens off, a loss adds 3 and costs 10 loyalty if you still pay). Skitch, spared in a fight: ask about him, take him on (+10 loyalty), or tell him to get lost (he leaves for good). Spared Skitch keeps the HP he had.
+- What you learn shows under WHAT YOU KNOW on their card in the pause screen. T on an ally row chats with them: loyalty-dependent line, advice, and a kind word (+4 loyalty, once every 2 fights).
+- Tests: conversation recruiting for all three, haggling both ways over 29 seeds, dismissing Skitch, the chat cooldown.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

@@ -9,6 +9,7 @@ import type { StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { giveItem, setStance } from './party';
 import { takePerk, train } from './progress';
+import { choose, startTalk } from './talk';
 import { tileOf } from '../world/motion';
 import type { Entity, EquipSlot, Equipment, GameState, InvCommand, ItemInstance, Stats, Vec } from './types';
 
@@ -124,6 +125,10 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     else if (cmd.kind === 'perk') takePerk(state, cmd.id);
     return;
   }
+  if (state.talk) {
+    if (cmd.kind === 'say') choose(state, cmd.choice);
+    return;
+  }
   if (state.reveals.length) {
     // While a prize card is up, the only thing to do is take it or leave it.
     if (cmd.kind === 'dismiss') takeOffer(state);
@@ -136,6 +141,12 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     return;
   }
   switch (cmd.kind) {
+    case 'talk': {
+      const ally = state.party.find((a) => a.id === cmd.allyId);
+      if (ally) startTalk(state, ally, 'chat');
+      return;
+    }
+    case 'say':
     case 'dismiss':
     case 'leave':
     case 'train':

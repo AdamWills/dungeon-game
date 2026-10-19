@@ -7,7 +7,8 @@ import { TUNING } from '../data/tuning';
 import { battleCommand, battleTick, startBattle } from '../battle/turns';
 import { updateEnemy } from '../game/ai';
 import { inventoryCommand, leaveOffer } from '../game/equipment';
-import { captiveAt, leaveTrail, spotCaptives, tryRecruit, updateParty } from '../game/party';
+import { captiveAt, leaveTrail, spotCaptives, updateParty } from '../game/party';
+import { startTalk } from '../game/talk';
 import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
@@ -24,7 +25,7 @@ const DELTA: Record<Dir, Vec> = {
 };
 
 export function step(state: GameState, input: InputFrame): void {
-  if (input.pause && !state.levelUp) {
+  if (input.pause && !state.levelUp && !state.talk) {
     if (state.mode === 'roaming') setMode(state, 'menu');
     else if (state.mode === 'menu') {
       while (state.reveals.length) leaveOffer(state); // ESC on a prize card leaves it
@@ -101,7 +102,7 @@ function tryMove(state: GameState, dir: Dir): void {
   // Bumping a captive asks them to join; they do not get out of the way.
   const captive = captiveAt(state, to.x, to.y);
   if (captive) {
-    if (state.dash.active === 0) tryRecruit(state, captive);
+    if (state.dash.active === 0) startTalk(state, captive, 'meet');
     return;
   }
   if (!isWalkable(state.floor, to.x, to.y) || propAt(state, to.x, to.y)) return;
@@ -120,7 +121,7 @@ function facingDir(facing: number): Dir {
 
 /** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'leave', 'give', 'stance', 'train', 'perk'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'leave', 'give', 'stance', 'train', 'perk', 'say', 'talk'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */
@@ -133,7 +134,7 @@ function interact(state: GameState): boolean {
     if (openChest(state, f.x, f.y)) return true;
     const captive = captiveAt(state, f.x, f.y);
     if (captive) {
-      tryRecruit(state, captive);
+      startTalk(state, captive, 'meet');
       return true;
     }
     if (isClosedDoor(state, f.x, f.y)) {

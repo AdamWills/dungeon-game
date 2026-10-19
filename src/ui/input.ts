@@ -13,13 +13,14 @@ const INTERACT_KEYS = new Set(['KeyE', 'Space', 'Enter']);
 const PAUSE_KEYS = new Set(['Escape', 'KeyP', 'KeyI']);
 const DROP_KEYS = new Set(['KeyX', 'Delete']);
 const GIVE_KEYS = new Set(['KeyG']);
+const TALK_KEYS = new Set(['KeyT']);
 const MAP_KEYS = new Set(['KeyM']);
 const ZOOM_IN_KEYS = new Set(['Equal', 'NumpadAdd']);
 const ZOOM_OUT_KEYS = new Set(['Minus', 'NumpadSubtract']);
 const DASH_KEYS = new Set(['ShiftLeft', 'ShiftRight']);
 const BACK_KEYS = new Set(['Escape', 'Backspace']);
 
-export type MenuKey = Dir | 'confirm' | 'back' | 'drop' | 'give';
+export type MenuKey = Dir | 'confirm' | 'back' | 'drop' | 'give' | 'talk';
 
 export class Keyboard {
   private held: Dir[] = []; // most recently pressed last
@@ -51,6 +52,8 @@ export class Keyboard {
         if (!e.repeat) this.mapToggles++;
       } else if (ZOOM_IN_KEYS.has(e.code) || ZOOM_OUT_KEYS.has(e.code)) {
         if (!e.repeat) this.mapZoom += ZOOM_IN_KEYS.has(e.code) ? 1 : -1;
+      } else if (TALK_KEYS.has(e.code)) {
+        if (!e.repeat) this.menu.push('talk');
       } else if (GIVE_KEYS.has(e.code)) {
         if (!e.repeat) this.menu.push('give');
       } else if (!PAUSE_KEYS.has(e.code) && !BACK_KEYS.has(e.code)) return;

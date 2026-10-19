@@ -77,6 +77,7 @@ export class InventoryMenu {
     else if (key === 'down') this.cursor = (this.cursor + 1) % rows.length;
     const row = rows[this.cursor];
     if (row.kind === 'ally') {
+      if (key === 'talk') return { kind: 'talk', allyId: row.ally.id };
       const mind = row.ally.ally!;
       const i = STANCE_ORDER.indexOf(mind.stance);
       const step = key === 'left' ? -1 : key === 'right' || key === 'confirm' ? 1 : 0;
@@ -219,6 +220,11 @@ export class InventoryMenu {
       block(`${a.passive.name}: ${a.passive.help}`, '#e8e4da');
       block(`${a.ability.name}: ${a.ability.help}`, '#e8e4da');
       block(`Stance: ${stance.name}. ${stance.help}`, '#d9b310');
+      const known = row.ally.ally!.known ?? [];
+      if (known.length) {
+        block(UI_TEXT.inventory.known, '#e070c0', 2);
+        for (const fact of known) block(`- ${fact}`, '#e8e4da', 2);
+      }
       block(UI_TEXT.inventory.allyKeys, '#9aa89a');
     } else if (row?.kind === 'worn' && !row.item) {
       ctx.font = FONT_BIG;

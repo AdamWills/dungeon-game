@@ -15,7 +15,8 @@ import { TUNING } from '../data/tuning';
 import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../game/combat';
 import { playerResists, weaponOf } from '../game/equipment';
 import { depthOf, rollItem } from '../game/loot';
-import { changeLoyalty, makeAlly, recruit, settleLoyalty } from '../game/party';
+import { changeLoyalty, makeAlly, settleLoyalty } from '../game/party';
+import { startTalk } from '../game/talk';
 import { gainXp, hasPerk, openLevelUp } from '../game/progress';
 import { eliminate } from '../game/report';
 import { practice, skillLevel } from '../game/skills';
@@ -793,13 +794,19 @@ function endBattle(state: GameState): void {
     state.events.push({ type: 'allyDied', allyId: member.defId, item: drop?.defId ?? null });
   }
 
-  // Spared enemies leave their side and join yours.
+  // Spared enemies leave their side and wait to talk to you (they join if you say so).
+  const deserters: Entity[] = [];
   for (const id of battle.spared) {
     const c = battle.combatants.find((x) => x.id === id)!;
     const idx = floor.entities.findIndex((e) => e.id === id);
     const at = idx >= 0 ? floor.entities[idx].pos : player.pos;
     if (idx >= 0) floor.entities.splice(idx, 1);
-    if (c.alive) recruit(state, makeAlly(c.defId, { x: Math.round(at.x), y: Math.round(at.y) }, state.level, false), c.stats.hp);
+    if (!c.alive) continue;
+    const ally = makeAlly(c.defId, { x: Math.round(at.x), y: Math.round(at.y) }, state.level, false);
+    ally.ally!.joinHp = c.stats.hp;
+    ally.ally!.spotted = true;
+    floor.entities.push(ally);
+    deserters.push(ally);
   }
 
   // Props wrecked in battle stay wrecked on the map; the rest stay put.
@@ -849,8 +856,9 @@ function endBattle(state: GameState): void {
   }
   settleLoyalty(state);
   if (player.stats.hp > 0 && player.stats.hp < player.stats.maxHp * 0.25) state.events.push({ type: 'lowHp', hp: player.stats.hp });
-  // Any level gained in the fight (or from a spared recruit) opens its screen now.
+  // Any level gained in the fight opens its screen now; then a spared enemy wants a word.
   openLevelUp(state);
+  if (deserters.length && state.mode !== 'dead') startTalk(state, deserters[0], 'meet');
 }
 
 export function addGore(state: GameState, at: Vec, kind: 'blood' | 'gibs'): void {

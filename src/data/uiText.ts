@@ -38,6 +38,12 @@ export const UI_TEXT = {
     yours: 'SNEAK ATTACK: they had not noticed you. You all act first, +50% damage this round.',
     theirs: 'AMBUSHED FROM BEHIND: it caught you with your back turned. It acts first, +50% damage this round.',
   },
+  talk: {
+    meet: 'A STRANGER',
+    chat: 'A WORD WITH YOUR ALLY',
+    keys: 'UP/DOWN choose   ENTER say it',
+    loyalty: 'Loyalty {loyalty}',
+  },
   mapHint: 'MAP  +/- zoom  M hides',
   bubbles: { '!': 'spotted you', '?': 'heard you', z: 'asleep', $: 'for hire' } as Record<string, string>,
   picker: {
@@ -53,7 +59,8 @@ export const UI_TEXT = {
     emptySlot: 'Nothing worn here. Find something for this slot in chests and on the floor, then wear it from your pockets.',
     giveKeys: 'UP/DOWN choose who gets it   ENTER give   ESC cancel',
     give: 'G gives it to an ally (they use it right away, and like you more for it).',
-    allyKeys: 'LEFT/RIGHT or ENTER changes the stance. Allies act on their own in fights, following their stance.',
+    allyKeys: 'LEFT/RIGHT or ENTER changes the stance. T talks to them. Allies act on their own in fights, following their stance.',
+    known: 'WHAT YOU KNOW',
     equip: 'ENTER to equip (swaps with what you are wearing).',
     unequip: 'ENTER to take it off.',
     cursed: 'Cursed: it will not come off.',
@@ -70,8 +77,8 @@ export const UI_TEXT = {
     door: 'A closed door. Press E (or walk into it) to open it.',
     prop: 'A {prop}. Start a fight near it and you can use it from Improvise.',
     leftItem: 'You left a {item} here. Press E to pick it up.',
-    cell: '{name} is locked in a cell. Press E to let her out. She joins your party.',
-    bribe: '{name} joins your party for {price} Prize Tokens (you have {tokens}). Press E to pay.',
+    cell: '{name} is locked in a cell. Press E to talk to her.',
+    bribe: '{name} will join your party for about {price} Prize Tokens (you have {tokens}). Press E to talk.',
   },
   levelUp: {
     title: 'LEVEL UP',
@@ -108,5 +115,6 @@ export const UI_TEXT = {
     bribeShort: 'You need {price} Prize Tokens and have {tokens}. Enemies and chests drop them.',
     joined: '{name} joined your party. Set their stance on the pause screen (ESC).',
     left: '{name} has left your party.',
+    dismissed: '{name} scurries off into the dark.',
   },
 };

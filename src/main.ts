@@ -16,6 +16,7 @@ import { Keyboard } from './ui/input';
 import { InventoryMenu } from './ui/inventory';
 import { Picker } from './ui/picker';
 import { LevelUpMenu } from './ui/levelUp';
+import { TalkMenu } from './ui/talk';
 import { Host } from './host/host';
 import { ALLIES } from './data/allies';
 import { buildPlayerSprites } from './ui/playerSprite';
@@ -33,6 +34,7 @@ const menu = new BattleMenu();
 const inventory = new InventoryMenu();
 const picker = new Picker();
 const levelUp = new LevelUpMenu();
+const talk = new TalkMenu();
 const toasts: Toast[] = [];
 let renderer!: Renderer;
 let state: GameState | null = null;
@@ -56,6 +58,7 @@ bus.on('corpseEaten', (e) => toast(fill(e.hp > 0 ? T.ateGood : T.ateBad, { hp: e
 bus.on('bribeShort', (e) => toast(fill(T.bribeShort, { price: e.price, tokens: e.tokens })));
 bus.on('allyRecruited', (e) => toast(fill(T.joined, { name: ALLIES[e.allyId].short })));
 bus.on('allyLeft', (e) => toast(fill(T.left, { name: ALLIES[e.allyId].short })));
+bus.on('allyDismissed', (e) => toast(fill(T.dismissed, { name: ALLIES[e.allyId].short })));
 bus.on('levelUp', () => {
   levelUp.cursor = 0;
 });
@@ -98,6 +101,7 @@ function frame(now: number) {
     for (const key of keys) {
       if (s.mode === 'battle') pendingCommand = menu.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
+      else if (s.mode === 'menu' && s.talk) pendingCommand = talk.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
         if (key === 'confirm') pendingCommand = { kind: 'dismiss' };
         else if (key === 'drop') pendingCommand = { kind: 'leave' };
@@ -117,7 +121,7 @@ function frame(now: number) {
     keyboard.mapZoom = 0;
   }
   loop.advance(now);
-  if (state) renderer.render(state, { menu, inventory, levelUp, host, toasts }, now);
+  if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts }, now);
   else renderer.renderPicker(picker, now);
   if (toasts.length > 20) toasts.splice(0, toasts.length - 20);
   requestAnimationFrame(frame);

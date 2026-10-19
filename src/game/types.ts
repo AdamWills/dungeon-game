@@ -7,6 +7,7 @@ import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
 import type { StatKey } from '../data/items';
 import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
+import type { Talk } from './talk';
 
 export type Vec = { x: number; y: number };
 
@@ -129,6 +130,12 @@ export type AllyMind = {
   healedThisFight?: boolean;
   /** Chet has already warned you they are unhappy. */
   warned?: boolean;
+  /** Facts you learned by talking to them, shown on their card. */
+  known?: string[];
+  /** The fight count when you last said something kind (chats). */
+  lastKindAt?: number;
+  /** HP they join with (a spared enemy keeps its wounds). */
+  joinHp?: number;
 };
 
 export type Entity = {
@@ -200,7 +207,9 @@ export type InvCommand =
   | { kind: 'give'; slot: number; allyId: string }
   | { kind: 'stance'; allyId: string; stance: Stance }
   | { kind: 'train'; stat: StatKey } // spend a level-up point
-  | { kind: 'perk'; id: string };
+  | { kind: 'perk'; id: string }
+  | { kind: 'say'; choice: number } // pick a line in a conversation
+  | { kind: 'talk'; allyId: string }; // chat with a party member
 
 export type BattleState = {
   encounter: Encounter;
@@ -296,7 +305,8 @@ export type GameEvent =
   | { type: 'allyDied'; allyId: string; item: string | null }
   | { type: 'allyLeft'; allyId: string; how: 'quit' | 'steal' | 'turn'; item: string | null }
   | { type: 'loyaltyLow'; allyId: string }
-  | { type: 'skillUp'; id: string; level: number };
+  | { type: 'skillUp'; id: string; level: number }
+  | { type: 'allyDismissed'; allyId: string };
 
 export type GameState = {
   seed: number;
@@ -330,6 +340,8 @@ export type GameState = {
   perks: string[];
   /** Skills level through use (Read the Room, ...). */
   skills: Record<string, { level: number; xp: number }>;
+  /** A conversation in progress (time is paused). */
+  talk: Talk | null;
   /** A level-up waiting on the player: points to spend and perks to pick from. */
   levelUp: { points: number; perkChoices: string[] | null } | null;
   record: RunRecord;

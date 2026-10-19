@@ -8,6 +8,7 @@ import { EventBus } from '../src/game/events';
 import { inventoryCommand } from '../src/game/equipment';
 import { makeAlly, recruit, settleLoyalty } from '../src/game/party';
 import { gainXp } from '../src/game/progress';
+import { talkView } from '../src/game/talk';
 import { createGameState } from '../src/game/state';
 import { type Entity, type GameState, NO_INPUT } from '../src/game/types';
 import { generateFloor } from '../src/gen/floor';
@@ -59,6 +60,13 @@ function faceCaptive(s: GameState, defId: string): Entity {
   throw new Error('no room next to the captive');
 }
 
+/** Pick the reply that starts with this text (fails if it is not offered). */
+function say(s: GameState, text: string): void {
+  const i = talkView(s)!.choices.findIndex((c) => c.text.startsWith(text));
+  if (i < 0) throw new Error(`no reply "${text}" in: ${talkView(s)!.choices.map((c) => c.text).join(' | ')}`);
+  inventoryCommand(s, { kind: 'say', choice: i });
+}
+
 describe('placing allies', () => {
   it('puts both captives and Skitch on every floor without cutting anything off', () => {
     for (let seed = 1; seed < 40; seed++) {
@@ -76,12 +84,27 @@ describe('placing allies', () => {
 });
 
 describe('recruiting', () => {
-  it('frees a captive from her cell with the interact key, for XP', () => {
+  it('talks to a captive first, and frees her from the conversation, for XP', () => {
     const s = createGameState(11);
     s.floor.entities = s.floor.entities.filter((e) => e.kind === 'ally');
     faceCaptive(s, 'marjorie');
     step(s, { ...NO_INPUT, interact: true });
+    expect(s.mode).toBe('menu');
+    expect(s.talk?.allyId).toBe('marjorie');
+    expect(s.party).toHaveLength(0);
+    say(s, 'Why are you locked up?');
+    say(s, 'Something else.');
+    say(s, 'Never mind.');
+    expect(s.talk).toBeNull();
+    expect(s.mode).toBe('roaming');
+    expect(s.party).toHaveLength(0);
+    // Walk back up and let her out, with a promise.
+    step(s, { ...NO_INPUT, interact: true });
+    say(s, 'Want out?');
+    say(s, 'Promise her');
     expect(s.party.map((a) => a.defId)).toEqual(['marjorie']);
+    expect(s.party[0].ally!.loyalty).toBe(LOYALTY.start + 15);
+    expect(s.party[0].ally!.known).toEqual(['You promised her a share of the prize.']);
     expect(s.xp).toBe(TUNING.progression.recruitXp);
     expect(s.floor.entities.some((e) => e.defId === 'marjorie')).toBe(false);
     expect(s.events.some((e) => e.type === 'allyRecruited')).toBe(true);
@@ -93,18 +116,46 @@ describe('recruiting', () => {
     faceCaptive(s, 'moss');
     s.tokens = 3;
     step(s, { ...NO_INPUT, interact: true });
+    say(s, 'What do you charge?');
+    expect(talkView(s)!.choices.some((c) => c.text.startsWith('Pay'))).toBe(false); // can't afford it
+    say(s, "I'll come back.");
     expect(s.party).toHaveLength(0);
-    expect(s.events.some((e) => e.type === 'bribeShort')).toBe(true);
     const price = bribePrice(15, s.player.stats.charm);
     expect(price).toBe(14); // Charm 1 knocks one token off
     expect(bribePrice(15, 20)).toBe(8); // but never below half
     s.tokens = 20;
     step(s, { ...NO_INPUT, interact: true });
+    say(s, 'Are you a real doctor?');
+    say(s, 'Something else.');
+    say(s, 'What do you charge?');
+    say(s, 'Pay');
     expect(s.party.map((a) => a.defId)).toEqual(['moss']);
     expect(s.tokens).toBe(20 - price);
+    expect(s.party[0].ally!.known).toHaveLength(1);
   });
 
-  it('spares Skitch once he is beaten down, and he joins after the fight', () => {
+  it('haggling moves the price once: down on a win, up on a loss', () => {
+    const results = new Set<string>();
+    for (let seed = 1; seed < 30; seed++) {
+      const s = createGameState(seed);
+      s.floor.entities = s.floor.entities.filter((e) => e.kind === 'ally');
+      faceCaptive(s, 'moss');
+      s.tokens = 50;
+      step(s, { ...NO_INPUT, interact: true });
+      say(s, 'What do you charge?');
+      const before = s.talk!.price;
+      say(s, 'Haggle');
+      const after = s.talk!.price;
+      results.add(s.talk!.node);
+      expect(after).toBe(s.talk!.node === 'haggleWin' ? before - 4 : before + 3);
+      expect(talkView(s)!.choices.some((c) => c.text.startsWith('Haggle'))).toBe(false);
+      say(s, 'Pay');
+      expect(s.tokens).toBe(50 - after);
+    }
+    expect(results).toEqual(new Set(['haggleWin', 'haggleLose']));
+  });
+
+  it('spares Skitch once he is beaten down, and he asks to join after the fight', () => {
     const s = cleanRun();
     s.player.stats.charm = 10; // make the roll a sure thing
     const b = fight(s, ['skitch', 'intake_rat']);
@@ -117,7 +168,51 @@ describe('recruiting', () => {
     for (let i = 0; i < 100 && !b.result; i++) battleCommand(s, ATTACK(s));
     expect(b.result).toBe('won');
     battleCommand(s, { kind: 'continue' });
+    s.levelUp = null;
+    expect(s.talk?.allyId).toBe('skitch');
+    say(s, "What's with the nail gun?");
+    say(s, 'Something else.');
+    say(s, 'Welcome aboard.');
     expect(s.party.map((a) => a.defId)).toEqual(['skitch']);
+    expect(s.party[0].stats.hp).toBe(2); // keeps the beating he took
+    expect(s.party[0].ally!.known).toHaveLength(1);
+  });
+
+  it('can send a spared Skitch away for good', () => {
+    const s = cleanRun();
+    s.player.stats.charm = 10;
+    const b = fight(s, ['skitch', 'intake_rat']);
+    const skitch = b.combatants.find((c) => c.defId === 'skitch')!;
+    skitch.stats.hp = 2;
+    battleCommand(s, { kind: 'spare', targetId: skitch.id });
+    for (let i = 0; i < 100 && !b.result; i++) battleCommand(s, ATTACK(s));
+    battleCommand(s, { kind: 'continue' });
+    s.levelUp = null;
+    say(s, 'Get lost, rat.');
+    expect(s.party).toHaveLength(0);
+    expect(s.floor.entities.some((e) => e.defId === 'skitch')).toBe(false);
+    expect(s.events.some((e) => e.type === 'allyDismissed')).toBe(true);
+  });
+
+  it('chatting from the pause screen: a kind word helps, but only every couple of fights', () => {
+    const s = cleanRun();
+    const a = withAlly(s, 'marjorie');
+    s.mode = 'menu';
+    const start = a.ally!.loyalty;
+    inventoryCommand(s, { kind: 'talk', allyId: a.id });
+    expect(s.talk?.kind).toBe('chat');
+    say(s, 'Any advice?');
+    say(s, "Glad you're with me.");
+    expect(s.talk).toBeNull();
+    expect(s.mode).toBe('menu'); // back to the pause screen
+    expect(a.ally!.loyalty).toBe(start + 4);
+    inventoryCommand(s, { kind: 'talk', allyId: a.id });
+    say(s, "Glad you're with me.");
+    expect(a.ally!.loyalty).toBe(start + 4);
+    s.record.fights += 2;
+    inventoryCommand(s, { kind: 'talk', allyId: a.id });
+    say(s, "Glad you're with me.");
+    expect(a.ally!.loyalty).toBe(start + 8);
   });
 
   it('allies hold off a beaten deserter so you can spare him', () => {
