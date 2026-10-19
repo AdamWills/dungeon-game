@@ -5,7 +5,7 @@ import { CLASSES } from '../data/classes';
 import { INVENTORY_CAP, ITEMS, RARITY_NAMES } from '../data/items';
 import { RACES } from '../data/races';
 import { UI_TEXT } from '../data/uiText';
-import { carriedCount, SLOTS, type Slot, weaponOf } from '../game/equipment';
+import { carriedCount, equipPreview, SLOTS, type Slot, weaponOf } from '../game/equipment';
 import { ALLIES, STANCE_ORDER, STANCES } from '../data/allies';
 import { SKILLS } from '../data/skills';
 import { skillLevel } from '../game/skills';
@@ -199,6 +199,14 @@ export class InventoryMenu {
       for (const l of wrapLines(ctx, `"${def.description}"`, dw)) {
         ctx.fillText(l, dx, dy);
         dy += 19;
+      }
+      // If it is in your pockets: what wearing it would change.
+      if (row.kind === 'pocket') {
+        for (const c of equipPreview(state, def.id)) {
+          ctx.fillStyle = c.after > c.before ? '#7aea5a' : '#ff6a50';
+          ctx.fillText(`${c.name} ${c.before} → ${c.after}`, dx, dy);
+          dy += 19;
+        }
       }
       dy += 12;
       ctx.fillStyle = '#d9b310';

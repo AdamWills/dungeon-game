@@ -228,21 +228,21 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- cursed ----------------------------------------------------------------
   chets_spare_microphone: {
     id: 'chets_spare_microphone', name: 'Chet\'s Spare Microphone', rarity: 'cursed', slot: 'trinket', cursed: true,
-    mods: { str: 3, evasion: -2 },
+    mods: { str: 5, evasion: -3, armor: -2 },
     description: 'Still warm. Still on. Everything you say is now broadcast, and you cannot put it down.',
-    help: 'Cursed trinket: +3 Strength, -2 Evasion. Cannot be taken off.',
+    help: 'Cursed trinket: +5 Strength, but -3 Evasion and -2 Armor.',
   },
   paper_crown: {
     id: 'paper_crown', name: 'Paper Crown of Champions', rarity: 'cursed', slot: 'trinket', cursed: true,
-    mods: { charm: 2, evasion: 2, maxHp: -6 },
+    mods: { charm: 4, evasion: 3, speed: 2, maxHp: -10 },
     description: 'From the one season someone won. It has not stopped judging you since.',
-    help: 'Cursed trinket: +2 Charm, +2 Evasion, -6 max HP. Cannot be taken off.',
+    help: 'Cursed trinket: +4 Charm, +3 Evasion, +2 Speed, but -10 max HP.',
   },
   lucky_handcuff: {
     id: 'lucky_handcuff', name: 'Lucky Handcuff', rarity: 'cursed', slot: 'armor', cursed: true,
-    mods: { armor: 3, speed: -2 },
+    mods: { armor: 5, maxHp: 6, speed: -3 },
     description: 'Lucky for whoever was on the other end. Locks on contact.',
-    help: 'Cursed armour: +3 Armor, -2 Speed. Cannot be taken off.',
+    help: 'Cursed armour: +5 Armor, +6 max HP, but -3 Speed (you act last and fleeing gets hard).',
   },
   // --- host's pick -----------------------------------------------------------
   golden_buzzer: {

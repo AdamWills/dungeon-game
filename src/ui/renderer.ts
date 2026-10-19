@@ -126,7 +126,7 @@ export class Renderer {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
       if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
-      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
+      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
       else ui.inventory.draw(ctx, w, h, state, this.icons, ui.host.history);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);

@@ -4,7 +4,8 @@
 
 import { ITEMS } from '../data/items';
 import { UI_TEXT } from '../data/uiText';
-import type { ItemInstance } from '../game/types';
+import { equipPreview } from '../game/equipment';
+import type { GameState, ItemInstance } from '../game/types';
 import type { ItemIcons } from './itemIcons';
 import { blink, confetti, glowPad, lowRes, NEON, type Neon, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
 import { drawText, fitScale, wrapPixel } from './pixelFont';
@@ -23,6 +24,7 @@ export function drawPrizeCard(
   w: number,
   h: number,
   item: ItemInstance,
+  state: GameState,
   queued: number,
   icons: ItemIcons,
   now: number,
@@ -39,13 +41,17 @@ export function drawPrizeCard(
     if (style.confetti) confetti(g, lw, lh, since, now);
   }, { minH });
   lowRes(ctx, w, h, pixel, (g, lw, lh) => {
-    const cw = Math.min(260, lw - 8);
+    const cw = Math.min(310, lw - 8);
     const maxW = cw - 24;
     const nameStyle = { bold: true, color: style.inner.text, outline: '#0a1a4a' };
     const hint = def.slot ? T.equipHint : def.use ? (def.use.battleOnly || def.use.target !== 'self' ? T.fightHint : T.useHint) : T.carryHint;
     // Lay the words out first so the card grows to fit them.
+    // Against what you have on now, if you wore it.
+    const changes = equipPreview(state, def.id).map((c) => [[`${c.name} ${c.before} -> ${c.after}`], c.after > c.before ? NEON.green.text : NEON.red.text, 0] as [string[], string, number]);
+    if (changes.length) changes[0][2] = 3;
     const blocks: [string[], string, number][] = [
       [wrapPixel(def.help, maxW), '#ffffff', 3],
+      ...changes,
       [wrapPixel(`"${def.description}"`, maxW), '#b090e0', 3],
       [wrapPixel(def.cursed ? `${T.cursedHint} ${hint}` : hint, maxW), NEON.gold.text, 3],
     ];

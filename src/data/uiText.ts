@@ -80,7 +80,7 @@ export const UI_TEXT = {
   prize: {
     heading: 'NEW ITEM!',
     badges: { junk: 'BOOBY PRIZE!', standard: 'A FINE PRIZE!', special: 'SPECIAL PRIZE!', cursed: 'UH-OH!', hosts_pick: 'JACKPOT!!' } as Record<string, string>,
-    cursedHint: 'Cursed: once worn, it will not come off.',
+    cursedHint: 'Cursed: once worn, it stays on for the rest of the run.',
     equipHint: 'Wear it from the inventory (I or ESC).',
     useHint: 'Use it any time from the inventory (I or ESC), or in a fight.',
     fightHint: 'Use it in a fight, from the Item menu.',

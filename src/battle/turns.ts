@@ -14,7 +14,7 @@ import { STATUSES, type StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { baseDamage, fleeChance, modifyDamage, rollHit, weightedPick } from '../game/combat';
 import { playerResists, weaponOf } from '../game/equipment';
-import { rollItem } from '../game/loot';
+import { depthOf, rollItem } from '../game/loot';
 import { changeLoyalty, makeAlly, recruit, settleLoyalty } from '../game/party';
 import { gainXp, hasPerk, openLevelUp } from '../game/progress';
 import { eliminate } from '../game/report';
@@ -763,7 +763,7 @@ function endBattle(state: GameState): void {
       addGore(state, e.pos, 'gibs');
       floor.entities.splice(idx, 1);
       if (nextFloat(state.rng) < theme.dropChance)
-        floor.items.push({ id: `loot-${c.id}`, pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) }, item: rollItem(state.rng) });
+        floor.items.push({ id: `loot-${c.id}`, pos: { x: Math.round(e.pos.x), y: Math.round(e.pos.y) }, item: rollItem(state.rng, depthOf(floor, { x: Math.round(e.pos.x), y: Math.round(e.pos.y) })) });
     } else {
       e.stats.hp = c.stats.hp;
       if (result === 'fled' && e.patrol && e.mind) {

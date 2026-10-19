@@ -91,6 +91,13 @@
 - The first trainable skill (`src/data/skills.ts`, `src/game/skills.ts`). Enemies now pick their next move and target in advance (`intent`), and use exactly that. Watching an enemy act is practice; levels at 3, 15, 40 and 80. Level 1 shows above each enemy whether it is about to attack, hit hard or attack with a status; 2 adds the move's name; 3 a rough damage number; 4 who it is aimed at. Level-ups are announced in the battle log and by Chet; the pause screen shows the level.
 - Tests: `tests/skills.test.ts`.
 
+### Cursed items (user feedback)
+- User: a cursed item that never comes off showed up far too early, +3 Strength meant nothing without knowing your current stats, and a lock that permanent is never worth it as they were. Decision: curses stay locked for the whole run, but:
+- Cursed items only roll in the second half of the floor (by walking distance from the start towards the stairs), for chests and enemy drops (`depthOf`, `CURSED_FROM` in `src/game/loot.ts`).
+- They are much stronger with a real cost: Chet's Spare Microphone +5 Strength, -3 Evasion, -2 Armor; Paper Crown +4 Charm, +3 Evasion, +2 Speed, -10 max HP; Lucky Handcuff +5 Armor, +6 max HP, -3 Speed.
+- The prize card and inventory show what wearing any gear would change against what you have on ("Strength 4 -> 9", green for up, red for down), including weapon damage (`equipPreview`).
+- Tests: `tests/loot.test.ts`.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

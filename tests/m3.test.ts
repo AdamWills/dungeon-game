@@ -80,7 +80,7 @@ describe('inventory', () => {
     const s = cleanRun();
     give(s, 'paper_crown');
     inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'paper_crown') });
-    expect(s.player.stats.maxHp).toBe(22); // 28 - 6
+    expect(s.player.stats.maxHp).toBe(18); // 28 - 10
     inventoryCommand(s, { kind: 'unequip', slot: 'trinket' });
     expect(s.player.equipment?.trinket?.defId).toBe('paper_crown');
     expect(s.events.some((e) => e.type === 'itemRefused' && e.reason === 'cursed')).toBe(true);

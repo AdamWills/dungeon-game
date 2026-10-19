@@ -175,3 +175,25 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     }
   }
 }
+
+const STAT_NAMES: Record<StatKey, string> = { maxHp: 'Max HP', str: 'Strength', speed: 'Speed', evasion: 'Evasion', armor: 'Armor', charm: 'Charm' };
+
+/**
+ * What wearing an item would change, against what you have on now, so a
+ * "+3 Strength" means something (user feedback). Includes weapon damage.
+ */
+export function equipPreview(state: GameState, defId: string): { name: string; before: number; after: number }[] {
+  const def = ITEMS[defId];
+  if (!def?.slot) return [];
+  const p = state.player;
+  const now = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained);
+  const next = computeStats(state.race, state.cls, { ...p.equipment, [def.slot]: { defId, identified: true } }, state.trained);
+  const out = (Object.keys(STAT_NAMES) as StatKey[])
+    .filter((k) => now[k] !== next[k])
+    .map((k) => ({ name: STAT_NAMES[k], before: now[k], after: next[k] }));
+  if (def.weapon) {
+    const before = weaponOf(p).damage;
+    if (before !== def.weapon.damage) out.unshift({ name: 'Weapon damage', before, after: def.weapon.damage });
+  }
+  return out;
+}

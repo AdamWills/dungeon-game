@@ -4,7 +4,7 @@
 import { RACES } from '../data/races';
 import { TUNING } from '../data/tuning';
 import { addItem } from '../game/equipment';
-import { rollItem } from '../game/loot';
+import { depthOf, rollItem } from '../game/loot';
 import { nextInt } from '../game/rng';
 import type { GameState, Vec } from '../game/types';
 import { updateFov } from './fov';
@@ -38,7 +38,7 @@ export function openDoor(state: GameState, at: Vec): void {
 export function openChest(state: GameState, x: number, y: number): boolean {
   const chest = chestAt(state, x, y);
   if (!chest || chest.opened) return false;
-  const item = rollItem(state.rng);
+  const item = rollItem(state.rng, depthOf(state.floor, chest.pos));
   const tokens = nextInt(state.rng, TUNING.chestTokens[0], TUNING.chestTokens[1]);
   state.tokens += tokens;
   state.events.push({ type: 'tokensGained', amount: tokens, from: 'chest' });
