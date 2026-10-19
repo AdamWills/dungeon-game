@@ -42,9 +42,11 @@ export function openChest(state: GameState, x: number, y: number): boolean {
   const tokens = nextInt(state.rng, TUNING.chestTokens[0], TUNING.chestTokens[1]);
   state.tokens += tokens;
   state.events.push({ type: 'tokensGained', amount: tokens, from: 'chest' });
-  if (!addItem(state, item, 'chest')) {
-    // No room: the prize waits on top of the chest.
-    state.floor.items.push({ id: `${chest.id}-spill`, pos: { ...chest.pos }, item });
+  // Chests block their tile, so anything left behind lands at your feet.
+  const feet = tileOf(state.player);
+  if (!addItem(state, item, 'chest', feet)) {
+    // No room: the prize waits for you on the floor.
+    state.floor.items.push({ id: `${chest.id}-spill`, pos: feet, item, left: true });
   }
   chest.opened = true;
   state.events.push({ type: 'chestOpened', id: chest.id });
@@ -57,15 +59,29 @@ export function facingTile(state: GameState): Vec {
   return { x: p.x + Math.round(Math.cos(state.player.facing)), y: p.y + Math.round(Math.sin(state.player.facing)) };
 }
 
-/** Pick up everything on the player's tile. */
-export function pickUp(state: GameState): void {
+/**
+ * Offer everything on the player's tile. Things you chose to leave stay put
+ * unless you ask for them (`all`, from the interact key).
+ */
+export function pickUp(state: GameState, all = false): boolean {
   const p = tileOf(state.player);
   const items = state.floor.items;
+  let offered = false;
   for (let i = items.length - 1; i >= 0; i--) {
     const it = items[i];
-    if (it.pos.x !== p.x || it.pos.y !== p.y) continue;
-    if (addItem(state, it.item, 'floor')) items.splice(i, 1);
+    if (it.pos.x !== p.x || it.pos.y !== p.y || (it.left && !all)) continue;
+    if (addItem(state, it.item, 'floor', it.pos)) {
+      items.splice(i, 1);
+      offered = true;
+    }
   }
+  return offered;
+}
+
+/** A thing you left on this tile, if any (for the prompt). */
+export function leftItemHere(state: GameState) {
+  const p = tileOf(state.player);
+  return state.floor.items.find((it) => it.left && it.pos.x === p.x && it.pos.y === p.y);
 }
 
 /** Eat one set of remains on the player's tile. Returns true if there were any. */

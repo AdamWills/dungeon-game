@@ -114,6 +114,10 @@
 - "An enemy walks right into my face... how is that being ambushed?" An enemy now only ambushes you if it reaches you from behind (the side you are not facing); walking into your face is a normal fight. The battle banner says why in plain words ("SNEAK ATTACK: they had not noticed you..." / "AMBUSHED FROM BEHIND: it caught you with your back turned..."). GDD updated.
 - "What the heck is Booby Prize?" Prize card badges and the inventory now use the usual game rarity names: Poor, Common, Rare, Legendary, plus Cursed (user rejected Junk/Standard/Special/Host's Pick as unclear). Internal ids are unchanged.
 
+### Take it or leave it (user request)
+- New items no longer go straight into your pockets: the prize card asks. ENTER takes it, X (or ESC) leaves it where it was found. Things you leave or drop stay put and do not pop up again when you walk over them; the bottom bar says they are there and E picks them up.
+- Fixed: with full pockets, a chest's item used to land on the chest's own tile, which you cannot stand on, so it was lost. Anything from a chest now lands at your feet.
+
 ## Next
 
 M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the mini-boss, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.

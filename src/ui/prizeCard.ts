@@ -7,7 +7,7 @@ import { UI_TEXT } from '../data/uiText';
 import { equipPreview } from '../game/equipment';
 import type { GameState, ItemInstance } from '../game/types';
 import type { ItemIcons } from './itemIcons';
-import { blink, confetti, glowPad, lowRes, NEON, type Neon, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
+import { confetti, glowPad, lowRes, NEON, type Neon, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
 import { drawText, fitScale, wrapPixel } from './pixelFont';
 
 /** Per rarity: the tubes, the badge sign and whether it rains confetti. A dud tube flickers. */
@@ -80,7 +80,8 @@ export function drawPrizeCard(
         yy += 9;
       }
     }
-    if (blink(now) || now - since < 900) {
+    {
+      // A choice, so it stays on screen (no blinking).
       const prompt = queued > 0 ? `${T.prompt} (${queued} MORE)` : T.prompt;
       drawText(g, prompt, cx, y + ch - 21, { color: NEON.pink.core, outline: '#2a0a3a', align: 'center' });
     }

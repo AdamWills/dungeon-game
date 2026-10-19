@@ -97,7 +97,7 @@ describe('inventory', () => {
     expect(slotOf(s, 'pipe_bomb')).toBeGreaterThanOrEqual(0);
   });
 
-  it('drops items and picks them up again by walking over them', () => {
+  it('drops items, and picks them up again with E', () => {
     const s = cleanRun();
     const n = s.player.inventory.length;
     inventoryCommand(s, { kind: 'drop', slot: 0 });
@@ -107,8 +107,29 @@ describe('inventory', () => {
     const back = dir === 'right' ? 'left' : 'right';
     walk(s, dir);
     walk(s, back);
+    expect(s.reveals).toHaveLength(0); // walking over it does not pop it up again
+    step(s, { ...NO_INPUT, interact: true });
+    expect(s.reveals).toHaveLength(1);
+    step(s, { ...NO_INPUT, command: { kind: 'dismiss' } });
     expect(s.player.inventory.length).toBe(n);
     expect(s.floor.items).toHaveLength(0);
+  });
+
+  it('lets you leave a new item where it was found, and come back for it', () => {
+    const s = cleanRun();
+    const n = s.player.inventory.length;
+    s.floor.chests.push({ id: 'c', pos: nearPlayer(s, 1, 0), opened: false });
+    step(s, { ...NO_INPUT, move: 'right' });
+    const offered = s.reveals[0].item.defId;
+    step(s, { ...NO_INPUT, command: { kind: 'leave' } });
+    expect(s.mode).toBe('roaming');
+    expect(s.player.inventory.length).toBe(n);
+    const left = s.floor.items.find((i) => i.item.defId === offered)!;
+    expect(left.left).toBe(true);
+    expect(left.pos).toEqual(s.player.pos); // at your feet, not on the chest
+    step(s, { ...NO_INPUT, interact: true });
+    step(s, { ...NO_INPUT, command: { kind: 'dismiss' } });
+    expect(s.player.inventory.map((i) => i.defId)).toContain(offered);
   });
 
   it('caps what you can carry', () => {
@@ -134,6 +155,7 @@ describe('chests, doors and remains', () => {
     const n = s.player.inventory.length;
     step(s, { ...NO_INPUT, move: 'right' });
     expect(s.floor.chests[0].opened).toBe(true);
+    step(s, { ...NO_INPUT, command: { kind: 'dismiss' } }); // take it
     expect(s.player.inventory.length).toBe(n + 1);
   });
 

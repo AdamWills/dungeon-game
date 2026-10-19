@@ -11,7 +11,8 @@ import { TUNING } from '../data/tuning';
 import { UI_TEXT } from '../data/uiText';
 import { canSee } from '../game/ai';
 import { hazardActive, hazardPhase } from '../world/hazards';
-import { chestAt, facingTile, isClosedDoor, propAt } from '../world/interact';
+import { chestAt, facingTile, isClosedDoor, leftItemHere, propAt } from '../world/interact';
+import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
 import { fill } from '../data/battleText';
 import { ALLIES } from '../data/allies';
@@ -132,7 +133,7 @@ export class Renderer {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
       if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
-      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0], state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
+      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0].item, state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
       else ui.inventory.draw(ctx, w, h, state, this.icons, ui.host.history);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);
@@ -572,6 +573,8 @@ export class Renderer {
     const { x, y } = playerTile(state);
     const tile = state.floor.tiles[y][x];
     if (tile.terrain === 'stairs') return NOTICES.onStairs;
+    const left = leftItemHere(state);
+    if (left) return fill(P.leftItem, { item: ITEMS[left.item.defId]?.name ?? left.item.defId });
     if (tile.hazard) return HAZARDS[tile.hazard].help;
     if (tile.gore.some((g) => g.kind === 'gibs')) return P.eat.replace('{effect}', RACES[state.race].eatsCorpses ? P.eatGood : P.eatBad);
     const f = facingTile(state);

@@ -47,7 +47,11 @@ export type ImprovOutcome = {
 };
 
 /** An item lying on the floor, waiting to be picked up. */
-export type FloorItem = { id: string; pos: Vec; item: ItemInstance };
+/** `left`: you saw it and chose to leave it; it no longer pops up when you step on it. */
+export type FloorItem = { id: string; pos: Vec; item: ItemInstance; left?: boolean };
+
+/** An item on offer on a prize card: take it, or leave it where it was found. */
+export type Offer = { item: ItemInstance; from: 'chest' | 'floor'; at: Vec };
 
 export type Room = { id: number; x1: number; y1: number; x2: number; y2: number; center: Vec };
 
@@ -189,7 +193,8 @@ export type InvCommand =
   | { kind: 'unequip'; slot: 'weapon' | 'armor' | 'trinket' }
   | { kind: 'use'; slot: number }
   | { kind: 'drop'; slot: number }
-  | { kind: 'dismiss' } // close the prize card for a new item
+  | { kind: 'dismiss' } // take the item on the prize card
+  | { kind: 'leave' } // leave it where it was found
   | { kind: 'give'; slot: number; allyId: string }
   | { kind: 'stance'; allyId: string; stance: Stance }
   | { kind: 'train'; stat: StatKey } // spend a level-up point
@@ -309,7 +314,7 @@ export type GameState = {
   /** How often each improvisation has been done this run (repeats get weaker). */
   improvCounts: Record<string, number>;
   /** New items waiting to be shown on a prize card; time is paused while any are. */
-  reveals: ItemInstance[];
+  reveals: Offer[];
   /** Recruited allies, in following order. */
   party: Entity[];
   /** Tiles the player has just left, newest first: the party walks along this. */

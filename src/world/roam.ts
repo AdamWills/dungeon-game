@@ -6,14 +6,14 @@
 import { TUNING } from '../data/tuning';
 import { battleCommand, battleTick, startBattle } from '../battle/turns';
 import { updateEnemy } from '../game/ai';
-import { inventoryCommand } from '../game/equipment';
+import { inventoryCommand, leaveOffer } from '../game/equipment';
 import { captiveAt, leaveTrail, spotCaptives, tryRecruit, updateParty } from '../game/party';
 import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
 import { updateFov } from './fov';
 import { updateHazards } from './hazards';
-import { chestAt, eatRemains, facingTile, isClosedDoor, openChest, openDoor, pickUp, propAt } from './interact';
+import { chestAt, eatRemains, facingTile, isClosedDoor, leftItemHere, openChest, openDoor, pickUp, propAt } from './interact';
 import { advanceMotion, FACING, startMotion, tileOf } from './motion';
 
 const DELTA: Record<Dir, Vec> = {
@@ -27,7 +27,7 @@ export function step(state: GameState, input: InputFrame): void {
   if (input.pause && !state.levelUp) {
     if (state.mode === 'roaming') setMode(state, 'menu');
     else if (state.mode === 'menu') {
-      state.reveals = []; // leaving the pause also closes any prize cards
+      while (state.reveals.length) leaveOffer(state); // ESC on a prize card leaves it
       setMode(state, 'roaming');
     }
   }
@@ -120,13 +120,14 @@ function facingDir(facing: number): Dir {
 
 /** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'give', 'stance', 'train', 'perk'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'leave', 'give', 'stance', 'train', 'perk'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */
 function interact(state: GameState): boolean {
   const { x, y } = playerTile(state);
   if (state.floor.tiles[y][x].terrain !== 'stairs') {
+    if (leftItemHere(state) && pickUp(state, true)) return true;
     if (eatRemains(state)) return true;
     const f = facingTile(state);
     if (openChest(state, f.x, f.y)) return true;

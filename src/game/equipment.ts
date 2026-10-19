@@ -9,7 +9,8 @@ import type { StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { giveItem, setStance } from './party';
 import { takePerk, train } from './progress';
-import type { Entity, Equipment, GameState, InvCommand, ItemInstance, Stats } from './types';
+import { tileOf } from '../world/motion';
+import type { Entity, Equipment, GameState, InvCommand, ItemInstance, Stats, Vec } from './types';
 
 export const SLOTS = ['weapon', 'armor', 'trinket'] as const;
 export type Slot = (typeof SLOTS)[number];
@@ -69,21 +70,36 @@ export function carriedCount(player: Entity): number {
   return player.inventory.length + SLOTS.filter((s) => player.equipment?.[s]).length;
 }
 
-/** Add to the pockets if there is room. */
-export function addItem(state: GameState, item: ItemInstance, from: 'chest' | 'floor'): boolean {
-  if (carriedCount(state.player) >= INVENTORY_CAP) {
+/**
+ * Offer an item on a prize card: the game pauses and you choose to take it or
+ * leave it (user request). False if your pockets are already full.
+ */
+export function addItem(state: GameState, item: ItemInstance, from: 'chest' | 'floor', at: Vec = tileOf(state.player)): boolean {
+  if (carriedCount(state.player) + state.reveals.length >= INVENTORY_CAP) {
     state.events.push({ type: 'inventoryFull', defId: item.defId });
     return false;
   }
-  state.player.inventory.push(item);
-  state.events.push({ type: 'itemPicked', defId: item.defId, from });
-  // Pause on a prize card so the player can see what they got.
-  state.reveals.push(item);
+  state.reveals.push({ item, from, at: { ...at } });
   if (state.mode === 'roaming') {
     state.mode = 'menu';
     state.events.push({ type: 'modeChanged', from: 'roaming', to: 'menu' });
   }
   return true;
+}
+
+/** Take the item on the prize card into your pockets. */
+export function takeOffer(state: GameState): void {
+  const offer = state.reveals.shift();
+  if (!offer) return;
+  state.player.inventory.push(offer.item);
+  state.events.push({ type: 'itemPicked', defId: offer.item.defId, from: offer.from });
+}
+
+/** Leave the item on the prize card where it was found. You can come back for it (E). */
+export function leaveOffer(state: GameState): void {
+  const offer = state.reveals.shift();
+  if (!offer) return;
+  state.floor.items.push({ id: `left-${state.tick}-${state.floor.items.length}`, pos: { ...offer.at }, item: offer.item, left: true });
 }
 
 export function inventoryCommand(state: GameState, cmd: InvCommand): void {
@@ -96,9 +112,10 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     return;
   }
   if (state.reveals.length) {
-    // While a prize card is up, the only thing to do is close it.
-    if (cmd.kind !== 'dismiss') return;
-    state.reveals.shift();
+    // While a prize card is up, the only thing to do is take it or leave it.
+    if (cmd.kind === 'dismiss') takeOffer(state);
+    else if (cmd.kind === 'leave') leaveOffer(state);
+    else return;
     if (!state.reveals.length) {
       state.mode = 'roaming';
       state.events.push({ type: 'modeChanged', from: 'menu', to: 'roaming' });
@@ -107,6 +124,7 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   }
   switch (cmd.kind) {
     case 'dismiss':
+    case 'leave':
     case 'train':
     case 'perk':
       return;
@@ -170,7 +188,8 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
       if (!inst) return;
       p.inventory.splice(cmd.slot, 1);
       const at = { x: Math.round(p.pos.x), y: Math.round(p.pos.y) };
-      state.floor.items.push({ id: `drop-${state.tick}-${state.floor.items.length}`, pos: at, item: inst });
+      // Dropped on purpose: it waits for you (E) rather than popping up again.
+      state.floor.items.push({ id: `drop-${state.tick}-${state.floor.items.length}`, pos: at, item: inst, left: true });
       return;
     }
   }

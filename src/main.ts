@@ -100,6 +100,7 @@ function frame(now: number) {
       else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
         if (key === 'confirm') pendingCommand = { kind: 'dismiss' };
+        else if (key === 'drop') pendingCommand = { kind: 'leave' };
       } else if (s.mode === 'menu') pendingCommand = inventory.handle(key, s) ?? pendingCommand;
       else if (key === 'confirm') {
         state = null; // back to the picker for a new run
