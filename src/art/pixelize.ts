@@ -13,6 +13,19 @@ export function blank(width: number, height: number): Pixels {
   return { width, height, data: new Uint8ClampedArray(width * height * 4) };
 }
 
+/**
+ * Remove a flat key-colour background (for image models without transparency):
+ * pixels close to the key colour become clear, and a soft fringe fades out.
+ */
+export function removeKey(p: Pixels, rgb: [number, number, number], near = 90, far = 150): Pixels {
+  for (let i = 0; i < p.data.length; i += 4) {
+    const d = Math.hypot(p.data[i] - rgb[0], p.data[i + 1] - rgb[1], p.data[i + 2] - rgb[2]);
+    if (d <= near) p.data[i + 3] = 0;
+    else if (d < far) p.data[i + 3] = Math.min(p.data[i + 3], Math.round((255 * (d - near)) / (far - near)));
+  }
+  return p;
+}
+
 /** The smallest box holding every pixel more opaque than `threshold`. */
 export function alphaBounds(p: Pixels, threshold = 24): Box | null {
   let x0 = p.width;

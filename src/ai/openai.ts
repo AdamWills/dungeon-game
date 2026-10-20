@@ -3,7 +3,7 @@
 // JSON schema; every call is priced from its reported usage and charged to the
 // run's budget. Errors come back as values, never thrown at the game.
 
-import { API_BASE, IMAGE_FALLBACK_COST, IMAGE_PRICES, MODELS, TEXT_PRICES, TIMEOUT_MS } from './config';
+import { API_BASE, IMAGE_FALLBACK_COST, IMAGE_PRICES, KEY_COLOR, MODELS, NO_TRANSPARENCY, TEXT_PRICES, TIMEOUT_MS } from './config';
 import type { Budget } from './budget';
 
 export type AiError =
@@ -114,23 +114,47 @@ export async function structured<T>(client: Client, req: StructuredRequest, mode
 
 export type ImageRequest = { prompt: string; size?: string; quality?: 'low' | 'medium' | 'high'; transparent?: boolean };
 
-/** Generate one image; returns PNG data as base64. */
-export async function image(client: Client, req: ImageRequest, model = MODELS.image): Promise<AiResult<string>> {
+/** `keyed`: the image is on a flat KEY_COLOR background (the model could not do transparency); remove it. */
+export type ImageResult = { b64: string; keyed: boolean };
+
+/**
+ * Generate one image; returns PNG data as base64. A transparent background is
+ * asked for directly where the model supports it; otherwise (or if the model
+ * turns it down) the prompt asks for a flat key colour for us to remove.
+ */
+export async function image(client: Client, req: ImageRequest, model = MODELS.image): Promise<AiResult<ImageResult>> {
   const quality = req.quality ?? 'low';
   const worst = IMAGE_FALLBACK_COST[quality] ?? IMAGE_FALLBACK_COST.high;
   if (!client.budget.canAfford(worst)) return { ok: false, error: { kind: 'budget', left: client.budget.left } };
-  const res = await post(
-    client,
-    '/images/generations',
-    { model, prompt: req.prompt, size: req.size ?? '1024x1024', quality, background: req.transparent === false ? 'opaque' : 'transparent', output_format: 'png', n: 1 },
-    TIMEOUT_MS.image,
-  );
+  const wantClear = req.transparent !== false;
+  const send = (keyed: boolean) =>
+    post(
+      client,
+      '/images/generations',
+      {
+        model,
+        prompt: keyed ? `${req.prompt} Instead of transparency, put it on a perfectly flat, solid ${KEY_COLOR.name} background, with no other use of that colour.` : req.prompt,
+        size: req.size ?? '1024x1024',
+        quality,
+        background: wantClear && !keyed ? 'transparent' : 'opaque',
+        output_format: 'png',
+        n: 1,
+      },
+      TIMEOUT_MS.image,
+    );
+  let keyed = wantClear && NO_TRANSPARENCY.has(model);
+  let res = await send(keyed);
+  // A 400 costs nothing: if transparency was refused, ask again with the key colour.
+  if (!res.ok && wantClear && !keyed && res.error.kind === 'http' && res.error.status === 400 && /transparen/i.test(res.error.message)) {
+    keyed = true;
+    res = await send(true);
+  }
   if (!res.ok) return res;
   const cost = imageCost(model, res.json?.usage, quality);
   client.budget.charge(cost);
   const b64 = res.json?.data?.[0]?.b64_json;
   if (typeof b64 !== 'string') return { ok: false, error: { kind: 'bad_output', message: 'no image' } };
-  return { ok: true, value: b64, cost };
+  return { ok: true, value: { b64, keyed }, cost };
 }
 
 /** Check a key without spending anything (lists models). */

@@ -4,9 +4,9 @@
 // pixelize step the game will use, and shows it on the real map tiles next to
 // today's hand-drawn sprites. Results are kept in this browser.
 
-import { pixelize, type Pixels } from './art/pixelize';
+import { pixelize, type Pixels, removeKey } from './art/pixelize';
 import { Budget, formatUsd } from './ai/budget';
-import { MODELS } from './ai/config';
+import { KEY_COLOR, MODELS } from './ai/config';
 import { describeError, image } from './ai/openai';
 import { loadSettings, maskKey } from './ai/settings';
 import { spritePrompt } from './data/aiPrompts';
@@ -38,7 +38,7 @@ function status(text: string, error = false): void {
 }
 
 /** Decode an image into raw pixels, shrunk to 512 px at most (plenty for a 48 px sprite). */
-async function toPixels(src: string): Promise<{ pixels: Pixels; thumb: string }> {
+async function toPixels(src: string, keyed = false): Promise<{ pixels: Pixels; thumb: string }> {
   const img = new Image();
   img.src = src;
   await img.decode();
@@ -50,6 +50,11 @@ async function toPixels(src: string): Promise<{ pixels: Pixels; thumb: string }>
   g.imageSmoothingQuality = 'high';
   g.drawImage(img, 0, 0, c.width, c.height);
   const data = g.getImageData(0, 0, c.width, c.height);
+  if (keyed) {
+    // The model could not do transparency: take out the flat key colour.
+    removeKey({ width: c.width, height: c.height, data: data.data }, KEY_COLOR.rgb);
+    g.putImageData(data, 0, 0);
+  }
   return { pixels: { width: c.width, height: c.height, data: data.data }, thumb: c.toDataURL('image/png') };
 }
 
@@ -160,7 +165,7 @@ async function main(): Promise<void> {
     meter();
     if (!res.ok) return status(describeError(res.error), true);
     status(`Done. That cost ${formatUsd(res.cost)}.`);
-    const saved = { desc, png: (await toPixels(`data:image/png;base64,${res.value}`)).thumb, at: Date.now() };
+    const saved = { desc, png: (await toPixels(`data:image/png;base64,${res.value.b64}`, res.value.keyed)).thumb, at: Date.now() };
     remember(saved);
     await show(atlas, saved, true);
   });

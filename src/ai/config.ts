@@ -5,8 +5,8 @@
 export const MODELS = {
   /** Small, fast and cheap: typed actions, quick reactions. */
   text: 'gpt-6-luna',
-  /** Sprites and showpieces. */
-  image: 'gpt-image-2',
+  /** Sprites and showpieces. Fast everyday model; it supports transparent backgrounds (gpt-image-2 does not). */
+  image: 'gpt-image-2.5-flare',
 };
 
 export const API_BASE = 'https://api.openai.com/v1';
@@ -19,8 +19,16 @@ export const TEXT_PRICES: Record<string, TextPrice> = {
 };
 
 export const IMAGE_PRICES: Record<string, ImagePrice> = {
+  'gpt-image-2.5-flare': { textInput: 5, imageInput: 8, imageOutput: 30 },
+  'gpt-image-2.5-sunburst': { textInput: 5, imageInput: 8, imageOutput: 30 },
   'gpt-image-2': { textInput: 5, imageInput: 8, imageOutput: 30 },
 };
+
+/** Models that cannot draw on transparency: we ask for a flat key colour and remove it ourselves. */
+export const NO_TRANSPARENCY = new Set(['gpt-image-2']);
+
+/** The flat background colour asked for when a model cannot do transparency. */
+export const KEY_COLOR = { rgb: [255, 0, 255] as [number, number, number], name: 'pure magenta (#FF00FF)' };
 
 /** When an image response reports no usage: a cautious per-image guess by quality (1024 px square). */
 export const IMAGE_FALLBACK_COST: Record<string, number> = { low: 0.01, medium: 0.06, high: 0.22 };

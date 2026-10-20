@@ -86,10 +86,31 @@ describe('images and keys', () => {
     const f = fakeFetch(200, { data: [{ b64_json: 'AAAA' }], usage: { input_tokens: 50, output_tokens: 272, input_tokens_details: { text_tokens: 50 } } });
     const budget = new Budget(5);
     const res = await image({ apiKey: 'k', budget, fetch: f.fn }, { prompt: 'a rat' });
-    expect(res).toMatchObject({ ok: true, value: 'AAAA' });
+    expect(res).toMatchObject({ ok: true, value: { b64: 'AAAA', keyed: false } });
     const sent = JSON.parse(String(f.calls[0].init.body));
-    expect(sent).toMatchObject({ model: 'gpt-image-2', background: 'transparent', output_format: 'png', quality: 'low' });
+    expect(sent).toMatchObject({ model: 'gpt-image-2.5-flare', background: 'transparent', output_format: 'png', quality: 'low' });
     expect(budget.spent).toBeGreaterThan(0);
+  });
+
+  it('asks for a flat key colour when the model cannot do transparency, or turns it down', async () => {
+    // A model known to lack it: no transparent request at all.
+    const f = fakeFetch(200, { data: [{ b64_json: 'BBBB' }] });
+    const res = await image({ apiKey: 'k', budget: new Budget(5), fetch: f.fn }, { prompt: 'a rat' }, 'gpt-image-2');
+    expect(res).toMatchObject({ ok: true, value: { keyed: true } });
+    const sent = JSON.parse(String(f.calls[0].init.body));
+    expect(sent.background).toBe('opaque');
+    expect(sent.prompt).toContain('magenta');
+    // A model that answers 400 "Transparent background is not supported": one retry, keyed.
+    const calls: string[] = [];
+    const flaky: Fetch = async (_url, init) => {
+      const body = JSON.parse(String(init.body));
+      calls.push(body.background);
+      if (body.background === 'transparent') return new Response(JSON.stringify({ error: { message: 'Transparent background is not supported for this model.' } }), { status: 400 });
+      return new Response(JSON.stringify({ data: [{ b64_json: 'CCCC' }] }), { status: 200 });
+    };
+    const again = await image({ apiKey: 'k', budget: new Budget(5), fetch: flaky }, { prompt: 'a rat' }, 'some-new-model');
+    expect(again).toMatchObject({ ok: true, value: { b64: 'CCCC', keyed: true } });
+    expect(calls).toEqual(['transparent', 'opaque']);
   });
 
   it('checks a key for free and masks it for display', async () => {

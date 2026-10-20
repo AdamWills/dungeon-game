@@ -10,7 +10,7 @@ The weekend prototype (M1 to M4, plus bosses and weak spots) is built. The game 
 
 - TypeScript, Vite, rot.js (FOV, pathfinding, rooms-and-corridors generator), Canvas 2D with a tile atlas.
 - No UI framework. No server: the browser calls OpenAI directly (it allows cross-origin calls) with the player's own API key, using plain `fetch` (no SDK dependency).
-- AI models: OpenAI `gpt-6-luna` for text, `gpt-image-2` for images, both configurable in one place (`src/ai`). Text responses use structured outputs (`text.format` with a strict JSON schema).
+- AI models: OpenAI `gpt-6-luna` for text, `gpt-image-2.5-flare` for images, both configurable in one place (`src/ai`). Text responses use structured outputs (`text.format` with a strict JSON schema).
 - Tests: Vitest, with fixed seeds.
 
 ## Rules that matter

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { alphaBounds, blank, OUTLINE_RGB, type Pixels, pixelize } from '../src/art/pixelize';
+import { alphaBounds, blank, OUTLINE_RGB, type Pixels, pixelize, removeKey } from '../src/art/pixelize';
 
 /** A 256 px "generated image": a soft-edged red disc with a blue band, on transparency. */
 function fakeImage(): Pixels {
@@ -43,6 +43,15 @@ describe('pixelize', () => {
       expect([...colorsOf(s)].some((c) => c.split(',').map(Number)[2] > 150)).toBe(true);
     });
   }
+
+  it('removes a flat magenta background and keeps the creature', () => {
+    const p = blank(4, 1);
+    p.data.set([255, 0, 255, 255, 250, 10, 245, 255, 200, 30, 30, 255, 180, 60, 180, 255]);
+    removeKey(p, [255, 0, 255]);
+    expect([p.data[3], p.data[7], p.data[11]]).toEqual([0, 0, 255]);
+    expect(p.data[15]).toBeGreaterThan(0); // a purple-ish fringe fades rather than vanishing
+    expect(p.data[15]).toBeLessThan(255);
+  });
 
   it('returns null for an empty image', () => {
     expect(pixelize(blank(64, 64), 32)).toBeNull();

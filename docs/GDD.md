@@ -10,7 +10,7 @@ The first prototype proved the rules and the tone. The game now builds on them w
 
 **What changes**
 
-- **AI is mandatory.** There is no no-AI mode. The provider is OpenAI: `gpt-6-luna` (the small, fast model) for in-the-moment calls, `gpt-image-2` for images, both configurable.
+- **AI is mandatory.** There is no no-AI mode. The provider is OpenAI: `gpt-6-luna` (the small, fast model) for in-the-moment calls, `gpt-image-2.5-flare` for images, both configurable.
 - **Bring your own key.** The player enters their own OpenAI API key on a settings screen. It is kept only in their browser (localStorage) and sent only to `api.openai.com`, which allows calls straight from the browser. There is no game server.
 - **Spending limit per run.** The player sets it; the default is **$5.00**. The game prices every call from the usage the API reports and shows the running total. At the limit, AI calls stop and the game asks the player to raise the limit or end the run.
 - **The AI writes the content, the engine keeps the rules.** Every AI response is structured JSON in a fixed shape (an action outcome, a monster, an item, a set piece), checked by the validator: known effects only, clamped numbers, no item creation from nothing, no instant battle wins. Player text is untrusted. Every AI response is recorded in the run, so the core stays deterministic and replayable.
@@ -384,7 +384,7 @@ The game is a static single-page app: TypeScript, rot.js for field of view, path
 | Build | Vite | Fast dev server, static output deploys anywhere |
 | Saves | localStorage, one JSON key | Meta state is small; no accounts |
 | Hosting | Any static host | No server; AI calls use the player's own OpenAI key |
-| AI | OpenAI `gpt-6-luna` and `gpt-image-2` via `fetch` | Structured outputs for every game-facing response |
+| AI | OpenAI `gpt-6-luna` and `gpt-image-2.5-flare` via `fetch` | Structured outputs for every game-facing response |
 
 **Modules**
 
