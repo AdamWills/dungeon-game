@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS } from '../src/data/items';
-import { equipPreview } from '../src/game/equipment';
+import { equipComparison, equipPreview, inventoryCommand } from '../src/game/equipment';
 import { CURSED_FROM, depthOf, rollItem } from '../src/game/loot';
 import { createRng } from '../src/game/rng';
 import { createGameState } from '../src/game/state';
@@ -49,5 +49,28 @@ describe('legendary odds (user decision: about one a floor outside the boss)', (
     }
     expect(chest / 20000).toBeGreaterThan(0.005);
     expect(chest / 20000).toBeLessThan(0.016);
+  });
+});
+
+describe('equipping from the prize card (user request)', () => {
+  it('"wear it now" takes the item and puts it on, swapping the old one into your pockets', () => {
+    const s = createGameState(11);
+    s.mode = 'menu';
+    s.reveals = [{ item: { defId: 'tiki_torch', identified: true }, from: 'chest', at: { ...s.player.pos } }];
+    const cmp = equipComparison(s, 'tiki_torch')!;
+    expect(cmp).toMatchObject({ slotName: 'Weapon', replaces: 'Rusted Pipe', blockedBy: null });
+    expect(cmp.changes).toContainEqual({ name: 'Damage type', before: 'Bludgeoning', after: 'Fire' });
+    inventoryCommand(s, { kind: 'wear' });
+    expect(s.player.equipment!.weapon!.defId).toBe('tiki_torch');
+    expect(s.player.inventory.some((i) => i.defId === 'rusted_pipe')).toBe(true);
+    expect(s.reveals).toHaveLength(0);
+    expect(s.mode).toBe('roaming');
+  });
+
+  it('says when nothing changes, and when a slot is empty', () => {
+    const s = createGameState(11);
+    s.player.equipment!.weapon = { defId: 'rusted_pipe', identified: true };
+    expect(equipComparison(s, 'rusted_pipe')!.changes).toEqual([]);
+    expect(equipComparison(s, 'mood_ring')).toMatchObject({ replaces: null, slotName: 'Ring' });
   });
 });

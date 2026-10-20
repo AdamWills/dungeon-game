@@ -125,7 +125,7 @@ function facingDir(facing: number): Dir {
 
 /** Inventory commands are the short, fixed list; everything else is for battle. */
 function isBattleCommand(cmd: BattleCommand | InvCommand): cmd is BattleCommand {
-  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'leave', 'give', 'stance', 'train', 'perk', 'say', 'talk'].includes(cmd.kind);
+  return !['equip', 'unequip', 'use', 'drop', 'dismiss', 'wear', 'leave', 'give', 'stance', 'train', 'perk', 'say', 'talk'].includes(cmd.kind);
 }
 
 /** Returns true if the interact key did something. */

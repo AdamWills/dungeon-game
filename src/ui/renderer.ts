@@ -49,7 +49,7 @@ import { bar, FONT, FONT_BIG, wrapText } from './text';
 export type Toast = { text: string; until: number };
 
 /** UI-side screens and messages the renderer draws on top of the game. */
-export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; host: Host; toasts: Toast[]; ai: { spent: number; limit: number } };
+export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; host: Host; toasts: Toast[]; ai: { spent: number; limit: number }; prize: { options: string[]; cursor: number } };
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
@@ -153,7 +153,7 @@ export class Renderer {
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
       if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
       else if (state.talk) ui.talk.draw(ctx, w, h, state, this.allySprites, now, this.since(state.talk, now), this.pixel);
-      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0].item, state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel);
+      else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0].item, state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel, ui.prize);
       else ui.inventory.draw(ctx, w, h, state, this.icons, this.playerSprites, ui.host.history);
     }
     if (state.mode === 'dead' || state.mode === 'won') this.drawRunEnd(state, now);

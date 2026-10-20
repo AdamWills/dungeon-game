@@ -4,11 +4,12 @@
 
 import { ITEMS } from '../data/items';
 import { UI_TEXT } from '../data/uiText';
-import { equipPreview } from '../game/equipment';
+import { equipComparison } from '../game/equipment';
 import type { GameState, ItemInstance } from '../game/types';
 import type { ItemIcons } from './itemIcons';
 import { confetti, glowPad, lowRes, NEON, type Neon, panel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
 import { drawText, fitScale, wrapPixel } from './pixelFont';
+import { fill } from '../data/battleText';
 
 /** Per rarity: the tubes, the badge sign and whether it rains confetti. A dud tube flickers. */
 const STYLE: Record<string, { outer: Neon; inner: Neon; badge: Neon; confetti: boolean; flicker: boolean }> = {
@@ -30,6 +31,7 @@ export function drawPrizeCard(
   now: number,
   since: number,
   pixel: number,
+  choice: { options: string[]; cursor: number },
 ): void {
   const def = ITEMS[item.defId];
   if (!def) return;
@@ -47,13 +49,25 @@ export function drawPrizeCard(
     const hint = def.slot ? T.equipHint : def.use ? (def.use.battleOnly || def.use.target !== 'self' ? T.fightHint : T.useHint) : T.carryHint;
     // Lay the words out first so the card grows to fit them.
     // Against what you have on now, if you wore it.
-    const changes = equipPreview(state, def.id).map((c) => [[`${c.name} ${c.before} -> ${c.after}`], c.after > c.before ? NEON.green.text : NEON.red.text, 0] as [string[], string, number]);
-    if (changes.length) changes[0][2] = 3;
+    // What it replaces, and every change (or that nothing changes): user request.
+    const cmp = equipComparison(state, def.id);
+    const changes: [string[], string, number][] = [];
+    if (cmp) {
+      const where = cmp.blockedBy ? fill(T.blocked, { item: cmp.blockedBy }) : cmp.replaces ? fill(T.replaces, { item: cmp.replaces, slot: cmp.slotName }) : fill(T.emptySlot, { slot: cmp.slotName });
+      changes.push([wrapPixel(where, maxW), cmp.blockedBy ? NEON.red.text : '#c8b8e0', 3]);
+      for (const c of cmp.changes) {
+        const better = typeof c.after === 'number' && typeof c.before === 'number' ? c.after > c.before : null;
+        changes.push([[`${c.name} ${c.before} -> ${c.after}`], better === null ? NEON.cyan.text : better ? NEON.green.text : NEON.red.text, 0]);
+      }
+      if (!cmp.changes.length) changes.push([[T.noChanges], '#8a7aa8', 0]);
+    }
     const blocks: [string[], string, number][] = [
       [wrapPixel(def.help, maxW), '#ffffff', 3],
       ...changes,
       [wrapPixel(`"${def.description}"`, maxW), '#b090e0', 3],
-      [wrapPixel(def.cursed ? `${T.cursedHint} ${hint}` : hint, maxW), NEON.gold.text, 3],
+      // Wearable items: the choices below say it all; cursed ones keep their warning.
+      ...(def.slot && !def.cursed ? [] : [[wrapPixel(def.cursed ? `${T.cursedHint} ${hint}` : hint, maxW), NEON.gold.text, 3] as [string[], string, number]]),
+      [[''], '#000', 2 + choice.options.length * 11],
     ];
     const names = wrapPixel(def.name, maxW, nameStyle);
     const body = names.length * 10 + blocks.reduce((n, [lines, , gap]) => n + gap + lines.length * 9, 0);
@@ -81,9 +95,18 @@ export function drawPrizeCard(
       }
     }
     {
-      // A choice, so it stays on screen (no blinking).
+      // The choices, then the keys. Stays on screen (no blinking).
+      const top = y + ch - 24 - choice.options.length * 11;
+      choice.options.forEach((o, i) => {
+        const sel = i === choice.cursor;
+        if (sel) {
+          g.fillStyle = '#2a0a3a';
+          g.fillRect(x + 30, top + i * 11 - 2, cw - 60, 10);
+        }
+        drawText(g, `${sel ? '> ' : '  '}${o}`, cx, top + i * 11, { color: sel ? NEON.gold.core : '#c8b8e0', align: 'center' });
+      });
       const prompt = queued > 0 ? `${T.prompt} (${queued} MORE)` : T.prompt;
-      drawText(g, prompt, cx, y + ch - 21, { color: NEON.pink.core, outline: '#2a0a3a', align: 'center' });
+      drawText(g, prompt, cx, y + ch - 14, { color: NEON.pink.core, outline: '#2a0a3a', align: 'center' });
     }
   }, { minH, pop: popIn((now - since) / 450), slot: 1 });
 }

@@ -3,8 +3,8 @@
 // paused.
 
 import { CLASSES, FISTS } from '../data/classes';
-import type { DamageType } from '../data/damage';
-import { INVENTORY_CAP, ITEMS, type ItemDef, type ItemSlot, type StatKey } from '../data/items';
+import { DAMAGE_TYPES, type DamageType } from '../data/damage';
+import { INVENTORY_CAP, ITEMS, type ItemDef, type ItemSlot, SLOT_NAMES, type StatKey } from '../data/items';
 import { RACES } from '../data/races';
 import type { StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
@@ -117,6 +117,26 @@ export function leaveOffer(state: GameState): void {
   state.floor.items.push({ id: `left-${state.tick}-${state.floor.items.length}`, pos: { ...offer.at }, item: offer.item, left: true });
 }
 
+/** Wear a pocket item, swapping out whatever was in its slot (cursed gear will not come off). */
+function equipFromPocket(state: GameState, index: number): void {
+  const p = state.player;
+  p.equipment ??= {};
+  const inst = p.inventory[index];
+  const def = inst && ITEMS[inst.defId];
+  if (!def?.slot) return;
+  const slot = targetSlot(p, def.slot);
+  const worn = p.equipment[slot];
+  if (worn && ITEMS[worn.defId]?.cursed) {
+    state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
+    return;
+  }
+  p.inventory.splice(index, 1);
+  if (worn) p.inventory.push(worn);
+  p.equipment[slot] = inst;
+  refreshPlayerStats(state);
+  state.events.push({ type: 'itemEquipped', defId: inst.defId, slot });
+}
+
 export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   const p = state.player;
   p.equipment ??= {};
@@ -133,7 +153,11 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   if (state.reveals.length) {
     // While a prize card is up, the only thing to do is take it or leave it.
     if (cmd.kind === 'dismiss') takeOffer(state);
-    else if (cmd.kind === 'leave') leaveOffer(state);
+    else if (cmd.kind === 'wear') {
+      // Take it and put it on straight away (user request).
+      takeOffer(state);
+      equipFromPocket(state, p.inventory.length - 1);
+    } else if (cmd.kind === 'leave') leaveOffer(state);
     else return;
     if (!state.reveals.length) {
       state.mode = 'roaming';
@@ -149,6 +173,7 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     }
     case 'say':
     case 'dismiss':
+    case 'wear':
     case 'leave':
     case 'train':
     case 'perk':
@@ -159,23 +184,9 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
     case 'stance':
       setStance(state, cmd.allyId, cmd.stance);
       return;
-    case 'equip': {
-      const inst = p.inventory[cmd.slot];
-      const def = inst && ITEMS[inst.defId];
-      if (!def?.slot) return;
-      const slot = targetSlot(p, def.slot);
-      const worn = p.equipment[slot];
-      if (worn && ITEMS[worn.defId]?.cursed) {
-        state.events.push({ type: 'itemRefused', defId: worn.defId, reason: 'cursed' });
-        return;
-      }
-      p.inventory.splice(cmd.slot, 1);
-      if (worn) p.inventory.push(worn);
-      p.equipment[slot] = inst;
-      refreshPlayerStats(state);
-      state.events.push({ type: 'itemEquipped', defId: inst.defId, slot });
+    case 'equip':
+      equipFromPocket(state, cmd.slot);
       return;
-    }
     case 'unequip': {
       const worn = p.equipment[cmd.slot];
       if (!worn) return;
@@ -231,6 +242,32 @@ const STAT_NAMES: Record<StatKey, string> = { maxHp: 'Max HP', str: 'Strength', 
  * What wearing an item would change, against what you have on now, so a
  * "+3 Strength" means something (user feedback). Includes weapon damage.
  */
+/**
+ * What wearing an item would do (user request: always say what it replaces
+ * and what changes, even when nothing does): the slot, the item it would
+ * swap out (or that the slot is empty), whether a cursed item blocks it, and
+ * every stat change.
+ */
+export function equipComparison(state: GameState, defId: string): { slotName: string; replaces: string | null; blockedBy: string | null; changes: { name: string; before: number | string; after: number | string }[] } | null {
+  const def = ITEMS[defId];
+  if (!def?.slot) return null;
+  const p = state.player;
+  const slot = targetSlot(p, def.slot);
+  const worn = p.equipment?.[slot];
+  const wornDef = worn && ITEMS[worn.defId];
+  const changes: { name: string; before: number | string; after: number | string }[] = equipPreview(state, defId);
+  if (def.weapon) {
+    const before = weaponOf(p).type;
+    if (before !== def.weapon.type) changes.push({ name: 'Damage type', before: DAMAGE_TYPES[before].name, after: DAMAGE_TYPES[def.weapon.type].name });
+  }
+  return {
+    slotName: slot === 'ring1' || slot === 'ring2' ? SLOT_NAMES.ring : SLOT_NAMES[slot],
+    replaces: wornDef ? wornDef.name : slot === 'weapon' ? FISTS.name : null,
+    blockedBy: wornDef?.cursed ? wornDef.name : null,
+    changes,
+  };
+}
+
 export function equipPreview(state: GameState, defId: string): { name: string; before: number; after: number }[] {
   const def = ITEMS[defId];
   if (!def?.slot) return [];

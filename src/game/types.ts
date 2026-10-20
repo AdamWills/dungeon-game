@@ -212,6 +212,7 @@ export type InvCommand =
   | { kind: 'use'; slot: number }
   | { kind: 'drop'; slot: number }
   | { kind: 'dismiss' } // take the item on the prize card
+  | { kind: 'wear' } // take it and put it on now
   | { kind: 'leave' } // leave it where it was found
   | { kind: 'give'; slot: number; allyId: string }
   | { kind: 'stance'; allyId: string; stance: Stance }

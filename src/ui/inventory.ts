@@ -8,7 +8,9 @@ import { INVENTORY_CAP, ITEMS, RARITY_NAMES, SLOT_NAMES } from '../data/items';
 import { RACES } from '../data/races';
 import { SKILLS } from '../data/skills';
 import { UI_TEXT } from '../data/uiText';
-import { carriedCount, equipPreview, SLOTS, type Slot, weaponOf } from '../game/equipment';
+import { DAMAGE_TYPES } from '../data/damage';
+import { fill } from '../data/battleText';
+import { carriedCount, equipComparison, SLOTS, type Slot, weaponOf } from '../game/equipment';
 import { skillLevel } from '../game/skills';
 import type { Entity, GameState, InvCommand, ItemInstance } from '../game/types';
 import type { MenuKey } from './input';
@@ -239,8 +241,17 @@ export class InventoryMenu {
       block(`${RARITY_NAMES[def.rarity]}${def.cursed ? ' (cursed)' : ''}${def.slot ? `, worn on: ${SLOT_NAMES[def.slot]}` : ''}`, '#6f7d70');
       block(def.help, '#e8e4da');
       block(`"${def.description}"`, '#9aa89a');
-      // In your pockets: what wearing it would change.
-      if (row.kind === 'pocket') for (const c of equipPreview(state, def.id)) block(`${c.name} ${c.before} → ${c.after}`, c.after > c.before ? '#7aea5a' : '#ff6a50', 0);
+      // In your pockets: what it would replace and every change, even none (user request).
+      const cmp = row.kind === 'pocket' ? equipComparison(state, def.id) : null;
+      if (cmp) {
+        const P = UI_TEXT.prize;
+        block(cmp.blockedBy ? fill(P.blocked, { item: cmp.blockedBy }) : cmp.replaces ? fill(P.replaces, { item: cmp.replaces, slot: cmp.slotName }) : fill(P.emptySlot, { slot: cmp.slotName }), cmp.blockedBy ? '#ff6a50' : '#c8d0c4', 2);
+        for (const c of cmp.changes) {
+          const better = typeof c.after === 'number' && typeof c.before === 'number' ? c.after > c.before : null;
+          block(`${c.name} ${c.before} → ${c.after}`, better === null ? '#6ab0f0' : better ? '#7aea5a' : '#ff6a50', 0);
+        }
+        if (!cmp.changes.length) block(P.noChanges, '#9aa89a', 0);
+      }
       dy += 8;
       const action =
         row.kind === 'worn' ? (def.cursed ? UI_TEXT.inventory.cursed : UI_TEXT.inventory.unequip) : def.slot ? UI_TEXT.inventory.equip : def.use ? (def.use.battleOnly || def.use.target !== 'self' ? UI_TEXT.inventory.battleOnly : UI_TEXT.inventory.use) : UI_TEXT.inventory.carry;
@@ -254,7 +265,7 @@ export class InventoryMenu {
       `HP ${s.hp}/${s.maxHp}`,
       `Strength ${s.str}   Speed ${s.speed}`,
       `Evasion ${s.evasion}   Armor ${s.armor}   Charm ${s.charm}`,
-      `Weapon: ${wpn.name} (${wpn.damage} damage)`,
+      `Weapon: ${wpn.name} (${wpn.damage} ${DAMAGE_TYPES[wpn.type].name.toLowerCase()})`,
       ...Object.values(SKILLS).map((k) => `${k.name}: level ${skillLevel(state, k.id)}`),
     ];
     const sy = py + ph - 50 - stats.length * 20;

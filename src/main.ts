@@ -8,6 +8,7 @@ import { fill } from './data/battleText';
 import { EventBus } from './game/events';
 import { FixedStepLoop } from './game/loop';
 import { createGameState } from './game/state';
+import { equipComparison } from './game/equipment';
 import type { BattleCommand, GameState, InvCommand } from './game/types';
 import { type Atlas, loadAtlas } from './ui/atlas';
 import { BattleMenu } from './ui/battleMenu';
@@ -47,6 +48,27 @@ const toasts: Toast[] = [];
 const settings = new SettingsScreen(loadSettings());
 const budget = new Budget(settings.settings.limitUsd);
 if (!settings.settings.apiKey) settings.show();
+/** The prize card's choices: wear it now, pocket it, or leave it (user request: equip right away). */
+type PrizeOption = 'wear' | 'take' | 'leave';
+const prize = { offer: null as object | null, cursor: 0 };
+function prizeOptions(s: GameState): PrizeOption[] {
+  const def = ITEMS[s.reveals[0]?.item.defId];
+  if (!def?.slot) return ['take', 'leave'];
+  return equipComparison(s, def.id)?.blockedBy ? ['take', 'leave'] : ['wear', 'take', 'leave'];
+}
+function prizeView(s: GameState): { options: string[]; cursor: number } {
+  const offer = s.reveals[0];
+  const opts = prizeOptions(s);
+  if (offer && offer !== prize.offer) {
+    // A new card: wearing it is the default, except for cursed items (they never come off).
+    prize.offer = offer;
+    prize.cursor = opts[0] === 'wear' && ITEMS[offer.item.defId]?.cursed ? 1 : 0;
+  }
+  const P = UI_TEXT.prize;
+  const label: Record<PrizeOption, string> = { wear: P.wearNow, take: opts.includes('wear') ? P.pocket : P.take, leave: P.leave };
+  return { options: opts.map((o) => label[o]), cursor: Math.min(prize.cursor, opts.length - 1) };
+}
+
 /** A typed action in progress: being typed, or waiting on the AI. */
 let typeBox: TypeBoxState | null = null;
 
@@ -187,8 +209,15 @@ function frame(now: number) {
       else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.talk) pendingCommand = talk.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
-        if (key === 'confirm') pendingCommand = { kind: 'dismiss' };
+        const opts = prizeOptions(s);
+        prizeView(s);
+        if (key === 'up') prize.cursor = (prize.cursor + opts.length - 1) % opts.length;
+        else if (key === 'down') prize.cursor = (prize.cursor + 1) % opts.length;
         else if (key === 'drop') pendingCommand = { kind: 'leave' };
+        else if (key === 'confirm') {
+          const o = opts[Math.min(prize.cursor, opts.length - 1)];
+          pendingCommand = o === 'wear' ? { kind: 'wear' } : o === 'take' ? { kind: 'dismiss' } : { kind: 'leave' };
+        }
       } else if (s.mode === 'menu' && key === 'settings') settings.show();
       else if (s.mode === 'menu') pendingCommand = inventory.handle(key, s) ?? pendingCommand;
       else if (key === 'confirm') {
@@ -213,7 +242,7 @@ function frame(now: number) {
     keyboard.mapZoom = 0;
   }
   if (!renderer.bigMap && !settings.open) loop.advance(now);
-  if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts, ai: budget }, now);
+  if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts, ai: budget, prize: state.reveals.length ? prizeView(state) : { options: [], cursor: 0 } }, now);
   else renderer.renderPicker(picker, now);
   if (typeBox && state?.battle) {
     const box = typeBox;
