@@ -5,10 +5,11 @@ import type { Stance } from '../data/allies';
 import type { DamageType } from '../data/damage';
 import type { HazardKind } from '../data/hazards';
 import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
-import type { StatKey } from '../data/items';
+import type { ItemDef, StatKey } from '../data/items';
 import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
 import type { Talk } from './talk';
+import type { AiDelivery } from './aiItems';
 
 export type Vec = { x: number; y: number };
 
@@ -335,7 +336,8 @@ export type GameEvent =
   | { type: 'bossRoared'; defId: string }
   | { type: 'bossDefeated'; defId: string; tier: 'elite' | 'room' | 'floor'; name: string }
   | { type: 'stairsSealed'; defId: string }
-  | { type: 'weakSpotFound'; defId: string; damage: DamageType };
+  | { type: 'weakSpotFound'; defId: string; damage: DamageType }
+  | { type: 'aiItemReady'; defId: string; rarity: string };
 
 export type GameState = {
   seed: number;
@@ -360,6 +362,9 @@ export type GameState = {
   party: Entity[];
   /** Tiles the player has just left, newest first: the party walks along this. */
   trail: Vec[];
+  /** One-of-a-kind items the AI designed for this run, and those not handed out yet. */
+  aiItems: Record<string, ItemDef>;
+  aiPool: { special: string[]; hosts_pick: string[] };
   /** Damage types you have tried on each creature (by def); what they did shows on the target screen. */
   weakSpots: Record<string, DamageType[]>;
   /** Prize Tokens, the in-run money. */
@@ -387,6 +392,8 @@ export type InputFrame = {
   pause: boolean;
   dash: boolean;
   command: BattleCommand | InvCommand | null;
+  /** AI results arriving this step (recorded, so a replay gets them at the same moment). */
+  ai?: AiDelivery[];
 };
 
 export const NO_INPUT: InputFrame = { move: null, interact: false, pause: false, dash: false, command: null };

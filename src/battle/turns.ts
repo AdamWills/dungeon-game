@@ -25,6 +25,7 @@ import { practice, skillLevel } from '../game/skills';
 import { SKILLS } from '../data/skills';
 import { nextFloat, nextInt, pick } from '../game/rng';
 import { leaveLair } from '../world/lair';
+import { owned, takeFromPool } from '../game/aiItems';
 import { applyOutcome, applyRepeats, gatherArena, resolveImprov, validateOutcome } from './improvise';
 import type { BattleCommand, BattleState, Combatant, Encounter, Entity, GameState, LogLine, Vec } from '../game/types';
 
@@ -890,8 +891,8 @@ function endBattle(state: GameState): void {
       const at = { x: Math.round(e.pos.x), y: Math.round(e.pos.y) };
       const def = ENEMIES[c.defId];
       // Bosses always drop their prize, elites always drop something; the rest sometimes.
-      if (def.prize) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItemOf(state.rng, def.prize) });
-      else if (c.elite || nextFloat(state.rng) < theme.dropChance) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItem(state.rng, depthOf(floor, at), 'drop') });
+      if (def.prize) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItemOf(state.rng, def.prize, (r) => takeFromPool(state, r), owned(state)) });
+      else if (c.elite || nextFloat(state.rng) < theme.dropChance) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItem(state.rng, depthOf(floor, at), 'drop', (r) => takeFromPool(state, r)) });
       const tier = def.tier ?? (c.elite ? 'elite' : null);
       if (tier) state.events.push({ type: 'bossDefeated', defId: c.defId, tier, name: c.name });
       if (floor.lair?.bossId === c.id) floor.lair.beaten = true;

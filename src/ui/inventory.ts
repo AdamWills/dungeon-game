@@ -288,7 +288,7 @@ export class InventoryMenu {
       ctx.font = FONT_BIG;
       block(def.name, RARITY_COLOR[def.rarity], 4);
       ctx.font = FONT;
-      block(`${RARITY_NAMES[def.rarity]}${def.cursed ? ' (cursed)' : ''}${def.slot ? `, worn on: ${SLOT_NAMES[def.slot]}` : ''}`, '#6f7d70');
+      block(`${RARITY_NAMES[def.rarity]}${def.invented ? ', one of a kind' : ''}${def.cursed ? ' (cursed)' : ''}${def.slot ? `, worn on: ${SLOT_NAMES[def.slot]}` : ''}`, '#6f7d70');
       block(def.help, '#e8e4da');
       block(`"${def.description}"`, '#9aa89a');
       // In your pockets: what it would replace and every change, even none (user request).

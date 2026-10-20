@@ -53,6 +53,8 @@ export type ItemDef = {
   useLine?: string;
   /** Kept out of chests and drops (class kit pieces). */
   noLoot?: boolean;
+  /** Designed by the AI during this run: one of a kind. */
+  invented?: boolean;
 };
 
 export const ITEMS: Record<string, ItemDef> = {

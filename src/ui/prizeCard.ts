@@ -62,6 +62,7 @@ export function drawPrizeCard(
       if (!cmp.changes.length) changes.push([[T.noChanges], '#8a7aa8', 0]);
     }
     const blocks: [string[], string, number][] = [
+      ...(def.invented ? [[[T.invented], NEON.pink.text, 2] as [string[], string, number]] : []),
       [wrapPixel(def.help, maxW), '#ffffff', 3],
       ...changes,
       [wrapPixel(`"${def.description}"`, maxW), '#b090e0', 3],
@@ -70,7 +71,21 @@ export function drawPrizeCard(
       [[''], '#000', 2 + choice.options.length * 11],
     ];
     const names = wrapPixel(def.name, maxW, nameStyle);
-    const body = names.length * 10 + blocks.reduce((n, [lines, , gap]) => n + gap + lines.length * 9, 0);
+    const height = () => names.length * 10 + blocks.reduce((n, [lines, , gap]) => n + gap + lines.length * 9, 0);
+    // Too much to fit: drop the joke, then the one-of-a-kind line, then (last resort) the last changes, so the choices stay clear.
+    const quote = blocks.findIndex(([lines]) => lines[0]?.startsWith('"'));
+    if (98 + height() + 24 > lh - 4 && quote >= 0) blocks.splice(quote, 1);
+    const kind = blocks.findIndex(([lines]) => lines[0] === T.invented);
+    if (98 + height() + 24 > lh - 4 && kind >= 0) blocks.splice(kind, 1);
+    while (98 + height() + 24 > lh - 4 && blocks.length > 3) {
+      let last = -1;
+      blocks.forEach(([, color, gap], i) => {
+        if (gap === 0 && color !== '#000') last = i;
+      });
+      if (last < 0) break;
+      blocks.splice(last, 1);
+    }
+    const body = height();
     const ch = Math.min(lh - 4, 98 + body + 24);
     const x = Math.round((lw - cw) / 2);
     const y = Math.round((lh - ch) / 2);

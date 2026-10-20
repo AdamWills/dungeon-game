@@ -147,6 +147,7 @@ export const UI_TEXT = {
     emptySlot: 'It goes in your empty {slot} slot.',
     blocked: 'Your cursed {item} is stuck in that slot: you cannot wear this.',
     noChanges: 'No stat changes.',
+    invented: 'ONE OF A KIND: MADE FOR THIS RUN',
   },
   toasts: {
     full: 'Your pockets are full ({cap}). Drop something in the inventory (ESC).',

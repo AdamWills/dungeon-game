@@ -74,3 +74,82 @@ export const ACTION_SCHEMA = {
 export function spritePrompt(description: string): string {
   return `Pixel art video game sprite of ${description}. One single character, full body, seen from the side and facing right, centred, filling most of the frame. Chunky retro 16-bit pixel art, a bold dark outline, a limited palette of about 16 saturated colours, flat shading with one highlight. Cartoonish and funny, slightly grotesque. Transparent background: no ground, no shadow, no scenery, no text, no border.`;
 }
+
+// --- AI-invented items (user decision: Rare and Legendary items are one of a kind) ---
+
+/** What a generated item may be worth, by rarity. The validator clamps to these. */
+export const ITEM_BUDGETS = {
+  special: { weapon: [4, 6], statPlus: 3, statEach: 2, hpPlus: 6, onHitChance: 0.35, useDamageOne: 8, useDamageAll: 6, useHeal: 12, turns: 3 },
+  hosts_pick: { weapon: [6, 9], statPlus: 6, statEach: 3, hpPlus: 10, onHitChance: 0.5, useDamageOne: 12, useDamageAll: 9, useHeal: 20, turns: 4 },
+} as const;
+export type AiRarity = keyof typeof ITEM_BUDGETS;
+
+export const ITEM_SYSTEM = `You design one unique item for Subpar Dungeon, a comic roguelike set on DESCEND & WIN!, a tacky underground 1970s game show. This floor is the Intake Sewers. Contestants find items in chests and on defeated bosses.
+
+Make it funny first: a specific, absurd object that makes sense down here (sewer junk, game-show props, studio leftovers, things flushed by mistake), with a name of at most 5 words and a one-line joke description in the host's voice (relentlessly upbeat, empathy-free, at most 22 words). Everything original: no real people, brands or characters from other works.
+
+Then its game effect, kept within the budget you are given:
+- kind "weapon": slot "weapon", weaponDamage within the budget's range, a damageType (bludgeoning, piercing, slashing, fire, cold, lightning, acid, poison) that fits the object, optionally onHit (a status it can cause, with turns and a chance).
+- kind "wearable": a slot (head, neck, shoulders, body, hands, belt, legs, feet, offhand, ring) and stat mods. Positive mods must add up to no more than the budget's statPlus (maxHp counts half); a downside (a negative mod) is welcome and buys more upside. Optionally resists: statuses it protects from.
+- kind "consumable": use (target self, one_enemy or all_enemies; effects from damage, heal, status, cleanse within the budget). Used up when used.
+Set every field; use null or 0 for what does not apply. iconPrompt: a short visual description of the object alone, for an icon.`;
+
+const nul = (t: object) => ({ anyOf: [t, { type: 'null' }] });
+const STATUS_ENUM = ['bleed', 'poison', 'burning', 'stunned', 'charmed', 'hexed', 'hasted'];
+const DAMAGE_ENUM = ['bludgeoning', 'piercing', 'slashing', 'fire', 'cold', 'lightning', 'acid', 'poison'];
+
+export const ITEM_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'description', 'kind', 'slot', 'weaponDamage', 'damageType', 'onHit', 'mods', 'resists', 'use', 'iconPrompt'],
+  properties: {
+    name: { type: 'string' },
+    description: { type: 'string' },
+    kind: { type: 'string', enum: ['weapon', 'wearable', 'consumable'] },
+    slot: nul({ type: 'string', enum: ['head', 'neck', 'shoulders', 'body', 'hands', 'belt', 'legs', 'feet', 'weapon', 'offhand', 'ring'] }),
+    weaponDamage: nul({ type: 'integer' }),
+    damageType: nul({ type: 'string', enum: DAMAGE_ENUM }),
+    onHit: nul({
+      type: 'object',
+      additionalProperties: false,
+      required: ['status', 'turns', 'chance'],
+      properties: { status: { type: 'string', enum: STATUS_ENUM }, turns: { type: 'integer' }, chance: { type: 'number' } },
+    }),
+    mods: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'],
+      properties: { maxHp: { type: 'integer' }, str: { type: 'integer' }, speed: { type: 'integer' }, evasion: { type: 'integer' }, armor: { type: 'integer' }, charm: { type: 'integer' } },
+    },
+    resists: { type: 'array', items: { type: 'string', enum: STATUS_ENUM } },
+    use: nul({
+      type: 'object',
+      additionalProperties: false,
+      required: ['target', 'effects'],
+      properties: {
+        target: { type: 'string', enum: ['self', 'one_enemy', 'all_enemies'] },
+        effects: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['kind', 'amount', 'damageType', 'status', 'turns'],
+            properties: {
+              kind: { type: 'string', enum: ['damage', 'heal', 'status', 'cleanse'] },
+              amount: nul({ type: 'integer' }),
+              damageType: nul({ type: 'string', enum: DAMAGE_ENUM }),
+              status: nul({ type: 'string', enum: STATUS_ENUM }),
+              turns: nul({ type: 'integer' }),
+            },
+          },
+        },
+      },
+    }),
+    iconPrompt: { type: 'string' },
+  },
+};
+
+/** The art direction for an item icon. */
+export function iconPrompt(description: string): string {
+  return `Pixel art video game item icon of ${description}. One single object, centred, filling the frame, a bold dark outline, chunky retro 16-bit pixel art, a limited saturated palette. Transparent background: no scenery, no text, no border.`;
+}

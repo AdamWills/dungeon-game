@@ -18,6 +18,8 @@ The first prototype proved the rules and the tone. The game now builds on them w
 - **A Director.** While you play a floor, the AI designs the next one from a summary of your run (your favourite tricks, allies you abandoned, how you beat the last boss), so later floors react to you and get stranger. Floor 1 stays mostly hand-made.
 - **Art: 32 to 48 px, generated.** Larger pixel art. Everyday creatures and items use a code-drawn parts kit the AI describes (instant, free, consistent); showpieces (bosses, set-piece cards, Legendary items, Chet's floor intros) use the image model, generated a floor ahead, downscaled to the pixel grid and cached. The size is a trial: build a sprite lab first and look.
 
+**Loot odds (user decision, Oct 20):** chests roll Legendary 1% of the time, ordinary drops never, room bosses drop a Rare and the floor boss a Legendary: about one Legendary a floor outside the boss. **Rare and Legendary items are AI-invented** and one of a kind (pulled forward from step 4): designed in the background, checked against a stat budget per rarity, with plain help text written from their real numbers; hand-written items are the fallback, never a duplicate of one you have.
+
 **Build order (each step playable):** (1) the OpenAI client, key screen, spending meter and free-typed actions in fights; (2) the sprite lab for the art trial; (3) the set-piece engine with about 6 hand-made templates; (4) AI-generated monsters, items and set-piece twists a floor ahead; (5) image-model showpieces and the Director.
 
 Sections below that describe the LLM as optional, a serverless narrator proxy, or hand-drawn creatures are superseded by this section.

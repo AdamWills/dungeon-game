@@ -9,6 +9,7 @@ import { updateEnemy } from '../game/ai';
 import { inventoryCommand, leaveOffer } from '../game/equipment';
 import { captiveAt, leaveTrail, spotCaptives, updateParty } from '../game/party';
 import { startTalk } from '../game/talk';
+import { receiveAi } from '../game/aiItems';
 import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
 import { buildEncounter, findContact } from './encounter';
@@ -26,6 +27,7 @@ const DELTA: Record<Dir, Vec> = {
 };
 
 export function step(state: GameState, input: InputFrame): void {
+  for (const d of input.ai ?? []) receiveAi(state, d);
   if (input.pause && !state.levelUp && !state.talk) {
     if (state.mode === 'roaming') setMode(state, 'menu');
     else if (state.mode === 'menu') {

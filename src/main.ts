@@ -27,6 +27,7 @@ import { SettingsScreen } from './ui/settings';
 import { Budget } from './ai/budget';
 import { loadSettings } from './ai/settings';
 import { askAction } from './ai/actions';
+import { ItemSupplier } from './ai/items';
 import { describeError } from './ai/openai';
 import { drawTypeBox, type TypeBoxState } from './ui/typeBox';
 import { step } from './world/roam';
@@ -48,6 +49,8 @@ const toasts: Toast[] = [];
 const settings = new SettingsScreen(loadSettings());
 const budget = new Budget(settings.settings.limitUsd);
 if (!settings.settings.apiKey) settings.show();
+// One-of-a-kind Rare and Legendary items, designed in the background.
+const supplier = new ItemSupplier(() => ({ apiKey: settings.settings.apiKey, budget }));
 /** The prize card's choices: wear it now, pocket it, or leave it (user request: equip right away). */
 type PrizeOption = 'wear' | 'take' | 'leave';
 const prize = { offer: null as object | null, cursor: 0 };
@@ -126,6 +129,7 @@ bus.onAny((e) => console.debug('[event]', e));
 function startRun(race: string, cls: string): void {
   host.reset();
   budget.reset(settings.settings.limitUsd);
+  supplier.reset();
   state = createGameState(fixedSeed || randomSeed(), race, cls);
   menu.level = 'main';
   inventory.cursor = 0;
@@ -138,6 +142,7 @@ const loop = new FixedStepLoop(() => {
   if (!state) return;
   const frame = keyboard.sample();
   frame.command = pendingCommand;
+  frame.ai = supplier.take();
   pendingCommand = null;
   step(state, frame);
   bus.drain(state.events);
@@ -241,6 +246,7 @@ function frame(now: number) {
     renderer.zoomMap(keyboard.mapZoom);
     keyboard.mapZoom = 0;
   }
+  if (state && state.mode !== 'dead' && state.mode !== 'won') supplier.tick(state, now);
   if (!renderer.bigMap && !settings.open) loop.advance(now);
   if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts, ai: budget, prize: state.reveals.length ? prizeView(state) : { options: [], cursor: 0 } }, now);
   else renderer.renderPicker(picker, now);

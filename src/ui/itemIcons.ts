@@ -49,9 +49,14 @@ function flaskFor(def: ItemDef): string {
 
 export type ItemIcons = (ctx: CanvasRenderingContext2D, defId: string, x: number, y: number, scale?: number) => void;
 
+/** Icons for AI-invented items, made by the image model and shrunk to the icon grid (shell-side). */
+export const INVENTED_ICONS = new Map<string, HTMLCanvasElement>();
+
 export function buildItemIcons(atlas: Atlas): ItemIcons {
   const shapes = new Map(Object.entries(SHAPES).map(([k, r]) => [k, renderRects(r, ICON)]));
   return (ctx, defId, x, y, scale = 1) => {
+    const made = INVENTED_ICONS.get(defId);
+    if (made) return void ctx.drawImage(made, x, y, ICON * scale, ICON * scale);
     const def = ITEMS[defId];
     const o = OVERRIDES[defId] ?? {};
     let sprite = o.sprite;
