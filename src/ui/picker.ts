@@ -98,6 +98,7 @@ export class Picker {
         const half = Math.round(18 * Math.sqrt(1 - (j / 3.5) ** 2));
         g.fillRect(px - half, oy + 128 + j, half * 2 + 1, 1);
       }
+      sprites.setLook({ race: race.id, cls: cls.id });
       const sprite = sprites('down', 'stand', Math.floor(now / 180) % 20 === 0);
       g.drawImage(sprite, px - 24, oy + 82 + Math.round(Math.sin(now / 400)), 48, 48);
 

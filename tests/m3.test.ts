@@ -77,13 +77,18 @@ describe('inventory', () => {
     expect(s.player.stats.speed).toBe(3);
   });
 
-  it('will not take off cursed gear', () => {
+  it('will not take off stuck cursed gear, but a bad bargain comes off', () => {
     const s = cleanRun();
     give(s, 'paper_crown');
     inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'paper_crown') });
     expect(s.player.stats.maxHp).toBe(18); // 28 - 10
     inventoryCommand(s, { kind: 'unequip', slot: 'head' });
-    expect(s.player.equipment?.head?.defId).toBe('paper_crown');
+    expect(s.player.equipment?.head).toBeUndefined();
+    give(s, 'chets_spare_microphone');
+    inventoryCommand(s, { kind: 'equip', slot: slotOf(s, 'chets_spare_microphone') });
+    const slot = Object.entries(s.player.equipment ?? {}).find(([, v]) => v?.defId === 'chets_spare_microphone')![0];
+    inventoryCommand(s, { kind: 'unequip', slot: slot as never });
+    expect(s.player.equipment?.[slot as 'head']?.defId).toBe('chets_spare_microphone');
     expect(s.events.some((e) => e.type === 'itemRefused' && e.reason === 'cursed')).toBe(true);
   });
 

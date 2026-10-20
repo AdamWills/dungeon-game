@@ -137,6 +137,8 @@ export class Renderer {
 
   render(state: GameState, ui: Overlays, now: number): void {
     const { ctx, canvas, dpr } = this;
+    // The contestant looks like their race and class (user request).
+    if (this.playerSprites.look.race !== state.race || this.playerSprites.look.cls !== state.cls) this.playerSprites.setLook({ race: state.race, cls: state.cls });
     this.clear();
     if (state.battle) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -128,25 +128,30 @@ export class BattleView {
     const reading = skillLevel(state, 'read_the_room');
     enemies.forEach((c, i) => {
       const cx = Math.round(w / 2 + (i - (enemies.length - 1) / 2) * gap);
-      // Read the Room: what it is about to do, as much as you can tell.
-      const intent = intentText(battle, c, reading);
-      if (intent) {
-        ctx.font = '12px ui-monospace, Menlo, Consolas, monospace';
-        const lines = wrapLines(ctx, intent, Math.max(130, gap - 14));
-        lines.forEach((l, j) => {
-          const tw = ctx.measureText(l).width;
-          ctx.fillStyle = 'rgba(10, 6, 16, 0.85)';
-          ctx.fillRect(cx - tw / 2 - 5, rowY - 30 - (lines.length - 1 - j) * 15, tw + 10, 15);
-          ctx.fillStyle = '#ffb040';
-          ctx.fillText(l, cx - tw / 2, rowY - 28 - (lines.length - 1 - j) * 15);
-        });
-        ctx.font = FONT;
-      }
       this.drawCombatant(ctx, c, cx, rowY, size, battle, now, {
         flip: true,
         highlight: c.id === targetId,
         acting: actor?.id === c.id,
       });
+      // Read the Room: what it is about to do, as much as you can tell. Drawn
+      // after the creature, above its real top, so tall bosses never hide it.
+      const intent = intentText(battle, c, reading);
+      if (intent) {
+        const art = this.enemySprites(c.defId);
+        const spriteTop = rowY + size - (size * art.height) / SPRITE;
+        const base = Math.min(rowY - 28, spriteTop - 20);
+        ctx.font = '12px ui-monospace, Menlo, Consolas, monospace';
+        const lines = wrapLines(ctx, intent, Math.max(130, gap - 14));
+        lines.forEach((l, j) => {
+          const tw = ctx.measureText(l).width;
+          const y = Math.max(46, base - (lines.length - 1 - j) * 15);
+          ctx.fillStyle = 'rgba(10, 6, 16, 0.9)';
+          ctx.fillRect(cx - tw / 2 - 5, y - 2, tw + 10, 15);
+          ctx.fillStyle = '#ffb040';
+          ctx.fillText(l, cx - tw / 2, y);
+        });
+        ctx.font = FONT;
+      }
     });
 
     const me = youIn(battle);

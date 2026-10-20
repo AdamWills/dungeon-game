@@ -8,7 +8,7 @@ import { createRng, deriveSeed, pick } from '../game/rng';
 import type { Floor, Room, Tile, Vec } from '../game/types';
 import { placeFeatures } from './features';
 import { populate } from './populate';
-import { bfsDistances } from './reach';
+import { bfsDistances, enclosable } from './reach';
 
 const MAX_ATTEMPTS = 50;
 
@@ -62,10 +62,12 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
     const grid = { tiles, width, height };
     const dist = bfsDistances(grid, start);
 
-    // Stairs go in the room whose center is the longest walk from the start.
+    // Stairs go in the room whose center is the longest walk from the start,
+    // among rooms that can be closed off as the boss's lair.
     let stairs: Vec | null = null;
     let best = -1;
-    for (const room of rooms) {
+    const closable = rooms.filter((r) => r !== startRoom && enclosable({ tiles, width, height }, r));
+    for (const room of closable.length ? closable : rooms) {
       if (room === startRoom) continue;
       const d = dist[room.center.y * width + room.center.x];
       if (d > best) {

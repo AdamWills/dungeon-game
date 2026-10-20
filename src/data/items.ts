@@ -34,7 +34,10 @@ export type ItemDef = {
   mods?: Partial<Record<StatKey, number>>;
   /** Statuses that cannot be applied to you while equipped. */
   resists?: StatusKind[];
-  /** Once worn, cannot be taken off. */
+  /**
+   * Once worn, cannot be taken off. Only a few Cursed items (user decision:
+   * a small portion, and really polarizing); the rest are bad bargains you can remove.
+   */
   cursed?: boolean;
   /** What using it does. Items without `use` cannot be used, only equipped or carried. */
   use?: {
@@ -355,21 +358,33 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- cursed ----------------------------------------------------------------
   chets_spare_microphone: {
     id: 'chets_spare_microphone', name: 'Chet\'s Spare Microphone', rarity: 'cursed', slot: 'offhand', cursed: true,
-    mods: { str: 5, evasion: -3, armor: -2 },
+    mods: { str: 7, evasion: -3, armor: -3 },
     description: 'Still warm. Still on. Everything you say is now broadcast, and you cannot put it down.',
-    help: 'Cursed off-hand: +5 Strength, but -3 Evasion and -2 Armor.',
+    help: 'Off-hand, stuck once worn: +7 Strength, but -3 Evasion and -3 Armor.',
   },
   paper_crown: {
-    id: 'paper_crown', name: 'Paper Crown of Champions', rarity: 'cursed', slot: 'head', cursed: true,
+    id: 'paper_crown', name: 'Paper Crown of Champions', rarity: 'cursed', slot: 'head',
     mods: { charm: 4, evasion: 3, speed: 2, maxHp: -10 },
     description: 'From the one season someone won. It has not stopped judging you since.',
-    help: 'Cursed headwear: +4 Charm, +3 Evasion, +2 Speed, but -10 max HP.',
+    help: 'Head, a bad bargain: +4 Charm, +3 Evasion, +2 Speed, but -10 max HP.',
+  },
+  haunted_bathrobe: {
+    id: 'haunted_bathrobe', name: 'Haunted Hotel Bathrobe', rarity: 'cursed', slot: 'body',
+    mods: { armor: 3, charm: 2, speed: -2 },
+    description: 'From the Season 4 luxury suite prize. The previous winner is still in it, spiritually.',
+    help: 'Body, a bad bargain: +3 Armor, +2 Charm, but -2 Speed.',
+  },
+  sewer_sprinters: {
+    id: 'sewer_sprinters', name: 'Sewer Sprinters', rarity: 'cursed', slot: 'feet',
+    mods: { speed: 3, evasion: 2, maxHp: -6 },
+    description: 'Fast, damp and faintly radioactive. Your toes have filed a complaint.',
+    help: 'Feet, a bad bargain: +3 Speed, +2 Evasion, but -6 max HP.',
   },
   lucky_handcuff: {
-    id: 'lucky_handcuff', name: 'Lucky Handcuff', rarity: 'cursed', slot: 'hands', cursed: true,
+    id: 'lucky_handcuff', name: 'Lucky Handcuff', rarity: 'cursed', slot: 'hands',
     mods: { armor: 5, maxHp: 6, speed: -3 },
     description: 'Lucky for whoever was on the other end. Locks on contact.',
-    help: 'Cursed hands: +5 Armor, +6 max HP, but -3 Speed (you act last and fleeing gets hard).',
+    help: 'Hands, a bad bargain: +5 Armor, +6 max HP, but -3 Speed (you act last and fleeing gets hard).',
   },
   // --- host's pick -----------------------------------------------------------
   golden_buzzer: {

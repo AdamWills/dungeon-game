@@ -9,7 +9,7 @@ import { weightedPick } from '../game/combat';
 import { nextFloat, nextInt, pick, type Rng } from '../game/rng';
 import { makeAlly } from '../game/party';
 import type { Entity, Floor, Room, Vec } from '../game/types';
-import { bfsDistances } from './reach';
+import { bfsDistances, enclosable } from './reach';
 
 const MAX_ROAM_DISTANCE = 30; // tiles of walking to a neighbouring room
 const FACINGS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
@@ -44,7 +44,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
   // Room bosses: each alone in a room of its own, deeper in.
   const hasCaptive = (r: Room) => captives.some((c) => inRoom(r, c.pos));
   const bossRooms: Room[] = [];
-  const candidates = floor.rooms.filter((r) => r !== startRoom && r !== lair && !hasCaptive(r) && depthOfRoom(r) >= theme.roomBosses.minDepth);
+  const candidates = floor.rooms.filter((r) => r !== startRoom && r !== lair && !hasCaptive(r) && depthOfRoom(r) >= theme.roomBosses.minDepth && enclosable(floor, r));
   const ids = [...theme.roomBosses.ids];
   for (let i = nextInt(rng, theme.roomBosses.count[0], theme.roomBosses.count[1]); i > 0 && ids.length && candidates.length; i--) {
     const room = candidates.splice(nextInt(rng, 0, candidates.length - 1), 1)[0];
@@ -59,7 +59,8 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
   }
 
   // Boss rooms are closed off (user request): every way in gets a closed door.
-  for (const room of [lair, ...bossRooms]) sealRoom(floor, room);
+  const sealed = [lair, ...bossRooms];
+  for (const room of sealed) sealRoom(floor, room, sealed);
 
   const firstResident = entities.length;
   for (const room of floor.rooms) {
@@ -99,14 +100,25 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
 }
 
 /** Put a closed door in every opening around a room, so it reads as its own space. */
-function sealRoom(floor: Floor, room: Room): void {
+function sealRoom(floor: Floor, room: Room, sealed: Room[]): void {
   for (let y = room.y1 - 1; y <= room.y2 + 1; y++)
     for (let x = room.x1 - 1; x <= room.x2 + 1; x++) {
       if (inRoom(room, { x, y })) continue;
+      // Only where a passage meets a wall face: never a corner (it leads nowhere).
+      const side = (x >= room.x1 && x <= room.x2) || (y >= room.y1 && y <= room.y2);
       const t = floor.tiles[y]?.[x];
-      if (t && t.terrain === 'floor') {
-        t.terrain = 'door';
-        t.door = { open: false };
+      if (!side || !t || (t.terrain !== 'floor' && t.terrain !== 'door')) continue;
+      t.terrain = 'door';
+      t.door = { open: false };
+      // A corridor door just outside would make two doors in a row: keep only ours.
+      // (Unless it is the door of another sealed room next door.)
+      const ox = x + (x < room.x1 ? -1 : x > room.x2 ? 1 : 0);
+      const oy = y + (y < room.y1 ? -1 : y > room.y2 ? 1 : 0);
+      const out = floor.tiles[oy]?.[ox];
+      const onRing = (r: Room) => ox >= r.x1 - 1 && ox <= r.x2 + 1 && oy >= r.y1 - 1 && oy <= r.y2 + 1;
+      if (out?.terrain === 'door' && !sealed.some(onRing)) {
+        out.terrain = 'floor';
+        delete out.door;
       }
     }
 }

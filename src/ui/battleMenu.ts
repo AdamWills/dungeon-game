@@ -299,7 +299,7 @@ export class BattleMenu {
         // The weak-spot bonus only shows once you have found it out.
         const known = (state.weakSpots[foe.defId] ?? []).includes(weapon.type);
         const mult = known ? typeMultiplier(foe.defId, weapon.type) : 1;
-        const dmg = Math.max(1, Math.round(baseDamage(weapon.damage, me.stats.str, foe.stats.armor) * mult)) * (hasStatus(foe, 'hexed') ? 2 : 1);
+        const dmg = Math.round(Math.max(1, Math.round(baseDamage(weapon.damage, me.stats.str, foe.stats.armor) * mult)) * (hasStatus(foe, 'hexed') ? (ENEMIES[foe.defId]?.tier ? 1.5 : 2) : 1));
         what = fill(UI_TEXT.help.target, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, chance: Math.round(hitChance(foe.stats.evasion) * 100), dmg, type: DAMAGE_TYPES[weapon.type].name });
       } else if (p.kind === 'ability') {
         what = fill(UI_TEXT.help.hexTarget, { name: foe.name, hp: foe.stats.hp, max: foe.stats.maxHp, turns: hexTurns(state) });

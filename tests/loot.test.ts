@@ -34,7 +34,7 @@ describe('equip preview', () => {
     const s = createGameState(11, 'human', 'brawler');
     const str = s.player.stats.str;
     const p = equipPreview(s, 'chets_spare_microphone');
-    expect(p).toContainEqual({ name: 'Strength', before: str, after: str + 5 });
+    expect(p).toContainEqual({ name: 'Strength', before: str, after: str + 7 });
     expect(p.some((c) => c.name === 'Evasion' && c.after < c.before)).toBe(true);
   });
 });

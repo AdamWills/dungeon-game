@@ -29,3 +29,10 @@ export function eliteName(defName: string, elite?: string): string {
 
 /** The floor boss's lair: it roars (and shows on your map) once you are this close, or have seen this share of the rooms. */
 export const LAIR = { roarDistance: 30, roarRooms: 0.5, checkTicks: 30 };
+
+/**
+ * Bosses against stacking (user feedback: a room boss went down in 2 turns):
+ * their HP grows 30% per level you have when the fight starts, and Hex only
+ * adds half again on them. They are also never knocked off balance.
+ */
+export const BOSS_SCALING = { hpPerLevel: 0.3, hexMult: 1.5 };

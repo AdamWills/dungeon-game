@@ -7,7 +7,7 @@ import { ALLIES, LOYALTY, REMEDY_SIDE_EFFECTS, SPARE } from '../data/allies';
 import { PROPS } from '../data/props';
 import { BATTLE_TEXT as T, fill, variant } from '../data/battleText';
 import { CLASSES } from '../data/classes';
-import { ELITE, eliteName } from '../data/bosses';
+import { BOSS_SCALING, ELITE, eliteName } from '../data/bosses';
 import { DAMAGE_TYPES, type DamageType, WEAK_SPOTS } from '../data/damage';
 import { ENEMIES, type EnemyMove } from '../data/enemies';
 import { FLOOR_THEMES } from '../data/floors';
@@ -70,6 +70,9 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   for (const id of encounter.enemyIds) {
     const e = floor.entities.find((x) => x.id === id)!;
     snapToTile(e);
+    // Bosses grow with you (user feedback: beaten in 2 turns): untouched ones are re-sized to your level.
+    const tier = ENEMIES[e.defId].tier;
+    if (tier && e.stats.hp === e.stats.maxHp) e.stats.maxHp = e.stats.hp = Math.round(ENEMIES[e.defId].stats.hp * (1 + BOSS_SCALING.hpPerLevel * (state.level - 1)));
     combatants.push({ id, side: 'enemy', defId: e.defId, name: eliteName(ENEMIES[e.defId].name, e.elite), stats: { ...e.stats }, defending: false, alive: true, statuses: [], elite: e.elite });
   }
   const battle: BattleState = {
@@ -565,7 +568,8 @@ function typed(state: GameState, battle: BattleState, attacker: Combatant, targe
   const first = !tried.includes(type);
   if (first) tried.push(type);
   if (def.weak?.includes(type)) {
-    if (isYou(attacker)) battle.offBalance = true;
+    // Bosses take the extra damage but are never knocked off balance (no free action).
+    if (isYou(attacker) && !def.tier) battle.offBalance = true;
     fx(battle, target.id, 'weak');
     // The first time, Chet makes a fuss about it (same line, so it reads in order).
     const found = first ? ` ${fill(T.weakFound, { target: def.name, type: name.toLowerCase() })}` : '';
@@ -582,7 +586,7 @@ function typed(state: GameState, battle: BattleState, attacker: Combatant, targe
 /** Final damage after Hex, bracing and passives; kills if HP hits 0. */
 function hurt(state: GameState, battle: BattleState, target: Combatant, source: Combatant, raw: number, dtype?: string): number {
   let dmg = raw;
-  if (hasStatus(target, 'hexed')) dmg *= 2;
+  if (hasStatus(target, 'hexed')) dmg = Math.round(dmg * (target.side === 'enemy' && ENEMIES[target.defId]?.tier ? BOSS_SCALING.hexMult : 2));
   if (target.defending) dmg = Math.ceil(dmg * TUNING.combat.defendMultiplier);
   if (target.ally && ALLIES[target.defId]?.passive.id === 'load_bearing') dmg -= 1;
   if (isYou(target) && !battle.skullUsed && hasPerk(state, 'thick_skull')) {
@@ -614,7 +618,7 @@ function playerStrike(state: GameState, battle: BattleState, me: Combatant, targ
   const idx = battle.log.length;
   say(battle, line, 'good');
   const dmg = hurt(state, battle, target, me, hit.dmg, weapon.type);
-  battle.log[idx].text = line.replace('{dmg}', String(dmg)) + hit.note + (ambush ? T.bonus : '') + (hexed ? ' (Hexed: double damage.)' : '');
+  battle.log[idx].text = line.replace('{dmg}', String(dmg)) + hit.note + (ambush ? T.bonus : '') + (hexed ? (ENEMIES[target.defId]?.tier ? ' (Hexed: half again on a boss.)' : ' (Hexed: double damage.)') : '');
   if (target.alive && weapon.onHit && nextFloat(state.rng) < weapon.onHit.chance)
     applyStatus(state, battle, target, weapon.onHit.status, weapon.onHit.turns);
 }

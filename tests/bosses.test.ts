@@ -212,6 +212,15 @@ describe('room bosses (user request: closed rooms, the fight starts on entry)', 
             if (inRoom(room, { x, y })) continue;
             const t = floor.tiles[y]?.[x];
             if (t && isWalkable(floor, x, y)) expect(t.terrain === 'door' || t.terrain === 'hazard').toBe(true);
+            if (t?.terrain !== 'door') continue;
+            // User reports: a line of doors along the wall, and a door that went nowhere.
+            const corner = (x === room.x1 - 1 || x === room.x2 + 1) && (y === room.y1 - 1 || y === room.y2 + 1);
+            expect(corner).toBe(false);
+            // Doors side by side are fine only when each opens a different sealed room.
+            const sealed = [...(floor.bossRooms ?? []), { room: floor.lair!.room }].map((b) => floor.rooms.find((r) => r.id === b.room)!);
+            const otherRing = (px: number, py: number) => sealed.some((r) => r !== room && px >= r.x1 - 1 && px <= r.x2 + 1 && py >= r.y1 - 1 && py <= r.y2 + 1);
+            for (const [nx, ny] of [[x + 1, y], [x, y + 1]])
+              if (floor.tiles[ny]?.[nx]?.terrain === 'door') expect(otherRing(nx, ny)).toBe(true);
           }
       }
       expect(floor.bossRooms!.length).toBeGreaterThanOrEqual(2);
@@ -234,5 +243,25 @@ describe('room bosses (user request: closed rooms, the fight starts on entry)', 
     battleCommand(s, { kind: 'continue' });
     expect(s.mode).toBe('roaming');
     expect(inRoom(room, s.player.pos)).toBe(false);
+  });
+});
+
+describe('bosses resist stacking (user feedback: beaten in 2 turns)', () => {
+  it('grow with your level, and a weak spot never gives you a free action against them', () => {
+    const s = createGameState(11);
+    s.floor.entities = [];
+    s.floor.lair = undefined;
+    s.level = 3;
+    const e = spawn(s, 'sump_crab', nearPlayer(s, 1, 0));
+    startBattle(s, { enemyIds: [e.id], start: 'normal', tile: { ...s.player.pos } });
+    const crab = s.battle!.combatants[1];
+    expect(crab.stats.maxHp).toBe(Math.round(ENEMIES.sump_crab.stats.hp * 1.6));
+    // The pipe is bludgeoning: the crab's weak spot.
+    crab.stats.evasion = -50;
+    s.player.stats.hp = s.player.stats.maxHp = 999;
+    const before = crab.stats.hp;
+    battleCommand(s, { kind: 'attack', targetId: crab.id });
+    expect(crab.stats.hp).toBeLessThan(before);
+    expect(s.battle!.log.some((l) => l.text.includes('off balance'))).toBe(false);
   });
 });

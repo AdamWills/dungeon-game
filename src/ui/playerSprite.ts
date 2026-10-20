@@ -5,7 +5,7 @@
 import type { Frame, PlayerDir } from './animation';
 import { type Rect, renderRects } from './spriteKit';
 
-const C = {
+const BASE = {
   hair: '#4a2e1e',
   hairHi: '#6b4430',
   skin: '#f2c9a0',
@@ -21,7 +21,7 @@ const C = {
   bootHi: '#4a423b',
 };
 
-function down(frame: Frame, blink: boolean): Rect[] {
+function down(frame: Frame, blink: boolean, C: Palette): Rect[] {
   const lUp = frame === 'stepA' ? 1 : 0; // raised leg / swung arm
   const rUp = frame === 'stepB' ? 1 : 0;
   return [
@@ -47,7 +47,7 @@ function down(frame: Frame, blink: boolean): Rect[] {
   ];
 }
 
-function up(frame: Frame): Rect[] {
+function up(frame: Frame, C: Palette): Rect[] {
   const lUp = frame === 'stepA' ? 1 : 0;
   const rUp = frame === 'stepB' ? 1 : 0;
   return [
@@ -62,7 +62,7 @@ function up(frame: Frame): Rect[] {
   ];
 }
 
-function side(frame: Frame, blink: boolean): Rect[] {
+function side(frame: Frame, blink: boolean, C: Palette): Rect[] {
   const legs: Rect[] =
     frame === 'stand'
       ? [[10, 18, 5, 3, C.suitShade], [10, 21, 6, 2, C.boot], [14, 21, 2, 1, C.bootHi]]
@@ -89,24 +89,71 @@ function side(frame: Frame, blink: boolean): Rect[] {
   ];
 }
 
-function rects(dir: PlayerDir, frame: Frame, blink: boolean): Rect[] {
-  if (dir === 'down') return down(frame, blink);
-  if (dir === 'up') return up(frame);
-  return side(frame, blink);
+/** Race and class change the look (user request): colours first, then a few extra details. */
+export type Look = { race: string; cls: string };
+type Palette = typeof BASE;
+
+const RACE_COLORS: Record<string, Partial<Palette>> = {
+  // Sewer-dwellers: a sickly green tinge and straggly dark hair.
+  gutterfolk: { skin: '#a8c08a', skinShade: '#88a06a', hair: '#2e3326', hairHi: '#454c39', mouth: '#5a4a3a' },
+};
+const CLASS_COLORS: Record<string, Partial<Palette>> = {
+  // The Hexer's hood replaces the hair; a glowing sigil replaces the badge.
+  hexer: { hair: '#5a2a8a', hairHi: '#7a3aaa', badge: '#c070ff', badgeInk: '#ffe0ff' },
+};
+
+function extras(dir: PlayerDir, look: Look, C: Palette): Rect[] {
+  const out: Rect[] = [];
+  if (look.race === 'gutterfolk') {
+    // Pointy ears.
+    if (dir === 'side') out.push([9, 5, 1, 3, C.skinShade], [8, 4, 1, 1, C.skinShade]);
+    else out.push([5, 6, 2, 2, C.skin], [4, 5, 1, 1, C.skin], [17, 6, 2, 2, C.skin], [19, 5, 1, 1, C.skin]);
+  }
+  if (look.cls === 'brawler') {
+    // A red sweatband and taped fists.
+    const band = '#d8302a';
+    if (dir === 'side') out.push([8, 4, 9, 1, band]);
+    else out.push([7, 4, 10, 1, band]);
+    if (dir === 'up') out.push([12, 5, 1, 3, band]);
+    if (dir === 'down') out.push([5, 17, 2, 1, '#f0f0e8'], [17, 17, 2, 1, '#f0f0e8']);
+  }
+  if (look.cls === 'hexer') {
+    // The hood falls around the face.
+    if (dir === 'down') out.push([6, 4, 1, 7, C.hair], [17, 4, 1, 7, C.hair], [8, 1, 8, 1, C.hair]);
+    if (dir === 'side') out.push([8, 3, 2, 8, C.hair], [9, 1, 7, 2, C.hair]);
+    if (dir === 'up') out.push([8, 1, 8, 1, C.hair], [7, 10, 10, 1, C.hairHi]);
+  }
+  return out;
 }
 
-function render(dir: PlayerDir, frame: Frame, blink: boolean): HTMLCanvasElement {
-  return renderRects(rects(dir, frame, blink));
+function paletteFor(look: Look): Palette {
+  return { ...BASE, ...RACE_COLORS[look.race], ...CLASS_COLORS[look.cls] };
 }
 
-export type PlayerSprites = (dir: PlayerDir, frame: Frame, blink: boolean) => HTMLCanvasElement;
+function rects(dir: PlayerDir, frame: Frame, blink: boolean, look: Look): Rect[] {
+  const C = paletteFor(look);
+  const base = dir === 'down' ? down(frame, blink, C) : dir === 'up' ? up(frame, C) : side(frame, blink, C);
+  return [...base, ...extras(dir, look, C)];
+}
 
-export function buildPlayerSprites(): PlayerSprites {
+export type PlayerSprites = ((dir: PlayerDir, frame: Frame, blink: boolean) => HTMLCanvasElement) & {
+  /** Switch to a race and class's look (the picker preview, then the run). */
+  setLook: (look: Look) => void;
+  look: Look;
+};
+
+export function buildPlayerSprites(look: Look = { race: 'human', cls: 'brawler' }): PlayerSprites {
   const cache = new Map<string, HTMLCanvasElement>();
-  for (const dir of ['down', 'up', 'side'] as const)
-    for (const frame of ['stand', 'stepA', 'stepB'] as const)
-      for (const blink of [false, true]) cache.set(`${dir}:${frame}:${blink}`, render(dir, frame, blink));
-  return (dir, frame, blink) => cache.get(`${dir}:${frame}:${blink && dir !== 'up'}`)!;
+  const fn = ((dir: PlayerDir, frame: Frame, blink: boolean) => {
+    const b = blink && dir !== 'up';
+    const key = `${fn.look.race}:${fn.look.cls}:${dir}:${frame}:${b}`;
+    let c = cache.get(key);
+    if (!c) cache.set(key, (c = renderRects(rects(dir, frame, b, fn.look))));
+    return c;
+  }) as PlayerSprites;
+  fn.look = look;
+  fn.setLook = (l) => void (fn.look = l);
+  return fn;
 }
 
 /** A worn item's colours, for drawing it on the doll: main, shade, highlight. */
@@ -118,9 +165,9 @@ export type GearColor = { main: string; shade: string; hi: string };
  * its item's colours over the matching part of the body. Weapons and off-hand
  * items are drawn as their icons in the hands by the caller.
  */
-export function dressedFront(worn: Partial<Record<string, GearColor>>): HTMLCanvasElement {
+export function dressedFront(worn: Partial<Record<string, GearColor>>, look: Look): HTMLCanvasElement {
   const g = worn;
-  const out: Rect[] = [...down('stand', false)];
+  const out: Rect[] = rects('down', 'stand', false, look);
   const add = (c: GearColor | undefined, rects: [number, number, number, number, keyof GearColor][]) => {
     if (c) for (const [x, y, w, h, k] of rects) out.push([x, y, w, h, c[k]]);
   };

@@ -42,14 +42,14 @@ export class InventoryMenu {
   /** The doll in its worn gear; rebuilt only when the gear changes. */
   private dressed(state: GameState, icons: ItemIcons): HTMLCanvasElement {
     const eq = state.player.equipment ?? {};
-    const key = SLOTS.map((s) => eq[s]?.defId ?? '').join('|');
+    const key = `${state.race}:${state.cls}:` + SLOTS.map((s) => eq[s]?.defId ?? '').join('|');
     if (key !== this.dressedKey || !this.dressedSprite) {
       const worn: Record<string, GearColor> = {};
       for (const slot of SLOTS) {
         const id = eq[slot]?.defId;
         if (id && slot !== 'weapon' && slot !== 'offhand') worn[slot] = this.colorOf(id, icons);
       }
-      this.dressedSprite = dressedFront(worn);
+      this.dressedSprite = dressedFront(worn, { race: state.race, cls: state.cls });
       this.dressedKey = key;
     }
     return this.dressedSprite;
@@ -288,7 +288,7 @@ export class InventoryMenu {
       ctx.font = FONT_BIG;
       block(def.name, RARITY_COLOR[def.rarity], 4);
       ctx.font = FONT;
-      block(`${RARITY_NAMES[def.rarity]}${def.invented ? ', one of a kind' : ''}${def.cursed ? ' (cursed)' : ''}${def.slot ? `, worn on: ${SLOT_NAMES[def.slot]}` : ''}`, '#6f7d70');
+      block(`${RARITY_NAMES[def.rarity]}${def.invented ? ', one of a kind' : ''}${def.cursed ? ' (stuck once worn)' : ''}${def.slot ? `, worn on: ${SLOT_NAMES[def.slot]}` : ''}`, '#6f7d70');
       block(def.help, '#e8e4da');
       block(`"${def.description}"`, '#9aa89a');
       // In your pockets: what it would replace and every change, even none (user request).

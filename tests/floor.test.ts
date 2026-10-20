@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FLOOR_THEMES } from '../src/data/floors';
 import { generateFloor } from '../src/gen/floor';
-import { bfsDistances } from '../src/gen/reach';
+import { bfsDistances, enclosable } from '../src/gen/reach';
 
 const SEEDS = Array.from({ length: 60 }, (_, i) => i * 7919 + 1);
 
@@ -28,12 +28,13 @@ describe('floor generator', () => {
     }
   });
 
-  it('places the stairs in the room farthest from the start', () => {
+  it('places the stairs in the farthest room that can be sealed for its boss', () => {
     for (const seed of SEEDS.slice(0, 50)) {
       const floor = generateFloor(seed, 1);
       const dist = bfsDistances(floor, floor.start);
       const at = (p: { x: number; y: number }) => dist[p.y * floor.width + p.x];
-      const farthest = Math.max(...floor.rooms.map((r) => at(r.center)));
+      const sealable = floor.rooms.filter((r) => enclosable(floor, r));
+      const farthest = Math.max(...(sealable.length ? sealable : floor.rooms).map((r) => at(r.center)));
       expect(at(floor.stairs)).toBe(farthest);
     }
   });

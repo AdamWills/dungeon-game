@@ -40,3 +40,18 @@ export function bfsDistances(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, f
   }
   return dist;
 }
+
+/**
+ * Can this room be closed off with a door per way in? Not if a corridor runs
+ * along its wall (two walkable wall-ring tiles side by side): sealing that
+ * would make a line of doors (user report).
+ */
+export function enclosable(floor: Pick<Floor, 'tiles' | 'width' | 'height'>, room: { x1: number; y1: number; x2: number; y2: number }): boolean {
+  const ring = (x: number, y: number) => (x === room.x1 - 1 || x === room.x2 + 1 || y === room.y1 - 1 || y === room.y2 + 1) && x >= room.x1 - 1 && x <= room.x2 + 1 && y >= room.y1 - 1 && y <= room.y2 + 1;
+  for (let y = room.y1 - 1; y <= room.y2 + 1; y++)
+    for (let x = room.x1 - 1; x <= room.x2 + 1; x++) {
+      if (!ring(x, y) || !isWalkable(floor, x, y)) continue;
+      if ((ring(x + 1, y) && isWalkable(floor, x + 1, y)) || (ring(x, y + 1) && isWalkable(floor, x, y + 1))) return false;
+    }
+  return true;
+}
