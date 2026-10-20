@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Call Log</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #0b0710; color: #e8e0f0; font: 14px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+      main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+      h1 { color: #ff5ac8; font-size: 22px; margin: 0 0 4px; }
+      .sub { color: #a898c8; margin: 0 0 14px; }
+      .totals { display: flex; gap: 22px; flex-wrap: wrap; border: 1px solid #3a2a5a; background: #120a1a; padding: 10px 14px; margin-bottom: 14px; }
+      .totals b { color: #38c8ff; font-weight: normal; font-size: 18px; display: block; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+      button, select { background: #160e20; color: #fff; border: 1px solid #38c8ff; padding: 6px 10px; font: inherit; cursor: pointer; }
+      details { border: 1px solid #3a2a5a; background: #120a1a; margin: 8px 0; }
+      summary { padding: 8px 12px; cursor: pointer; display: grid; grid-template-columns: 9em 1fr 7em 6em 9em 5em; gap: 10px; align-items: baseline; }
+      summary .what { color: #ffd23a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .bad { color: #ff7a5a; }
+      .slow { color: #ffb040; }
+      .dim { color: #8a7aa8; }
+      pre { margin: 0; padding: 10px 12px; border-top: 1px solid #2a1a3a; white-space: pre-wrap; word-break: break-word; max-height: 480px; overflow: auto; }
+      h3 { margin: 0; padding: 8px 12px 0; font-size: 13px; color: #c8b8e0; }
+      @media (max-width: 700px) { summary { grid-template-columns: 1fr 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AI call log</h1>
+      <p class="sub">Every call the game makes to OpenAI from this browser: what it was for, how long it took, what it cost, and the full prompt and response. Newest first. Kept only in this browser.</p>
+      <div class="totals" id="totals"></div>
+      <div class="row">
+        <button id="refresh">Refresh</button>
+        <select id="filter"><option value="">All calls</option></select>
+        <button id="download">Download as JSON</button>
+        <button id="clear">Clear the log (lifetime totals stay)</button>
+      </div>
+      <div id="calls"></div>
+    </main>
+    <script type="module" src="/src/ailog.ts"></script>
+  </body>
+</html>

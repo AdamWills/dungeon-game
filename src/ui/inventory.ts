@@ -116,7 +116,7 @@ export class InventoryMenu {
     ctx.fillText('INVENTORY', px + 20, py + 14);
     ctx.font = FONT;
     ctx.fillStyle = '#9aa89a';
-    ctx.fillText(UI_TEXT.inventory.sub, px + 180, py + 20);
+    ctx.fillText(`${UI_TEXT.inventory.sub}   Seed ${state.seed}`, px + 180, py + 20);
 
     const rows = this.rows(state);
     this.cursor = Math.min(this.cursor, rows.length - 1);

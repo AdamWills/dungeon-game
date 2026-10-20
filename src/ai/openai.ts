@@ -5,6 +5,7 @@
 
 import { API_BASE, IMAGE_FALLBACK_COST, IMAGE_PRICES, KEY_COLOR, MODELS, NO_TRANSPARENCY, TEXT_PRICES, TIMEOUT_MS } from './config';
 import type { Budget } from './budget';
+import { record } from './log';
 
 export type AiError =
   | { kind: 'no_key' }
@@ -72,7 +73,29 @@ export type StructuredRequest = {
   schemaName: string;
   schema: object;
   maxOutputTokens: number;
+  /** For the AI log: what the call is for. */
+  purpose?: string;
 };
+
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+/** Put one finished call in the AI log and the lifetime totals. */
+function log(purpose: string, model: string, t0: number, request: unknown, res: { ok: true; json: any } | { ok: false; error: AiError }, cost: number, response: unknown): void {
+  const usage = res.ok ? res.json?.usage : undefined;
+  record({
+    at: Date.now(),
+    purpose,
+    model,
+    ms: Math.round(now() - t0),
+    ok: res.ok,
+    status: res.ok ? 200 : res.error.kind === 'http' ? res.error.status : undefined,
+    inputTokens: usage?.input_tokens ?? 0,
+    outputTokens: usage?.output_tokens ?? 0,
+    cost,
+    request,
+    response: res.ok ? response : res.error,
+  });
+}
 
 /**
  * A text call that must return JSON matching the schema (structured outputs).
@@ -82,6 +105,7 @@ export async function structured<T>(client: Client, req: StructuredRequest, mode
   const price = TEXT_PRICES[model];
   const worst = price ? ((req.system.length + req.user.length) / 2 * price.input + req.maxOutputTokens * price.output) / 1e6 : 0;
   if (!client.budget.canAfford(worst)) return { ok: false, error: { kind: 'budget', left: client.budget.left } };
+  const t0 = now();
   const res = await post(
     client,
     '/responses',
@@ -97,9 +121,16 @@ export async function structured<T>(client: Client, req: StructuredRequest, mode
     },
     TIMEOUT_MS.text,
   );
-  if (!res.ok) return res;
+  const purpose = req.purpose ?? req.schemaName;
+  const sent = { system: req.system, user: tryJson(req.user) };
+  if (!res.ok) {
+    log(purpose, model, t0, sent, res, 0, null);
+    return res;
+  }
   const cost = textCost(model, res.json?.usage);
   client.budget.charge(cost);
+  const outText = (res.json?.output ?? []).flatMap((o: any) => (o?.type === 'message' ? (o.content ?? []) : [])).map((c: any) => c?.text ?? c?.refusal ?? '').join('');
+  log(purpose, model, t0, sent, res, cost, tryJson(outText));
   const content = (res.json?.output ?? []).flatMap((o: any) => (o?.type === 'message' ? (o.content ?? []) : []));
   const refusal = content.find((c: any) => c?.type === 'refusal');
   if (refusal) return { ok: false, error: { kind: 'refused', message: String(refusal.refusal ?? '') } };
@@ -112,7 +143,7 @@ export async function structured<T>(client: Client, req: StructuredRequest, mode
   }
 }
 
-export type ImageRequest = { prompt: string; size?: string; quality?: 'low' | 'medium' | 'high'; transparent?: boolean };
+export type ImageRequest = { prompt: string; size?: string; quality?: 'low' | 'medium' | 'high'; transparent?: boolean; purpose?: string };
 
 /** `keyed`: the image is on a flat KEY_COLOR background (the model could not do transparency); remove it. */
 export type ImageResult = { b64: string; keyed: boolean };
@@ -143,16 +174,22 @@ export async function image(client: Client, req: ImageRequest, model = MODELS.im
       TIMEOUT_MS.image,
     );
   let keyed = wantClear && NO_TRANSPARENCY.has(model);
+  const t0 = now();
   let res = await send(keyed);
   // A 400 costs nothing: if transparency was refused, ask again with the key colour.
   if (!res.ok && wantClear && !keyed && res.error.kind === 'http' && res.error.status === 400 && /transparen/i.test(res.error.message)) {
     keyed = true;
     res = await send(true);
   }
-  if (!res.ok) return res;
+  const sent = { prompt: req.prompt, quality, size: req.size ?? '1024x1024', keyedBackground: keyed };
+  if (!res.ok) {
+    log(req.purpose ?? 'image', model, t0, sent, res, 0, null);
+    return res;
+  }
   const cost = imageCost(model, res.json?.usage, quality);
   client.budget.charge(cost);
   const b64 = res.json?.data?.[0]?.b64_json;
+  log(req.purpose ?? 'image', model, t0, sent, res, cost, typeof b64 === 'string' ? `(an image, ${Math.round((b64.length * 3) / 4 / 1024)} KB)` : 'no image');
   if (typeof b64 !== 'string') return { ok: false, error: { kind: 'bad_output', message: 'no image' } };
   return { ok: true, value: { b64, keyed }, cost };
 }
@@ -187,5 +224,14 @@ export function describeError(e: AiError): string {
       return 'The AI would not do that one. Try something else.';
     case 'bad_output':
       return 'The AI answer came back garbled. Try again.';
+  }
+}
+
+/** Parse JSON for the log where it is JSON; otherwise keep the text. */
+function tryJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
   }
 }

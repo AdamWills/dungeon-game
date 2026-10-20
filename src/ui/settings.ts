@@ -5,6 +5,9 @@
 import { checkKey } from '../ai/openai';
 import { type AiSettings, maskKey, saveSettings, validLimit } from '../ai/settings';
 import { UI_TEXT } from '../data/uiText';
+import { fill } from '../data/battleText';
+import { formatUsd } from '../ai/budget';
+import { lifetime, shortCount } from '../ai/log';
 import type { Keyboard, MenuKey } from './input';
 import { FONT, FONT_BIG, wrapText } from './text';
 
@@ -127,6 +130,9 @@ export class SettingsScreen {
     }
     ctx.fillStyle = '#8a7aa8';
     y += wrapText(ctx, T.privacy, x, y + 6, pw, 20) * 20 + 14;
+    const all = lifetime();
+    ctx.fillStyle = '#38c8ff';
+    y += wrapText(ctx, fill(T.lifetime, { tokens: shortCount(all.inputTokens + all.outputTokens), usd: formatUsd(all.usd), calls: all.calls }), x, y, pw, 20) * 20 + 14;
     ctx.fillStyle = '#ff5ac8';
     wrapText(ctx, this.editing ? T.typingKeys : T.keys, x, y, pw, 20);
   }

@@ -11,5 +11,5 @@ export async function askAction(client: Client, state: GameState, text: string):
   if (!battle) return { ok: false, error: { kind: 'bad_output', message: 'not in a fight' } };
   // The scene and the player's words travel as data, never as instructions.
   const user = JSON.stringify({ scene: actionScene(state, battle), playerAction: text.slice(0, ACTION_CAPS.textChars) });
-  return structured<TypedAnswer>(client, { system: ACTION_SYSTEM, user, schemaName: 'typed_action', schema: ACTION_SCHEMA, maxOutputTokens: 500 });
+  return structured<TypedAnswer>(client, { system: ACTION_SYSTEM, user, schemaName: 'typed_action', schema: ACTION_SCHEMA, maxOutputTokens: 500, purpose: `typed action: "${text.slice(0, 60)}"` });
 }

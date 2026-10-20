@@ -127,6 +127,8 @@
 ### Feedback round (after playing the AI build)
 - **Damage types are classic D&D now** (user decision; they disliked "Gross"): Bludgeoning, Piercing, Slashing, Fire, Cold, Lightning, Acid, Poison. Weapons, items, improvisations, allies and every creature's weak spots and resistances were remapped (the Fatberg is still weak to Fire; Old Flushy and the Sump Crab hate Lightning). The target screen lists untried types by count once there are more than three.
 - **Loot odds** (user: "way too easy to get a Legendary"; it was 4% a roll, about 5 a floor, with only one Legendary item): chests now roll Legendary 1% of the time, ordinary drops never, room bosses drop a Rare, the Fatberg a Legendary. About one Legendary a floor outside the boss.
+- **AI call log** (user request): every call is recorded (`src/ai/log.ts`): when, what for, model, time taken, tokens, cost, the full prompt and the full response (images as a note, never the data). `/ailog.html` lists the newest 150, filterable, with download as JSON and a clear button; it refreshes when the game logs a new call.
+- **Lifetime totals** (user request: a running total that never resets): tokens, dollars and calls across every run, kept apart from the log (clearing the log keeps them). Shown in the HUD ("all-time 12.3k tokens ($0.41)", next to this run's spend) and on the AI settings screen. The seed moved to the pause screen to make room.
 - Glitter Bomb stuns for 2 turns, so throwing it is no longer a wasted turn. "You are no longer stunned" (was "You is"). The stairs glow and have a bobbing arrow over them, red while the floor boss seals them.
 
 ### AI-first, step 2: the sprite lab (art trial)

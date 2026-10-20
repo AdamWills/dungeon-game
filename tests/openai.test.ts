@@ -119,3 +119,25 @@ describe('images and keys', () => {
     expect(maskKey('sk-proj-abcdefgh1234')).toBe('sk-...1234');
   });
 });
+
+describe('the AI log', () => {
+  it('records each call with timing, tokens, cost, prompt and response, and keeps lifetime totals', async () => {
+    const store: Record<string, string> = {};
+    const fake = { getItem: (k: string) => store[k] ?? null, setItem: (k: string, v: string) => void (store[k] = v), removeItem: (k: string) => void delete store[k] };
+    (globalThis as { localStorage?: unknown }).localStorage = fake;
+    const { readLog, readTotals, clearLog } = await import('../src/ai/log');
+    const f = fakeFetch(200, reply('{"grade":"meh"}', { input_tokens: 1000, output_tokens: 200 }));
+    await structured({ apiKey: 'k', budget: new Budget(5), fetch: f.fn }, { ...REQ, purpose: 'typed action: "x"' });
+    await structured({ apiKey: 'k', budget: new Budget(5), fetch: fakeFetch(500, { error: { message: 'boom' } }).fn }, REQ);
+    const log = readLog();
+    expect(log).toHaveLength(2);
+    expect(log[1]).toMatchObject({ purpose: 'typed action: "x"', model: 'gpt-6-luna', ok: true, inputTokens: 1000, outputTokens: 200, request: { system: 'Rules.' }, response: { grade: 'meh' } });
+    expect(log[1].ms).toBeGreaterThanOrEqual(0);
+    expect(log[0]).toMatchObject({ ok: false, status: 500 });
+    expect(readTotals()).toMatchObject({ calls: 2, inputTokens: 1000, outputTokens: 200 });
+    clearLog();
+    expect(readLog()).toHaveLength(0);
+    expect(readTotals().calls).toBe(2); // lifetime totals never reset
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});

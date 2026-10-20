@@ -53,6 +53,7 @@ export const UI_TEXT = {
     keys: 'UP/DOWN choose   ENTER change   ESC back',
     typingKeys: 'Type or paste (Ctrl+V), then ENTER to save. ESC cancels.',
     privacy: 'Your key is kept only in this browser and is sent only to OpenAI. You can also set a monthly limit on your OpenAI account.',
+    lifetime: 'All-time AI use in this browser: {tokens} tokens, {usd}, {calls} calls. Every call, with its prompt, response and timing, is in the call log: open /ailog.html in another tab.',
     checking: 'Checking the key with OpenAI...',
     keyWorks: 'Key saved. OpenAI accepted it.',
     keyRejected: 'OpenAI rejected that key (401). Check it and paste it again.',

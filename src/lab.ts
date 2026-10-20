@@ -160,7 +160,7 @@ async function main(): Promise<void> {
     go.disabled = true;
     status('Generating... (this can take 10 to 60 seconds)');
     const quality = ($('quality') as HTMLSelectElement).value as 'low' | 'medium';
-    const res = await image({ apiKey: settings.apiKey, budget }, { prompt: spritePrompt(desc), quality, transparent: true });
+    const res = await image({ apiKey: settings.apiKey, budget }, { prompt: spritePrompt(desc), quality, transparent: true, purpose: 'sprite lab' });
     go.disabled = false;
     meter();
     if (!res.ok) return status(describeError(res.error), true);

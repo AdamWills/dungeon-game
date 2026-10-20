@@ -14,6 +14,7 @@ import { hazardActive, hazardPhase } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, leftItemHere, propAt } from '../world/interact';
 import { DAMAGE_TYPES } from '../data/damage';
 import { formatUsd } from '../ai/budget';
+import { lifetime, shortCount } from '../ai/log';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
@@ -722,12 +723,14 @@ export class Renderer {
     ctx.fillStyle = '#ffd23a';
     ctx.fillText(`${state.tokens} TOKENS`, x, 12);
     ctx.fillStyle = '#6f7d70';
-    const right = `SEED ${state.seed}`;
+    // What this run has spent on AI against the player's limit, then every token
+    // this browser has ever spent on the game (never resets; user request).
+    const all = lifetime();
+    const right = `all-time ${shortCount(all.inputTokens + all.outputTokens)} tokens (${formatUsd(all.usd)})`;
     ctx.fillText(right, w - 14 - ctx.measureText(right).width, 12);
-    // What this run has spent on AI, against the player's limit.
-    const spend = `AI ${formatUsd(ai.spent)} / ${formatUsd(ai.limit)}`;
+    const spend = `AI this run ${formatUsd(ai.spent)} / ${formatUsd(ai.limit)}`;
     ctx.fillStyle = ai.spent >= ai.limit * 0.8 ? '#ff7a5a' : '#38c8ff';
-    ctx.fillText(spend, w - 14 - ctx.measureText(right).width - 24 - ctx.measureText(spend).width, 12);
+    ctx.fillText(spend, w - 14 - ctx.measureText(right).width - 18 - ctx.measureText(spend).width, 12);
 
     // Second row: your stats, always in view, then the party.
     const wpn = weaponOf(state.player);

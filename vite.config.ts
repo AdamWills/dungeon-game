@@ -3,8 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   build: {
     rollupOptions: {
-      // The game, and the sprite lab used for the art trial.
-      input: { main: 'index.html', lab: 'lab.html' },
+      // The game, the sprite lab (art trial) and the AI call log.
+      input: { main: 'index.html', lab: 'lab.html', ailog: 'ailog.html' },
     },
   },
   test: {
