@@ -16,7 +16,7 @@ import { buildEncounter, findContact } from './encounter';
 import { updateFov } from './fov';
 import { updateHazards } from './hazards';
 import { chestAt, eatRemains, facingTile, isClosedDoor, leftItemHere, openChest, openDoor, pickUp, propAt } from './interact';
-import { lairBoss, stairsSealed, updateLair } from './lair';
+import { lairBoss, stairsSealed, updateBossRooms, updateLair } from './lair';
 import { advanceMotion, FACING, startMotion, tileOf } from './motion';
 
 const DELTA: Record<Dir, Vec> = {
@@ -77,7 +77,8 @@ export function step(state: GameState, input: InputFrame): void {
   if (state.mode !== 'roaming') return; // a hazard finished you off
 
   updateLair(state);
-  if (state.mode !== 'roaming') return; // walked into the boss's lair
+  if (state.mode === 'roaming') updateBossRooms(state);
+  if (state.mode !== 'roaming') return; // walked into a boss's room
 
   const contact = findContact(state);
   if (contact) startBattle(state, buildEncounter(state, contact));

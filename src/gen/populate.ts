@@ -52,9 +52,14 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
     if (!pos) continue;
     taken.add(key(pos));
     const def = ENEMIES[ids.splice(nextInt(rng, 0, ids.length - 1), 1)[0]];
-    entities.push(guard(floor, def, pos, rng, entities.length));
+    const boss = guard(floor, def, pos, rng, entities.length);
+    entities.push(boss);
     bossRooms.push(room);
+    (floor.bossRooms ??= []).push({ room: room.id, bossId: boss.id });
   }
+
+  // Boss rooms are closed off (user request): every way in gets a closed door.
+  for (const room of [lair, ...bossRooms]) sealRoom(floor, room);
 
   const firstResident = entities.length;
   for (const room of floor.rooms) {
@@ -91,6 +96,19 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
     entities.push(resident(floor, room, ENEMIES[id], pos, rng, theme, entities.length));
   }
   return entities;
+}
+
+/** Put a closed door in every opening around a room, so it reads as its own space. */
+function sealRoom(floor: Floor, room: Room): void {
+  for (let y = room.y1 - 1; y <= room.y2 + 1; y++)
+    for (let x = room.x1 - 1; x <= room.x2 + 1; x++) {
+      if (inRoom(room, { x, y })) continue;
+      const t = floor.tiles[y]?.[x];
+      if (t && t.terrain === 'floor') {
+        t.terrain = 'door';
+        t.door = { open: false };
+      }
+    }
 }
 
 /** A boss: awake, standing its ground in its room. */

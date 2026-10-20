@@ -200,3 +200,39 @@ describe('elites', () => {
     expect(s.events.some((ev) => ev.type === 'bossDefeated' && ev.tier === 'elite')).toBe(true);
   });
 });
+
+describe('room bosses (user request: closed rooms, the fight starts on entry)', () => {
+  it('every way into a boss room is a closed door', () => {
+    for (let seed = 1; seed < 10; seed++) {
+      const floor = generateFloor(seed * 7919, 1);
+      for (const br of [...(floor.bossRooms ?? []), { room: floor.lair!.room }]) {
+        const room = floor.rooms.find((r) => r.id === br.room)!;
+        for (let y = room.y1 - 1; y <= room.y2 + 1; y++)
+          for (let x = room.x1 - 1; x <= room.x2 + 1; x++) {
+            if (inRoom(room, { x, y })) continue;
+            const t = floor.tiles[y]?.[x];
+            if (t && isWalkable(floor, x, y)) expect(t.terrain === 'door' || t.terrain === 'hazard').toBe(true);
+          }
+      }
+      expect(floor.bossRooms!.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('stepping into the room starts the fight on the ROOM BOSS card; fleeing puts you outside', () => {
+    const s = createGameState(11);
+    const br = s.floor.bossRooms![0];
+    s.floor.entities = s.floor.entities.filter((e) => e.id === br.bossId);
+    const room = s.floor.rooms.find((r) => r.id === br.room)!;
+    s.player.pos = { x: room.center.x === room.x1 ? room.x1 + 1 : room.x1, y: room.y1 };
+    step(s, NO_INPUT);
+    expect(s.mode).toBe('battle');
+    expect(s.battle!.intro).toBe(s.floor.entities[0].defId);
+    battleCommand(s, { kind: 'continue' });
+    settle(s);
+    s.player.stats.speed = 30;
+    for (let i = 0; i < 20 && s.battle && !s.battle.result; i++) battleCommand(s, { kind: 'flee' });
+    battleCommand(s, { kind: 'continue' });
+    expect(s.mode).toBe('roaming');
+    expect(inRoom(room, s.player.pos)).toBe(false);
+  });
+});

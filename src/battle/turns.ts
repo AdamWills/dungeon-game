@@ -24,7 +24,7 @@ import { eliminate } from '../game/report';
 import { practice, skillLevel } from '../game/skills';
 import { SKILLS } from '../data/skills';
 import { nextFloat, nextInt, pick } from '../game/rng';
-import { leaveLair } from '../world/lair';
+import { leaveBossRoom, leaveLair } from '../world/lair';
 import { owned, takeFromPool } from '../game/aiItems';
 import { applyOutcome, applyRepeats, gatherArena, resolveImprov, validateOutcome } from './improvise';
 import type { BattleCommand, BattleState, Combatant, Encounter, Entity, GameState, LogLine, Vec } from '../game/types';
@@ -967,6 +967,8 @@ function endBattle(state: GameState): void {
   }
   if (result === 'fled') state.grace = TUNING.fleeGraceTicks;
   if (result === 'fled' && floor.lair && battle.encounter.enemyIds.includes(floor.lair.bossId)) leaveLair(state);
+  const roomBoss = floor.bossRooms?.find((b) => battle.encounter.enemyIds.includes(b.bossId));
+  if (result === 'fled' && roomBoss) leaveBossRoom(state, roomBoss.bossId);
   setMode(state, 'roaming');
 
   if (result === 'won') {

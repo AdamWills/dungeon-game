@@ -45,6 +45,27 @@ export function updateLair(state: GameState): void {
   }
 }
 
+/**
+ * Room bosses (user request): walking into a room boss's room starts the
+ * fight at once, on its ROOM BOSS card, just like the lair.
+ */
+export function updateBossRooms(state: GameState): void {
+  if (state.grace > 0 || state.dash.active > 0 || !state.floor.bossRooms) return;
+  const at = playerTile(state);
+  for (const br of state.floor.bossRooms) {
+    const room = state.floor.rooms.find((r) => r.id === br.room);
+    const boss = state.floor.entities.find((e) => e.id === br.bossId);
+    if (room && boss && inside(room, at)) return startBattle(state, { enemyIds: [boss.id], start: 'normal', tile: { ...at } });
+  }
+}
+
+/** After fleeing a room boss: you land just outside its door, and it heals up. */
+export function leaveBossRoom(state: GameState, bossId: string): void {
+  const br = state.floor.bossRooms?.find((b) => b.bossId === bossId);
+  const room = br && state.floor.rooms.find((r) => r.id === br.room);
+  if (room) leaveRoom(state, room, state.floor.entities.find((e) => e.id === bossId) ?? null);
+}
+
 /** The boss roars: its lair shows up on your map. */
 function roar(state: GameState, room: Room, boss: Entity): void {
   state.floor.lair!.found = true;
@@ -59,8 +80,10 @@ function roar(state: GameState, room: Room, boss: Entity): void {
 /** After fleeing the floor boss: it heals up, and you land just outside its door. */
 export function leaveLair(state: GameState): void {
   const room = lairRoom(state);
-  const boss = lairBoss(state);
-  if (!room) return;
+  if (room) leaveRoom(state, room, lairBoss(state));
+}
+
+function leaveRoom(state: GameState, room: Room, boss: Entity | null): void {
   if (boss) boss.stats.hp = boss.stats.maxHp;
   const f = state.floor;
   const here = playerTile(state);

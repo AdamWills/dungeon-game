@@ -75,6 +75,8 @@ export type Floor = {
   props: MapProp[];
   /** The floor boss's lair: the stairs room. Found once it roars; beaten unlocks the stairs. */
   lair?: { room: number; bossId: string; found: boolean; beaten: boolean };
+  /** Room bosses: each in its own closed-off room; walking in starts the fight. */
+  bossRooms?: { room: number; bossId: string }[];
   /** 1 where the player can currently see, flat index y * width + x. */
   visible: number[];
 };
