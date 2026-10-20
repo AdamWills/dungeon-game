@@ -18,6 +18,7 @@ import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
 import { blink, confetti, lowRes, NEON, panel as neonPanel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
 import { ENEMIES } from '../data/enemies';
+import { drawDeathBurst, drawHealSparkle, drawImpact, drawStatusLooks, lungeAmount } from './battleFx';
 import { drawText, fitScale, textHeight, wrapPixel } from './pixelFont';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
@@ -96,6 +97,22 @@ export class BattleView {
     const battle = state.battle!;
     if (battle.intro) return this.drawBossIntro(ctx, w, h, battle.intro, now, pixel);
     for (const f of battle.fx) if (!this.fxStart.has(f.seq)) this.fxStart.set(f.seq, now);
+    // Big hits and deaths shake the whole screen for a moment.
+    const jolt = battle.fx.reduce((m, f) => {
+      const t = (now - (this.fxStart.get(f.seq) ?? 0)) / FX_MS;
+      return (f.big || f.kind === 'death') && t < 0.3 ? Math.max(m, (1 - t / 0.3) * (f.kind === 'death' ? 7 : 5)) : m;
+    }, 0);
+    ctx.save();
+    if (jolt) ctx.translate(Math.round(Math.sin(now / 17) * jolt), Math.round(Math.cos(now / 23) * jolt));
+    this.drawScene(ctx, w, h, state, menu, now, pixel);
+    ctx.restore();
+  }
+
+  /** Where each combatant stood last frame (sprite centre), so lunges know which way to go. */
+  private spots = new Map<string, { x: number; y: number }>();
+
+  private drawScene(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, menu: BattleMenu, now: number, pixel: number): void {
+    const battle = state.battle!;
     const scale = Math.max(2, Math.min(5, Math.floor(Math.min(w, h) / 170)));
     const panelTop = Math.round(h - Math.min(310, Math.max(262, h * 0.34)));
 
@@ -246,8 +263,15 @@ export class BattleView {
   ): void {
     const fx = battle.fx.filter((f) => f.targetId === c.id).map((f) => ({ f, t: (now - (this.fxStart.get(f.seq) ?? 0)) / FX_MS }));
     const hit = fx.find(({ f, t }) => f.kind === 'hit' && t < 0.4);
-    const shake = hit ? Math.round(Math.sin(now / 25) * 3) : 0;
-    const bob = opts.acting && c.alive ? Math.round(Math.sin(now / 160) * 2) : 0;
+    // A lunge toward whoever it is attacking, then back.
+    const lunge = fx.find(({ f, t }) => f.kind === 'lunge' && t < 0.4);
+    const to = lunge?.f.toId ? this.spots.get(lunge.f.toId) : undefined;
+    const reach = lunge && to ? lungeAmount(lunge.t) * 0.3 : 0;
+    const lx = to ? Math.round(Math.max(-140, Math.min(140, (to.x - cx) * reach))) : 0;
+    const ly = to ? Math.round(Math.max(-90, Math.min(90, (to.y - (top + size / 2)) * reach))) : 0;
+    const shake = (hit ? Math.round(Math.sin(now / 25) * 3) : 0) + lx;
+    const bob = (opts.acting && c.alive ? Math.round(Math.sin(now / 160) * 2) : 0) + ly;
+    this.spots.set(c.id, { x: cx, y: top + size / 2 });
 
     // Elites stand in a gold glow.
     ctx.fillStyle = c.elite ? 'rgba(255, 210, 58, 0.6)' : 'rgba(0,0,0,0.45)';
@@ -278,6 +302,14 @@ export class BattleView {
       ctx.drawImage(sprite, -big / 2, size - big, big, big);
       ctx.restore();
     }
+    // Impacts, deaths and heals, and how its statuses look while they last.
+    const mid = top + size - big / 2;
+    for (const { f, t } of fx) {
+      if (f.kind === 'hit') drawImpact(ctx, f.dtype, cx, mid, big, t * 1.4, f.seq);
+      else if (f.kind === 'death') drawDeathBurst(ctx, cx, mid, big, t, f.seq);
+      else if (f.kind === 'heal') drawHealSparkle(ctx, cx, mid, big, t, f.seq);
+    }
+    if (c.alive) drawStatusLooks(ctx, c.statuses.map((x) => x.kind), cx, top + size - big, big, now, c.defending);
     if (!c.alive) {
       ctx.fillStyle = 'rgba(140, 20, 20, 0.7)';
       ctx.beginPath();

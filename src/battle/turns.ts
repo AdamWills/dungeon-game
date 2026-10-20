@@ -515,7 +515,7 @@ export function applyEffects(state: GameState, battle: BattleState, user: Combat
       case 'damage': {
         const hit = typed(state, battle, user, target, eff.pierce ? eff.amount : Math.max(1, eff.amount - target.stats.armor), eff.type);
         if (hit.note) say(battle, `${target.name}:${hit.note}`, 'info');
-        hurt(state, battle, target, user, hit.dmg);
+        hurt(state, battle, target, user, hit.dmg, eff.type);
         break;
       }
       case 'status':
@@ -579,7 +579,7 @@ function typed(state: GameState, battle: BattleState, attacker: Combatant, targe
 }
 
 /** Final damage after Hex, bracing and passives; kills if HP hits 0. */
-function hurt(state: GameState, battle: BattleState, target: Combatant, source: Combatant, raw: number): number {
+function hurt(state: GameState, battle: BattleState, target: Combatant, source: Combatant, raw: number, dtype?: string): number {
   let dmg = raw;
   if (hasStatus(target, 'hexed')) dmg *= 2;
   if (target.defending) dmg = Math.ceil(dmg * TUNING.combat.defendMultiplier);
@@ -592,7 +592,7 @@ function hurt(state: GameState, battle: BattleState, target: Combatant, source: 
   // No dying before your first turn, however bad the ambush.
   if (isYou(target) && !battle.playerHasActed) dmg = Math.min(dmg, target.stats.hp - 1);
   target.stats.hp = Math.max(0, target.stats.hp - dmg);
-  fx(battle, target.id, 'hit', dmg);
+  fx(battle, target.id, 'hit', dmg, { dtype, big: dmg >= target.stats.maxHp * 0.3 || target.stats.hp === 0 });
   if (target.stats.hp === 0) kill(state, battle, target, source);
   return dmg;
 }
@@ -600,6 +600,7 @@ function hurt(state: GameState, battle: BattleState, target: Combatant, source: 
 function playerStrike(state: GameState, battle: BattleState, me: Combatant, target: Combatant, salt: (number | string)[]) {
   const weapon = weaponOf(state.player);
   const s = salt.map((x) => (typeof x === 'number' ? x : x.length));
+  fx(battle, me.id, 'lunge', undefined, { toId: target.id });
   if (!rollHit(state.rng, target.stats.evasion)) {
     say(battle, fill(variant(T.playerMiss, ...s), { target: target.name }), 'info');
     fx(battle, target.id, 'miss');
@@ -611,7 +612,7 @@ function playerStrike(state: GameState, battle: BattleState, me: Combatant, targ
   const line = fill(variant(T.playerHit, ...s), { target: target.name, weapon: weapon.name, dmg: '{dmg}' });
   const idx = battle.log.length;
   say(battle, line, 'good');
-  const dmg = hurt(state, battle, target, me, hit.dmg);
+  const dmg = hurt(state, battle, target, me, hit.dmg, weapon.type);
   battle.log[idx].text = line.replace('{dmg}', String(dmg)) + hit.note + (ambush ? T.bonus : '') + (hexed ? ' (Hexed: double damage.)' : '');
   if (target.alive && weapon.onHit && nextFloat(state.rng) < weapon.onHit.chance)
     applyStatus(state, battle, target, weapon.onHit.status, weapon.onHit.turns);
@@ -684,6 +685,7 @@ function enemyStrike(state: GameState, battle: BattleState, actor: Combatant, mo
   const def = ENEMIES[actor.defId];
   const mine = isYou(target);
   const salt = [battle.round, battle.turn, battle.log.length];
+  fx(battle, actor.id, 'lunge', undefined, { toId: target.id });
   if (!rollHit(state.rng, target.stats.evasion)) {
     say(battle, fill(variant(mine ? T.enemyMiss : T.enemyMissesAlly, ...salt), { actor: actor.name, move: move.name, target: target.name }), 'info');
     fx(battle, target.id, 'miss');
@@ -773,6 +775,7 @@ function allyAct(state: GameState, battle: BattleState, me: Combatant): void {
 
 function allyStrike(state: GameState, battle: BattleState, me: Combatant, def: (typeof ALLIES)[string], target: Combatant, weapon: number): void {
   const salt = [battle.round, battle.turn, battle.log.length];
+  fx(battle, me.id, 'lunge', undefined, { toId: target.id });
   if (!rollHit(state.rng, target.stats.evasion)) {
     say(battle, fill(variant(T.allyMiss, ...salt), { ally: me.name, target: target.name }), 'info');
     fx(battle, target.id, 'miss');
@@ -782,7 +785,7 @@ function allyStrike(state: GameState, battle: BattleState, me: Combatant, def: (
   const hit = typed(state, battle, me, target, modifyDamage(baseDamage(weapon, me.stats.str, target.stats.armor), { ambush, defending: false }), def.weapon.type);
   const idx = battle.log.length;
   say(battle, '', 'good');
-  const dmg = hurt(state, battle, target, me, hit.dmg);
+  const dmg = hurt(state, battle, target, me, hit.dmg, def.weapon.type);
   battle.log[idx].text = fill(variant(def.attackLines, ...salt), { ally: me.name, target: target.name, dmg }) + hit.note + (ambush ? T.bonus : '');
 }
 
@@ -1011,7 +1014,7 @@ function say(battle: BattleState, text: string, tone: LogLine['tone']): void {
   battle.log.push({ text, tone });
 }
 
-function fx(battle: BattleState, targetId: string, kind: BattleState['fx'][number]['kind'], amount?: number): void {
-  battle.fx.push({ seq: ++battle.fxSeq, targetId, kind, amount });
-  if (battle.fx.length > 20) battle.fx.shift();
+function fx(battle: BattleState, targetId: string, kind: BattleState['fx'][number]['kind'], amount?: number, extra: { dtype?: string; toId?: string; big?: boolean } = {}): void {
+  battle.fx.push({ seq: ++battle.fxSeq, targetId, kind, amount, ...extra });
+  if (battle.fx.length > 40) battle.fx.shift();
 }

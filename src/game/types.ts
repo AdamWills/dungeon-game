@@ -172,7 +172,17 @@ export type Encounter = {
 export type LogLine = { text: string; tone: 'info' | 'good' | 'bad' | 'host' };
 
 /** A visible thing that happened in battle, for the UI to animate. */
-export type BattleFx = { seq: number; targetId: string; kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend' | 'status' | 'weak' | 'resist'; amount?: number };
+export type BattleFx = {
+  seq: number;
+  targetId: string;
+  kind: 'hit' | 'miss' | 'heal' | 'death' | 'defend' | 'status' | 'weak' | 'resist' | 'lunge';
+  amount?: number;
+  /** Hits: the damage type, for the impact effect. Lunges: who is being attacked. */
+  dtype?: string;
+  toId?: string;
+  /** A hit worth shaking the screen for. */
+  big?: boolean;
+};
 
 export type Combatant = {
   id: string;
