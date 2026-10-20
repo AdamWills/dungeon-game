@@ -80,6 +80,13 @@ describe('the lair', () => {
     expect(s.mode).toBe('battle');
     expect(s.battle!.encounter.enemyIds).toEqual([s.floor.lair!.bossId]);
     expect(s.battle!.log.some((l) => l.text.includes('FLOOR BOSS'))).toBe(true);
+    // The intro card holds everything until you press Enter.
+    expect(s.battle!.intro).toBe('fatberg');
+    const wait = s.battle!.wait;
+    for (let i = 0; i < 300; i++) step(s, NO_INPUT);
+    expect(s.battle!.wait).toBe(wait);
+    step(s, { ...NO_INPUT, command: { kind: 'continue' } });
+    expect(s.battle!.intro).toBeUndefined();
     settle(s);
     const boss = s.battle!.combatants.find((c) => c.defId === 'fatberg')!;
     boss.stats.hp = 10;
