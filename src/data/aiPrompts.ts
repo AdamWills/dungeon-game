@@ -69,3 +69,8 @@ export const ACTION_SCHEMA = {
     key: { type: 'string' },
   },
 };
+
+/** The art direction every generated sprite gets (user decision: 32 to 48 px pixel art). */
+export function spritePrompt(description: string): string {
+  return `Pixel art video game sprite of ${description}. One single character, full body, seen from the side and facing right, centred, filling most of the frame. Chunky retro 16-bit pixel art, a bold dark outline, a limited palette of about 16 saturated colours, flat shading with one highlight. Cartoonish and funny, slightly grotesque. Transparent background: no ground, no shadow, no scenery, no text, no border.`;
+}

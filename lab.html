@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sprite Lab</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #0b0710; color: #e8e0f0; font: 14px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+      main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+      h1 { color: #ff5ac8; font-size: 22px; margin: 0 0 4px; }
+      .sub { color: #a898c8; margin: 0 0 16px; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+      textarea { width: 100%; min-height: 54px; background: #160e20; color: #fff; border: 1px solid #3a2a5a; padding: 8px; font: inherit; box-sizing: border-box; }
+      input, select, button { background: #160e20; color: #fff; border: 1px solid #3a2a5a; padding: 6px 10px; font: inherit; }
+      button { cursor: pointer; border-color: #38c8ff; }
+      button:disabled { opacity: 0.5; cursor: wait; }
+      .meter { color: #38c8ff; }
+      .status { color: #ffd23a; min-height: 20px; }
+      .err { color: #ff7a5a; }
+      .card { border: 1px solid #3a2a5a; background: #120a1a; margin: 16px 0; padding: 12px; }
+      .card h2 { font-size: 15px; margin: 0 0 8px; color: #ffd23a; }
+      .card canvas { image-rendering: pixelated; display: block; max-width: 100%; }
+      .label { color: #a898c8; font-size: 12px; margin: 6px 0 2px; }
+      .raw { width: 160px; height: 160px; image-rendering: auto; background: repeating-conic-gradient(#222 0% 25%, #333 0% 50%) 50% / 16px 16px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sprite lab</h1>
+      <p class="sub">Try the 32 to 48 px look. Describe a creature, generate it with <span id="model"></span>, and see it shrunk to 32, 40 and 48 px pixel art on the real map tiles, next to today's 24 px sprites. Or load any PNG to test the shrinking for free.</p>
+      <div class="row"><span>AI spent this session: <span class="meter" id="meter"></span></span> <span id="keyinfo"></span></div>
+      <textarea id="desc">a rat the size of a dog, wearing a visitor lanyard it did not earn</textarea>
+      <div class="row">
+        <select id="quality"><option value="low">low quality (about $0.006)</option><option value="medium">medium quality (about $0.05)</option></select>
+        <button id="go">Generate</button>
+        <label>or load a PNG: <input type="file" id="file" accept="image/png,image/webp" /></label>
+        <label>colours <input type="number" id="colors" value="16" min="4" max="32" style="width: 4em" /></label>
+      </div>
+      <div class="row">
+        <span class="label">Presets:</span>
+        <button class="preset">a rat the size of a dog, wearing a visitor lanyard it did not earn</button>
+        <button class="preset">a sentient wobbling mass of grease and wet wipes with mismatched googly eyes and a rubber duck stuck in it</button>
+        <button class="preset">a huge grumpy red sewer crab with one giant claw</button>
+      </div>
+      <div class="status" id="status"></div>
+      <div id="results"></div>
+    </main>
+    <script type="module" src="/src/lab.ts"></script>
+  </body>
+</html>

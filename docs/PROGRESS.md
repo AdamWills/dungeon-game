@@ -124,6 +124,12 @@
 - The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
 - Later: drawing gear on the character sprite itself.
 
+### AI-first, step 2: the sprite lab (art trial)
+- `/lab.html` (`src/lab.ts`, in the build too): describe a creature (or pick a preset: the Intake Rat, the Fatberg, the Sump Crab), generate it with `gpt-image-2` (low quality about $0.006, medium about $0.05; uses the key and limit from the game's AI settings), and see it shrunk to 32, 40 and 48 px on the real map tiles next to today's 24 px player and Intake Rat, and at battle-screen size. Or load any PNG to try the shrinking for free. The last 8 results are kept in this browser.
+- `src/art/pixelize.ts` is the step the game will use: crop to the creature, shrink by averaging onto the pixel grid (standing on the bottom edge), make every pixel fully on or off, cut the palette (median cut, 16 colours by default), and add the same 1 px dark outline the hand-drawn sprites have. The art direction for every sprite prompt is in `spritePrompt` (`src/data/aiPrompts.ts`).
+- Tests: the pipeline on a synthetic image at all three sizes. Checked in the browser with the image request intercepted.
+- First observation: at 32 to 48 px, creatures tower over the 16 px tiles and the 24 px player. Moving the game to that size likely means a bigger player and bigger (or zoomed) tiles too. That is the user's call after seeing real generated art.
+
 ### AI-first, step 1: your own OpenAI key, a spending limit, typed actions (user decisions)
 - **AI settings** (`src/ui/settings.ts`, `src/ai/settings.ts`): shown before the first run, and from the title or pause screen with K. Paste your OpenAI key (masked, kept only in this browser's localStorage, checked for free against `/v1/models`) and set the spending limit per run (default $5.00).
 - **Client** (`src/ai/openai.ts`, `config.ts`, `budget.ts`): plain `fetch` straight from the browser (OpenAI allows cross-origin calls, checked), structured outputs with a strict JSON schema, errors returned as values, every call priced from its reported usage (`gpt-6-luna` $0.10/$0.50 per million tokens; `gpt-image-2` by its token prices) and charged to the run. A call whose worst case does not fit the remaining budget is never sent. The HUD shows "AI $spent / $limit".
