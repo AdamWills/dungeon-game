@@ -15,7 +15,7 @@ import { skillLevel } from '../game/skills';
 import type { Entity, GameState, InvCommand, ItemInstance } from '../game/types';
 import type { MenuKey } from './input';
 import type { ItemIcons } from './itemIcons';
-import type { PlayerSprites } from './playerSprite';
+import { dressedFront, type GearColor, type PlayerSprites } from './playerSprite';
 import { centered, FONT, FONT_BIG, wrapLines } from './text';
 
 type Row =
@@ -35,6 +35,50 @@ function slotLabel(slot: Slot): string {
 
 export class InventoryMenu {
   cursor = 0;
+  private dressedKey = '';
+  private dressedSprite: HTMLCanvasElement | null = null;
+  private colors = new Map<string, GearColor>();
+
+  /** The doll in its worn gear; rebuilt only when the gear changes. */
+  private dressed(state: GameState, icons: ItemIcons): HTMLCanvasElement {
+    const eq = state.player.equipment ?? {};
+    const key = SLOTS.map((s) => eq[s]?.defId ?? '').join('|');
+    if (key !== this.dressedKey || !this.dressedSprite) {
+      const worn: Record<string, GearColor> = {};
+      for (const slot of SLOTS) {
+        const id = eq[slot]?.defId;
+        if (id && slot !== 'weapon' && slot !== 'offhand') worn[slot] = this.colorOf(id, icons);
+      }
+      this.dressedSprite = dressedFront(worn);
+      this.dressedKey = key;
+    }
+    return this.dressedSprite;
+  }
+
+  /** An item's colours, taken from its icon: the commonest bright colour, plus a shade and a highlight. */
+  private colorOf(defId: string, icons: ItemIcons): GearColor {
+    const hit = this.colors.get(defId);
+    if (hit) return hit;
+    const c = document.createElement('canvas');
+    c.width = c.height = 16;
+    const g = c.getContext('2d')!;
+    icons(g, defId, 0, 0, 1);
+    const d = g.getImageData(0, 0, 16, 16).data;
+    const counts = new Map<string, number>();
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 200) continue;
+      const lum = d[i] + d[i + 1] + d[i + 2];
+      if (lum < 90) continue; // skip outlines
+      const k = `${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '8,8,8';
+    const [r, gg, b] = top.split(',').map((n) => Number(n) * 16 + 8);
+    const hex = (f: number) => `rgb(${Math.min(255, Math.round(r * f))}, ${Math.min(255, Math.round(gg * f))}, ${Math.min(255, Math.round(b * f))})`;
+    const col = { main: hex(1), shade: hex(0.72), hi: hex(1.3) };
+    this.colors.set(defId, col);
+    return col;
+  }
   /** Giving a pocket item: which ally the gift goes to. */
   giving: { slot: number; ally: number } | null = null;
 
@@ -100,7 +144,7 @@ export class InventoryMenu {
     return null;
   }
 
-  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, icons: ItemIcons, sprites: PlayerSprites, hostHistory: string[] = []): void {
+  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, icons: ItemIcons, _sprites: PlayerSprites, hostHistory: string[] = []): void {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
     ctx.fillRect(0, 0, w, h);
     const pw = Math.min(1060, w - 24);
@@ -131,10 +175,16 @@ export class InventoryMenu {
     const leftX = px + 20;
     const rightX = px + dollW - box - 10;
     const size = Math.min(rightX - leftX - box - 30, 24 * 7);
-    const sprite = sprites('down', 'stand', false);
+    // Dressed in whatever is worn, with the weapon and off-hand item in its hands.
+    const sprite = this.dressed(state, icons);
+    const dx0 = Math.round(px + dollW / 2 + 5 - size / 2);
+    const k = size / 24;
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(sprite, Math.round(px + dollW / 2 + 5 - size / 2), top + 40, size, size);
+    ctx.drawImage(sprite, dx0, top + 40, size, size);
+    const eq = state.player.equipment ?? {};
+    if (eq.weapon) icons(ctx, eq.weapon.defId, Math.round(dx0 + 16 * k), Math.round(top + 40 + 8 * k), k * 0.6);
+    if (eq.offhand) icons(ctx, eq.offhand.defId, Math.round(dx0 - 2 * k), Math.round(top + 40 + 10 * k), k * 0.6);
     ctx.restore();
     ctx.fillStyle = '#c8d0c4';
     centered(ctx, `${RACES[state.race].name} ${CLASSES[state.cls].name}, level ${state.level}`, px + dollW / 2 + 5, top + 50 + size);

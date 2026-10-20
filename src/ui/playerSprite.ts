@@ -108,3 +108,32 @@ export function buildPlayerSprites(): PlayerSprites {
       for (const blink of [false, true]) cache.set(`${dir}:${frame}:${blink}`, render(dir, frame, blink));
   return (dir, frame, blink) => cache.get(`${dir}:${frame}:${blink && dir !== 'up'}`)!;
 }
+
+/** A worn item's colours, for drawing it on the doll: main, shade, highlight. */
+export type GearColor = { main: string; shade: string; hi: string };
+
+/**
+ * The paper doll, dressed (user request: the character should look like they
+ * are wearing what is equipped). Front view, standing; each worn slot paints
+ * its item's colours over the matching part of the body. Weapons and off-hand
+ * items are drawn as their icons in the hands by the caller.
+ */
+export function dressedFront(worn: Partial<Record<string, GearColor>>): HTMLCanvasElement {
+  const g = worn;
+  const out: Rect[] = [...down('stand', false)];
+  const add = (c: GearColor | undefined, rects: [number, number, number, number, keyof GearColor][]) => {
+    if (c) for (const [x, y, w, h, k] of rects) out.push([x, y, w, h, c[k]]);
+  };
+  // Inside out: clothes first, then what goes over them, the hat last.
+  add(g.body, [[7, 11, 10, 7, 'main'], [16, 11, 1, 7, 'shade'], [7, 17, 10, 1, 'shade'], [10, 11, 4, 1, 'hi'], [5, 11, 2, 6, 'main'], [17, 11, 2, 6, 'shade']]);
+  add(g.legs, [[8, 18, 3, 3, 'main'], [13, 18, 3, 3, 'shade'], [8, 18, 1, 3, 'hi']]);
+  add(g.feet, [[7, 21, 4, 2, 'main'], [13, 21, 4, 2, 'shade'], [7, 21, 2, 1, 'hi']]);
+  add(g.belt, [[7, 16, 10, 2, 'main'], [11, 16, 2, 2, 'hi']]);
+  add(g.shoulders, [[4, 10, 4, 3, 'main'], [16, 10, 4, 3, 'shade'], [5, 10, 2, 1, 'hi']]);
+  add(g.neck, [[9, 10, 6, 1, 'main'], [11, 11, 2, 2, 'hi']]);
+  add(g.hands, [[4, 16, 3, 2, 'main'], [17, 16, 3, 2, 'shade']]);
+  add(g.ring1, [[5, 17, 1, 1, 'hi']]);
+  add(g.ring2, [[18, 17, 1, 1, 'hi']]);
+  add(g.head, [[7, 1, 10, 3, 'main'], [6, 4, 12, 1, 'shade'], [9, 1, 3, 1, 'hi']]);
+  return renderRects(out);
+}
