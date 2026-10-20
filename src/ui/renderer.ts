@@ -279,6 +279,40 @@ export class Renderer {
       }
     }
 
+    // The stairs glow and wear a bobbing arrow, so they cannot be missed (user
+    // feedback). Gold when open, red while the floor boss still seals them.
+    {
+      const s = floor.stairs;
+      if (floor.tiles[s.y][s.x].explored && s.x >= x0 - 1 && s.x <= x1 + 1 && s.y >= y0 - 2 && s.y <= y1 + 1) {
+        const open = !floor.lair || floor.lair.beaten;
+        const sx = s.x * TILE - camX;
+        const sy = s.y * TILE - camY;
+        const pulse = 0.5 + 0.5 * Math.sin(state.tick / 12);
+        const [r, g, b] = open ? [255, 210, 58] : [255, 70, 60];
+        const glow = ctx.createRadialGradient(sx + TILE / 2, sy + TILE / 2, 2, sx + TILE / 2, sy + TILE / 2, TILE * 1.6);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.35 + 0.25 * pulse})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.fillRect(sx - TILE * 1.5, sy - TILE * 1.5, TILE * 4, TILE * 4);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.6 + 0.4 * pulse})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx + 0.5, sy + 0.5, TILE - 1, TILE - 1);
+        // A down arrow over the stairs.
+        const ay = sy - 12 - Math.round(2 * Math.sin(state.tick / 10));
+        ctx.fillStyle = '#120d0a';
+        ctx.fillRect(sx + 5, ay - 1, 6, 6);
+        ctx.fillRect(sx + 2, ay + 4, 12, 2);
+        ctx.fillRect(sx + 3, ay + 6, 10, 2);
+        ctx.fillRect(sx + 5, ay + 8, 6, 2);
+        ctx.fillRect(sx + 7, ay + 10, 2, 1);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(sx + 6, ay, 4, 5);
+        ctx.fillRect(sx + 3, ay + 5, 10, 1);
+        ctx.fillRect(sx + 4, ay + 6, 8, 2);
+        ctx.fillRect(sx + 6, ay + 8, 4, 2);
+      }
+    }
+
     // Chests and loot lying around, wherever you have explored.
     for (const c of floor.chests) {
       if (!floor.tiles[c.pos.y][c.pos.x].explored) continue;

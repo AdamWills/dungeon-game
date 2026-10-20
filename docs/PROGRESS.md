@@ -124,6 +124,11 @@
 - The pause screen is now a paper doll: your character large in the middle with six slot boxes down each side, pockets and party beside it, details for the highlighted thing, and your stats. Arrows move between the doll's columns and the lists.
 - Later: drawing gear on the character sprite itself.
 
+### Feedback round (after playing the AI build)
+- **Damage types are classic D&D now** (user decision; they disliked "Gross"): Bludgeoning, Piercing, Slashing, Fire, Cold, Lightning, Acid, Poison. Weapons, items, improvisations, allies and every creature's weak spots and resistances were remapped (the Fatberg is still weak to Fire; Old Flushy and the Sump Crab hate Lightning). The target screen lists untried types by count once there are more than three.
+- **Loot odds** (user: "way too easy to get a Legendary"; it was 4% a roll, about 5 a floor, with only one Legendary item): chests now roll Legendary 1% of the time, ordinary drops never, room bosses drop a Rare, the Fatberg a Legendary. About one Legendary a floor outside the boss.
+- Glitter Bomb stuns for 2 turns, so throwing it is no longer a wasted turn. "You are no longer stunned" (was "You is"). The stairs glow and have a bobbing arrow over them, red while the floor boss seals them.
+
 ### AI-first, step 2: the sprite lab (art trial)
 - `/lab.html` (`src/lab.ts`, in the build too): describe a creature (or pick a preset: the Intake Rat, the Fatberg, the Sump Crab), generate it with `gpt-image-2.5-flare` (low or medium quality, priced from the reported usage; uses the key and limit from the game's AI settings), and see it shrunk to 32, 40 and 48 px on the real map tiles next to today's 24 px player and Intake Rat, and at battle-screen size. Or load any PNG to try the shrinking for free. The last 8 results are kept in this browser.
 - `src/art/pixelize.ts` is the step the game will use: crop to the creature, shrink by averaging onto the pixel grid (standing on the bottom edge), make every pixel fully on or off, cut the palette (median cut, 16 colours by default), and add the same 1 px dark outline the hand-drawn sprites have. The art direction for every sprite prompt is in `spritePrompt` (`src/data/aiPrompts.ts`).

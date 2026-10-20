@@ -48,12 +48,12 @@ describe('weak spots', () => {
   });
 
   it('a resisted type does half', () => {
-    const s = fight('pipe_leech'); // the Rusted Pipe is blunt; leeches shrug it off
+    const s = fight('pipe_leech'); // the Rusted Pipe is bludgeoning; leeches shrug it off
     s.battle!.combatants[1].stats.hp = s.battle!.combatants[1].stats.maxHp = 200;
     // 3 + 4 - 2 = 5, x0.5 = 3 (rounded).
     expect(landHit(s)).toBe(3);
-    expect(knownSpots(s, 'pipe_leech').resists).toEqual(['blunt']);
-    expect(spotsLine(s, 'pipe_leech')).toContain('Shrugs off Blunt');
+    expect(knownSpots(s, 'pipe_leech').resists).toEqual(['bludgeoning']);
+    expect(spotsLine(s, 'pipe_leech')).toContain('Shrugs off Bludgeoning');
   });
 
   it('swapping weapons in a fight is free', () => {

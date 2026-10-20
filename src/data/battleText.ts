@@ -46,6 +46,7 @@ export const BATTLE_TEXT = {
   statusOnYou: 'You are now {status}!',
   resisted: '{target} shrugs off being {status}. Show-off.',
   statusOff: '{target} is no longer {status}.',
+  statusOffYou: 'You are no longer {status}.',
   cantUseHere: 'That is not something you can use in a fight, contestant!',
   hasteExtra: 'You are moving so fast the cameras can barely keep up!',
   cantImprov: 'That is not going to work right now, contestant. Pick something else!',

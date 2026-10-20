@@ -38,3 +38,16 @@ describe('equip preview', () => {
     expect(p.some((c) => c.name === 'Evasion' && c.after < c.before)).toBe(true);
   });
 });
+
+describe('legendary odds (user decision: about one a floor outside the boss)', () => {
+  it('drops never roll Legendary; chests do about 1% of the time', () => {
+    const rng = createRng(99);
+    let chest = 0;
+    for (let i = 0; i < 20000; i++) {
+      expect(ITEMS[rollItem(rng, 1, 'drop').defId].rarity).not.toBe('hosts_pick');
+      if (ITEMS[rollItem(rng, 1, 'chest').defId].rarity === 'hosts_pick') chest++;
+    }
+    expect(chest / 20000).toBeGreaterThan(0.005);
+    expect(chest / 20000).toBeLessThan(0.016);
+  });
+});

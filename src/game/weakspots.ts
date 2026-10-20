@@ -25,13 +25,13 @@ export function knownSpots(state: GameState, defId: string): { weak: DamageType[
   };
 }
 
-/** One plain line for menus: "Weak to Fire. Shrugs off Blunt. Not tried yet: Sharp, Gross." */
+/** One plain line for menus: "Weak to Fire. Shrugs off Bludgeoning. 6 damage types not tried yet." */
 export function spotsLine(state: GameState, defId: string): string {
   const k = knownSpots(state, defId);
   const names = (ts: DamageType[]) => ts.map((t) => DAMAGE_TYPES[t].name).join(', ');
   const parts: string[] = [];
   if (k.weak.length) parts.push(`Weak to ${names(k.weak)}.`);
   if (k.resists.length) parts.push(`Shrugs off ${names(k.resists)}.`);
-  if (k.untried.length) parts.push(`Not tried yet: ${names(k.untried)}.`);
+  if (k.untried.length) parts.push(k.untried.length <= 3 ? `Not tried yet: ${names(k.untried)}.` : `${k.untried.length} damage types not tried yet.`);
   return parts.join(' ');
 }

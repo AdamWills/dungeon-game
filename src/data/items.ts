@@ -59,45 +59,45 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- weapons ---------------------------------------------------------------
   rusted_pipe: {
     id: 'rusted_pipe', name: 'Rusted Pipe', rarity: 'standard', slot: 'weapon', noLoot: true,
-    weapon: { damage: 3, type: 'blunt' },
+    weapon: { damage: 3, type: 'bludgeoning' },
     description: 'Load-bearing until very recently.',
-    help: 'Weapon, Blunt. 3 damage.',
+    help: 'Weapon, Bludgeoning. 3 damage.',
   },
   cursed_clipboard: {
     id: 'cursed_clipboard', name: 'Cursed Clipboard', rarity: 'standard', slot: 'weapon', noLoot: true,
-    weapon: { damage: 3, type: 'sharp' }, mods: { charm: 1 },
+    weapon: { damage: 3, type: 'slashing' }, mods: { charm: 1 },
     description: 'Every page is a waiver you already signed.',
-    help: 'Weapon, Sharp. 3 damage, +1 Charm.',
+    help: 'Weapon, Slashing. 3 damage, +1 Charm.',
   },
   mop_of_reckoning: {
     id: 'mop_of_reckoning', name: 'Mop of Reckoning', rarity: 'standard', slot: 'weapon',
-    weapon: { damage: 4, type: 'gross' },
+    weapon: { damage: 4, type: 'bludgeoning' },
     description: 'The cleaning crew\'s finest. Cleans up afterwards, mostly you.',
-    help: 'Weapon, Gross. 4 damage.',
+    help: 'Weapon, Bludgeoning. 4 damage.',
   },
   sharpened_trophy: {
     id: 'sharpened_trophy', name: 'Sharpened Participation Trophy', rarity: 'special', slot: 'weapon',
-    weapon: { damage: 4, type: 'sharp', onHit: { status: 'bleed', turns: 3, chance: 0.4 } },
+    weapon: { damage: 4, type: 'piercing', onHit: { status: 'bleed', turns: 3, chance: 0.4 } },
     description: 'Everyone gets one. Not everyone gets one in the neck.',
-    help: 'Weapon, Sharp. 4 damage; 40% chance a hit makes the target bleed for 3 turns.',
+    help: 'Weapon, Piercing. 4 damage; 40% chance a hit makes the target bleed for 3 turns.',
   },
   giant_foam_finger: {
     id: 'giant_foam_finger', name: 'Giant Foam Finger', rarity: 'junk', slot: 'weapon',
-    weapon: { damage: 1, type: 'blunt' }, mods: { charm: 3 },
+    weapon: { damage: 1, type: 'bludgeoning' }, mods: { charm: 3 },
     description: 'WE\'RE NUMBER ONE. We are not.',
-    help: 'Weapon, Blunt. 1 damage, +3 Charm.',
+    help: 'Weapon, Bludgeoning. 1 damage, +3 Charm.',
   },
   chainless_chainsaw: {
     id: 'chainless_chainsaw', name: 'Chainsaw (Chain Sold Separately)', rarity: 'standard', slot: 'weapon',
-    weapon: { damage: 6, type: 'blunt' }, mods: { speed: -1 },
+    weapon: { damage: 6, type: 'bludgeoning' }, mods: { speed: -1 },
     description: 'It roars. It vibrates. It is, functionally, a very loud club.',
-    help: 'Weapon, Blunt. 6 damage, -1 Speed.',
+    help: 'Weapon, Bludgeoning. 6 damage, -1 Speed.',
   },
   prize_wheel_spoke: {
     id: 'prize_wheel_spoke', name: 'Prize Wheel Spoke', rarity: 'special', slot: 'weapon',
-    weapon: { damage: 5, type: 'sharp' }, mods: { speed: 1 },
+    weapon: { damage: 5, type: 'piercing' }, mods: { speed: 1 },
     description: 'Snapped off the big wheel. Chet has not noticed. Chet will notice.',
-    help: 'Weapon, Sharp. 5 damage, +1 Speed.',
+    help: 'Weapon, Piercing. 5 damage, +1 Speed.',
   },  tiki_torch: {
     id: 'tiki_torch', name: 'Tiki Torch (Novelty)', rarity: 'standard', slot: 'weapon',
     weapon: { damage: 3, type: 'fire', onHit: { status: 'burning', turns: 2, chance: 0.25 } },
@@ -194,9 +194,9 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   glitter_bomb: {
     id: 'glitter_bomb', name: 'Glitter Bomb', rarity: 'standard',
-    use: { target: 'all_enemies', consumable: true, battleOnly: true, effects: [{ kind: 'status', status: 'stunned', turns: 1 }] },
+    use: { target: 'all_enemies', consumable: true, battleOnly: true, effects: [{ kind: 'status', status: 'stunned', turns: 2 }] },
     description: 'Stage glitter. They will be finding it for years. So will you.',
-    help: 'In battle: stuns every enemy for 1 turn. Used up.',
+    help: 'In battle: stuns every enemy for 2 turns. Used up.',
     useLine: 'GLITTER BOMB! Everyone is sparkly and confused! Beautiful television!',
   },
   canned_laughter: {
@@ -216,9 +216,9 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- junk ------------------------------------------------------------------
   rubber_chicken: {
     id: 'rubber_chicken', name: 'Rubber Chicken', rarity: 'junk',
-    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 2, pierce: true, type: 'blunt' }] },
+    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 2, pierce: true, type: 'bludgeoning' }] },
     description: 'Squeaks with judgement. A show staple since the pilot.',
-    help: 'In battle: throw it for 2 Blunt damage to one enemy, ignoring Armor. Used up.',
+    help: 'In battle: throw it for 2 Bludgeoning damage to one enemy, ignoring Armor. Used up.',
     useLine: 'You throw the Rubber Chicken at {target}. SQUEAK. {amount} damage. Comedy!',
   },
   giant_novelty_check: {
@@ -230,9 +230,9 @@ export const ITEMS: Record<string, ItemDef> = {
   },
   previous_contestant_jar: {
     id: 'previous_contestant_jar', name: 'Previous Contestant (in a Jar)', rarity: 'junk',
-    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 7, type: 'gross' }] },
+    use: { target: 'one_enemy', consumable: true, battleOnly: true, effects: [{ kind: 'damage', amount: 7, type: 'acid' }] },
     description: 'He gives advice. Bad advice. He does make a good projectile.',
-    help: 'In battle: throw it for 7 Gross damage to one enemy. Used up.',
+    help: 'In battle: throw it for 7 Acid damage to one enemy. Used up.',
     useLine: 'You hurl the jar at {target}! The previous contestant finally makes an impact!',
   },
   sewer_rabbit_foot: {
@@ -379,7 +379,10 @@ export const ITEMS: Record<string, ItemDef> = {
 };
 
 /** How often each rarity turns up in chests and drops. */
-export const RARITY_WEIGHTS: Record<Rarity, number> = { junk: 30, standard: 36, special: 18, cursed: 12, hosts_pick: 4 };
+/** Chance weights for a chest (user decision: about one Legendary a floor, outside the boss). */
+export const RARITY_WEIGHTS: Record<Rarity, number> = { junk: 30, standard: 36, special: 18, cursed: 12, hosts_pick: 1 };
+/** Ordinary enemy drops never roll Legendary. */
+export const DROP_WEIGHTS: Record<Rarity, number> = { ...RARITY_WEIGHTS, hosts_pick: 0 };
 
 export const RARITY_NAMES: Record<Rarity, string> = {
   junk: 'Poor', standard: 'Common', special: 'Rare', cursed: 'Cursed', hosts_pick: 'Legendary',

@@ -276,7 +276,7 @@ function startTurn(state: GameState, battle: BattleState, c: Combatant): boolean
     s.turnsLeft--;
     if (s.turnsLeft <= 0) {
       c.statuses.splice(c.statuses.indexOf(s), 1);
-      say(battle, fill(T.statusOff, { target: c.name, status: def.name.toLowerCase() }), 'info');
+      say(battle, fill(isYou(c) ? T.statusOffYou : T.statusOff, { target: c.name, status: def.name.toLowerCase() }), 'info');
       if (s.then) applyStatus(state, battle, c, s.then.status, s.then.turns);
     }
   }
@@ -879,7 +879,7 @@ function endBattle(state: GameState): void {
       const def = ENEMIES[c.defId];
       // Bosses always drop their prize, elites always drop something; the rest sometimes.
       if (def.prize) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItemOf(state.rng, def.prize) });
-      else if (c.elite || nextFloat(state.rng) < theme.dropChance) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItem(state.rng, depthOf(floor, at)) });
+      else if (c.elite || nextFloat(state.rng) < theme.dropChance) floor.items.push({ id: `loot-${c.id}`, pos: at, item: rollItem(state.rng, depthOf(floor, at), 'drop') });
       const tier = def.tier ?? (c.elite ? 'elite' : null);
       if (tier) state.events.push({ type: 'bossDefeated', defId: c.defId, tier, name: c.name });
       if (floor.lair?.bossId === c.id) floor.lair.beaten = true;
