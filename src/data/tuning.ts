@@ -3,8 +3,13 @@
 export const TUNING = {
   /** Fixed-step ticks to cross one tile while roaming (60 ticks = 1 second). */
   playerTicksPerTile: 9,
-  /** Out of battle you heal 1 HP every this many ticks (allies too). */
-  regenTicks: 90,
+  /**
+   * Out of battle you heal 1 HP every this many ticks (allies too), but only
+   * after this long without getting hurt (user feedback: spike damage was
+   * gone in a couple of seconds).
+   */
+  regenTicks: 300,
+  regenDelayTicks: 600,
   /** Field-of-view radius in tiles. */
   fovRadius: 8,
 

@@ -48,8 +48,11 @@ export function step(state: GameState, input: InputFrame): void {
 
   state.tick++;
   if (state.grace > 0) state.grace--;
-  // Catching your breath between fights.
-  if (state.tick % TUNING.regenTicks === 0)
+  // Catching your breath between fights: slowly, and only once nothing has hurt you for a while.
+  const hp = [state.player, ...state.party].reduce((n, e) => n + e.stats.hp, 0);
+  state.calm = hp < state.lastHp ? 0 : state.calm + 1;
+  state.lastHp = hp;
+  if (state.calm >= TUNING.regenDelayTicks && state.tick % TUNING.regenTicks === 0)
     for (const e of [state.player, ...state.party]) e.stats.hp = Math.min(e.stats.maxHp, e.stats.hp + (e.stats.hp > 0 ? 1 : 0));
   if (state.dash.cooldown > 0) state.dash.cooldown--;
   if (state.dash.active > 0) state.dash.active--;

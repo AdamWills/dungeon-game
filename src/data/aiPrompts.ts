@@ -92,6 +92,7 @@ Then its game effect, kept within the budget you are given:
 - kind "weapon": slot "weapon", weaponDamage within the budget's range, a damageType (bludgeoning, piercing, slashing, fire, cold, lightning, acid, poison) that fits the object, optionally onHit (a status it can cause, with turns and a chance).
 - kind "wearable": a slot (head, neck, shoulders, body, hands, belt, legs, feet, offhand, ring) and stat mods. Positive mods must add up to no more than the budget's statPlus (maxHp counts half); a downside (a negative mod) is welcome and buys more upside. Optionally resists: statuses it protects from.
 - kind "consumable": use (target self, one_enemy or all_enemies; effects from damage, heal, status, cleanse within the budget). Used up when used.
+Follow the brief you are given exactly (its kind, slot, damage and gimmick), and make the item clearly different from the earlier ones listed. Only give an on-hit effect if the brief asks for one.
 Set every field; use null or 0 for what does not apply. iconPrompt: a short visual description of the object alone, for an icon.`;
 
 const nul = (t: object) => ({ anyOf: [t, { type: 'null' }] });
@@ -153,3 +154,45 @@ export const ITEM_SCHEMA = {
 export function iconPrompt(description: string): string {
   return `Pixel art video game item icon of ${description}. One single object, centred, filling the frame, a bold dark outline, chunky retro 16-bit pixel art, a limited saturated palette. Transparent background: no scenery, no text, no border.`;
 }
+
+/**
+ * A design brief for each invented item, so they differ (user feedback: "all
+ * of the rare items are essentially the same"). The shell picks one at random;
+ * the validator holds the design to it (kind, slot, damage, on-hit or not).
+ */
+export type ItemBrief = { kind: 'weapon' | 'wearable' | 'consumable'; slot?: string; weaponDamage?: number; onHit: boolean; gimmick: string };
+
+export const BRIEF_KINDS: { kind: ItemBrief['kind']; weight: number }[] = [
+  { kind: 'weapon', weight: 3 },
+  { kind: 'wearable', weight: 5 },
+  { kind: 'consumable', weight: 2 },
+];
+
+export const BRIEF_GIMMICKS: Record<ItemBrief['kind'], { gimmick: string; onHit?: boolean; damage?: 'low' | 'high' }[]> = {
+  weapon: [
+    { gimmick: 'Hits hard and does nothing else. No on-hit effect, no stat changes.', damage: 'high' },
+    { gimmick: 'Light and quick: lower damage, but it gives Speed or Evasion.', damage: 'low' },
+    { gimmick: 'Its whole point is a status on hit (pick one that suits it). Low damage.', onHit: true, damage: 'low' },
+    { gimmick: 'Heavy and clumsy: high damage with a real downside to another stat.', damage: 'high' },
+    { gimmick: 'An unusual damage type (cold, lightning, acid or poison) that suits the object, plus a small stat bonus.' },
+    { gimmick: 'A charming weapon: average damage, a Charm bonus, and something silly about it.' },
+  ],
+  wearable: [
+    { gimmick: 'Pure protection: Armor, maybe a little Max HP, nothing else.' },
+    { gimmick: 'A gamble: a big upside and a real, painful downside.' },
+    { gimmick: 'Protects you from one or two statuses, plus a small bonus.' },
+    { gimmick: 'Lots of extra Max HP, at a cost.' },
+    { gimmick: 'Charm and good looks.' },
+    { gimmick: 'Speed and dodging (Speed, Evasion).' },
+    { gimmick: 'Raw Strength, at a cost to defence.' },
+  ],
+  consumable: [
+    { gimmick: 'Hits every enemy at once with an unusual damage type.' },
+    { gimmick: 'Heals you and removes your statuses.' },
+    { gimmick: 'One huge hit on one enemy.' },
+    { gimmick: 'Makes you hasted.' },
+    { gimmick: 'Stuns or charms the enemies.' },
+  ],
+};
+
+export const BRIEF_SLOTS = ['head', 'neck', 'shoulders', 'body', 'hands', 'belt', 'legs', 'feet', 'offhand', 'ring'];

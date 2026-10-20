@@ -91,3 +91,27 @@ describe('the pool', () => {
     expect(s.aiPool.special).toEqual(['ai-test-3']);
   });
 });
+
+describe('design briefs (user feedback: the Rares were all alike)', () => {
+  it('a design is held to its brief: kind, slot, damage, and no on-hit unless asked', () => {
+    const weapon = validateAiItem(design({ weaponDamage: 9, onHit: { status: 'bleed', turns: 2, chance: 0.3 } }), 'special', 'b-1', { kind: 'weapon', weaponDamage: 4, onHit: false, gimmick: 'quick' })!;
+    expect(weapon.weapon).toEqual({ damage: 4, type: 'bludgeoning' });
+    const hat = validateAiItem(design({ mods: mods({ armor: 2 }) }), 'special', 'b-2', { kind: 'wearable', slot: 'head', onHit: false, gimmick: 'protection' })!;
+    expect(hat.slot).toBe('head');
+    expect(hat.weapon).toBeUndefined();
+    expect(hat.mods).toEqual({ armor: 2 });
+  });
+
+  it('briefs vary: kinds, slots, damage and gimmicks', async () => {
+    const { pickBrief } = await import('../src/ai/items');
+    const briefs = Array.from({ length: 200 }, () => pickBrief('special'));
+    expect(new Set(briefs.map((b) => b.kind)).size).toBe(3);
+    expect(new Set(briefs.map((b) => b.gimmick)).size).toBeGreaterThan(10);
+    expect(new Set(briefs.filter((b) => b.slot).map((b) => b.slot)).size).toBeGreaterThan(5);
+    expect(new Set(briefs.filter((b) => b.weaponDamage).map((b) => b.weaponDamage))).toEqual(new Set([4, 5, 6]));
+    // Only some weapons may have an on-hit effect.
+    const weapons = briefs.filter((b) => b.kind === 'weapon');
+    expect(weapons.some((b) => b.onHit)).toBe(true);
+    expect(weapons.some((b) => !b.onHit)).toBe(true);
+  });
+});

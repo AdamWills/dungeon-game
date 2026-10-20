@@ -4,14 +4,15 @@
 // rarity's budget, given plain help text written from its real numbers, and
 // put in the run's pool for chests and bosses to give out. Deterministic.
 
-import { type AiRarity, ITEM_BUDGETS } from '../data/aiPrompts';
+import { type AiRarity, ITEM_BUDGETS, type ItemBrief } from '../data/aiPrompts';
 import { DAMAGE_TYPES, type DamageType } from '../data/damage';
 import { type EffectRef, type ItemDef, type ItemSlot, ITEMS, SLOT_NAMES, type StatKey } from '../data/items';
 import { STATUSES, type StatusKind } from '../data/statuses';
 import type { GameState } from './types';
 
 /** A finished design arriving from the shell. */
-export type AiDelivery = { kind: 'item'; rarity: AiRarity; id: string; answer: unknown };
+/** `brief`: what was asked for; the design is held to it. */
+export type AiDelivery = { kind: 'item'; rarity: AiRarity; id: string; answer: unknown; brief?: ItemBrief };
 
 const STAT_ORDER: StatKey[] = ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'];
 const STAT_LABEL: Record<StatKey, string> = { maxHp: 'Max HP', str: 'Strength', speed: 'Speed', evasion: 'Evasion', armor: 'Armor', charm: 'Charm' };
@@ -22,8 +23,15 @@ const isStatus = (v: unknown): v is StatusKind => typeof v === 'string' && v in 
 const isDamage = (v: unknown): v is DamageType => typeof v === 'string' && v in DAMAGE_TYPES;
 
 /** Check a design against its rarity's budget. Null if it is not usable at all. */
-export function validateAiItem(raw: unknown, rarity: AiRarity, id: string): ItemDef | null {
-  const a = (raw ?? {}) as Record<string, any>;
+export function validateAiItem(raw: unknown, rarity: AiRarity, id: string, brief?: ItemBrief): ItemDef | null {
+  const a = { ...((raw ?? {}) as Record<string, any>) };
+  // Held to the brief: its kind, slot and damage, and no on-hit effect unless asked for.
+  if (brief) {
+    a.kind = brief.kind;
+    if (brief.slot) a.slot = brief.slot;
+    if (brief.weaponDamage) a.weaponDamage = brief.weaponDamage;
+    if (!brief.onHit) a.onHit = null;
+  }
   const B = ITEM_BUDGETS[rarity];
   const name = str(a.name, 40);
   if (!name) return null;
@@ -110,7 +118,7 @@ export function itemHelp(def: ItemDef): string {
 /** A finished design arrives: check it, register it, and put it in the pool. */
 export function receiveAi(state: GameState, d: AiDelivery): void {
   if (d.kind !== 'item' || state.aiItems[d.id]) return;
-  const def = validateAiItem(d.answer, d.rarity, d.id);
+  const def = validateAiItem(d.answer, d.rarity, d.id, d.brief);
   if (!def) return;
   state.aiItems[d.id] = def;
   ITEMS[d.id] = def;

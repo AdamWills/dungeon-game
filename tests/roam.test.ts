@@ -125,3 +125,19 @@ describe('roaming', () => {
     expect(state.mode).toBe('roaming');
   });
 });
+
+describe('healing between fights (user feedback: too fast)', () => {
+  it('waits 10 seconds after getting hurt, then heals 1 HP every 5 seconds', () => {
+    const state = createGameState(31);
+    state.floor.entities = [];
+    for (const row of state.floor.tiles) for (const t of row) if (t.hazard) [t.terrain, t.hazard] = ['floor', undefined];
+    step(state, NO_INPUT);
+    state.player.stats.hp -= 5;
+    const hurt = state.player.stats.hp;
+    run(state, NO_INPUT, 590);
+    expect(state.player.stats.hp).toBe(hurt);
+    run(state, NO_INPUT, 60 * 20);
+    expect(state.player.stats.hp).toBeGreaterThan(hurt);
+    expect(state.player.stats.hp).toBeLessThanOrEqual(hurt + 4);
+  });
+});

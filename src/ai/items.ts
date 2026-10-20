@@ -3,7 +3,7 @@
 // for a design, queues it to enter the game as a recorded input, then makes
 // its icon with the image model. Quietly backs off when calls fail.
 
-import { type AiRarity, ITEM_BUDGETS, ITEM_SCHEMA, ITEM_SYSTEM, iconPrompt } from '../data/aiPrompts';
+import { type AiRarity, BRIEF_GIMMICKS, BRIEF_KINDS, BRIEF_SLOTS, ITEM_BUDGETS, ITEM_SCHEMA, ITEM_SYSTEM, iconPrompt, type ItemBrief } from '../data/aiPrompts';
 import { ITEMS } from '../data/items';
 import { pixelize } from '../art/pixelize';
 import { decodePixels, toCanvas } from '../art/decode';
@@ -44,8 +44,11 @@ export class ItemSupplier {
 
   private async design(state: GameState, rarity: AiRarity, now: number): Promise<void> {
     this.busy[rarity] = true;
-    const avoid = [...Object.values(state.aiItems).map((d) => d.name), ...Object.values(ITEMS).filter((d) => !d.invented).map((d) => d.name)];
-    const user = JSON.stringify({ rarity: NAMES[rarity], budget: ITEM_BUDGETS[rarity], contestant: { race: state.race, class: state.cls }, alreadyExist: avoid.slice(0, 80) });
+    const brief = pickBrief(rarity);
+    // Earlier designs this run, so the new one is clearly different (user feedback: they were all alike).
+    const earlier = Object.values(state.aiItems).map((d) => `${d.name}: ${d.help}`);
+    const avoid = Object.values(ITEMS).filter((d) => !d.invented).map((d) => d.name);
+    const user = JSON.stringify({ rarity: NAMES[rarity], brief, budget: ITEM_BUDGETS[rarity], contestant: { race: state.race, class: state.cls }, earlierItemsThisRun: earlier.slice(-12), namesTaken: avoid.slice(0, 60) });
     const res = await structured<{ iconPrompt?: string }>(this.client(), { system: ITEM_SYSTEM, user, schemaName: 'invented_item', schema: ITEM_SCHEMA, maxOutputTokens: 700, purpose: `item design (${NAMES[rarity]})` });
     this.busy[rarity] = false;
     if (!res.ok) {
@@ -54,7 +57,7 @@ export class ItemSupplier {
       return;
     }
     const id = `ai-${state.seed}-${++this.made}`;
-    this.queue.push({ kind: 'item', rarity, id, answer: res.value });
+    this.queue.push({ kind: 'item', rarity, id, answer: res.value, brief });
     // The icon follows; until it arrives the item shows the generic icon for its kind.
     const look = typeof res.value.iconPrompt === 'string' && res.value.iconPrompt ? res.value.iconPrompt : 'a strange object';
     const pic = await image(this.client(), { prompt: iconPrompt(look.slice(0, 200)), quality: 'low', transparent: true, purpose: `item icon (${NAMES[rarity]})` });
@@ -72,4 +75,19 @@ export class ItemSupplier {
   take(): AiDelivery[] {
     return this.queue.splice(0);
   }
+}
+
+const any = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
+
+/** A random design brief: what kind of item, which slot, how hard it hits, and its gimmick. */
+export function pickBrief(rarity: AiRarity): ItemBrief {
+  const total = BRIEF_KINDS.reduce((n, k) => n + k.weight, 0);
+  let roll = Math.random() * total;
+  const kind = BRIEF_KINDS.find((k) => (roll -= k.weight) < 0)?.kind ?? 'wearable';
+  const g = any(BRIEF_GIMMICKS[kind]);
+  const [lo, hi] = ITEM_BUDGETS[rarity].weapon;
+  const brief: ItemBrief = { kind, onHit: !!g.onHit, gimmick: g.gimmick };
+  if (kind === 'wearable') brief.slot = any(BRIEF_SLOTS);
+  if (kind === 'weapon') brief.weaponDamage = g.damage === 'high' ? hi : g.damage === 'low' ? lo : Math.round((lo + hi) / 2);
+  return brief;
 }

@@ -354,6 +354,9 @@ export type GameState = {
   dash: { active: number; cooldown: number };
   /** Ticks after a fled battle during which contact does not start a fight. */
   grace: number;
+  /** Roaming ticks since you or an ally last lost HP, and the party's HP then (for regeneration). */
+  calm: number;
+  lastHp: number;
   battle: BattleState | null;
   runEnd: RunEnd | null;
   /** How often each improvisation has been done this run (repeats get weaker). */

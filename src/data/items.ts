@@ -382,9 +382,9 @@ export const ITEMS: Record<string, ItemDef> = {
 
 /** How often each rarity turns up in chests and drops. */
 /** Chance weights for a chest (user decision: about one Legendary a floor, outside the boss). */
-export const RARITY_WEIGHTS: Record<Rarity, number> = { junk: 30, standard: 36, special: 18, cursed: 12, hosts_pick: 1 };
-/** Ordinary enemy drops never roll Legendary. */
-export const DROP_WEIGHTS: Record<Rarity, number> = { ...RARITY_WEIGHTS, hosts_pick: 0 };
+export const RARITY_WEIGHTS: Record<Rarity, number> = { junk: 32, standard: 45, special: 8, cursed: 10, hosts_pick: 1 };
+/** Ordinary enemy drops never roll Legendary, and rarely Rare. */
+export const DROP_WEIGHTS: Record<Rarity, number> = { ...RARITY_WEIGHTS, special: 4, hosts_pick: 0 };
 
 export const RARITY_NAMES: Record<Rarity, string> = {
   junk: 'Poor', standard: 'Common', special: 'Rare', cursed: 'Cursed', hosts_pick: 'Legendary',
