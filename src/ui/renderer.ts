@@ -13,6 +13,7 @@ import { canSee } from '../game/ai';
 import { hazardActive, hazardPhase } from '../world/hazards';
 import { chestAt, facingTile, isClosedDoor, leftItemHere, propAt } from '../world/interact';
 import { DAMAGE_TYPES } from '../data/damage';
+import { formatUsd } from '../ai/budget';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS } from '../data/items';
 import { PROPS } from '../data/props';
@@ -47,7 +48,7 @@ import { bar, FONT, FONT_BIG, wrapText } from './text';
 export type Toast = { text: string; until: number };
 
 /** UI-side screens and messages the renderer draws on top of the game. */
-export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; host: Host; toasts: Toast[] };
+export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; host: Host; toasts: Toast[]; ai: { spent: number; limit: number } };
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
@@ -118,6 +119,14 @@ export class Renderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  /** Draw a full-screen UI layer on top of whatever is showing, in CSS pixels. */
+  overlay(draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void): void {
+    const { ctx, canvas, dpr } = this;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    draw(ctx, canvas.width / dpr, canvas.height / dpr);
+  }
+
   renderPicker(picker: Picker, now: number): void {
     const { ctx, canvas, dpr } = this;
     this.clear();
@@ -134,7 +143,7 @@ export class Renderer {
       return;
     }
     this.drawWorld(state);
-    this.drawHud(state);
+    this.drawHud(state, ui.ai);
     if (this.showMap && state.mode === 'roaming') this.drawMinimap(state);
     this.drawToasts(ui.toasts, now);
     if (state.mode === 'roaming') this.drawHost(ui.host, now);
@@ -645,7 +654,7 @@ export class Renderer {
 
   // --- HUD and overlays -----------------------------------------------------
 
-  private drawHud(state: GameState): void {
+  private drawHud(state: GameState, ai: Overlays['ai']): void {
     const { ctx, dpr } = this;
     const w = this.canvas.width / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, this.worldH);
@@ -681,6 +690,10 @@ export class Renderer {
     ctx.fillStyle = '#6f7d70';
     const right = `SEED ${state.seed}`;
     ctx.fillText(right, w - 14 - ctx.measureText(right).width, 12);
+    // What this run has spent on AI, against the player's limit.
+    const spend = `AI ${formatUsd(ai.spent)} / ${formatUsd(ai.limit)}`;
+    ctx.fillStyle = ai.spent >= ai.limit * 0.8 ? '#ff7a5a' : '#38c8ff';
+    ctx.fillText(spend, w - 14 - ctx.measureText(right).width - 24 - ctx.measureText(spend).width, 12);
 
     // Second row: your stats, always in view, then the party.
     const wpn = weaponOf(state.player);
