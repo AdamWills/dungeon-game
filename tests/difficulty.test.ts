@@ -20,7 +20,7 @@ const DIRS: [Dir, number, number][] = [['right', 1, 0], ['left', -1, 0], ['down'
 
 function battleChoice(s: GameState): BattleCommand {
   const b = s.battle!;
-  if (b.result) return { kind: 'continue' };
+  if (b.result || b.intro) return { kind: 'continue' };
   const me = b.combatants[0];
   const hexed = (c: { statuses: { kind: string }[] }) => (c.statuses.some((x) => x.kind === 'hexed') ? 0 : 1);
   const foes = b.combatants.filter((c) => c.side === 'enemy' && c.alive).sort((a, c) => hexed(a) - hexed(c) || a.stats.hp - c.stats.hp);
@@ -57,7 +57,7 @@ function play(seed: number, cls: string, maxTicks = 250_000) {
       const recruitAt = talk ? talk.findIndex((c) => c.effects?.some((e) => e.kind === 'recruit')) : -1;
       input = { ...NO_INPUT, command: talk ? { kind: 'say', choice: recruitAt >= 0 ? recruitAt : talk.length - 1 } : lu?.points ? { kind: 'train', stat: 'maxHp' } : lu?.perkChoices ? { kind: 'perk', id: lu.perkChoices[0] } : { kind: 'dismiss' } };
     } else if (s.mode === 'battle') {
-      if (s.battle!.wait === 0) input = { ...NO_INPUT, command: battleChoice(s) };
+      if (s.battle!.wait === 0 || s.battle!.intro) input = { ...NO_INPUT, command: battleChoice(s) };
     } else if (!s.player.motion) {
       const p = { x: Math.round(s.player.pos.x), y: Math.round(s.player.pos.y) };
       const goal = targets[0];

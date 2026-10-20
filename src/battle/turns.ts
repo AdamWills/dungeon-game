@@ -114,6 +114,10 @@ export function startBattle(state: GameState, encounter: Encounter): void {
   beginRound(battle);
   // The opening line gets a moment on screen before anyone moves.
   battle.wait = TUNING.battle.turnTicks;
+  // Bosses get a big entrance first (user request: more build-up). The floor boss wins over a room boss.
+  const bosses = enemiesOf(battle).filter((c) => ENEMIES[c.defId].tier);
+  const star = bosses.find((c) => ENEMIES[c.defId].tier === 'floor') ?? bosses[0];
+  if (star) battle.intro = star.defId;
 }
 
 /** The combatant whose turn it is, or null once the battle is decided. */
@@ -133,6 +137,11 @@ export function hasStatus(c: Combatant, kind: StatusKind): boolean {
 export function battleCommand(state: GameState, cmd: BattleCommand): void {
   const battle = state.battle;
   if (!battle) return;
+  if (battle.intro) {
+    // The boss intro card: Continue starts the fight.
+    if (cmd.kind === 'continue') battle.intro = undefined;
+    return;
+  }
   if (battle.wait > 0) return; // something is still playing out
   if (battle.result) {
     if (cmd.kind === 'continue') endBattle(state);
@@ -165,7 +174,7 @@ export function battleCommand(state: GameState, cmd: BattleCommand): void {
  */
 export function battleTick(state: GameState): void {
   const battle = state.battle;
-  if (!battle || battle.wait <= 0) return;
+  if (!battle || battle.wait <= 0 || battle.intro) return;
   if (--battle.wait > 0 || battle.result) return;
   if (battle.yourTurn) return; // a bonus action: still yours
   runTurns(state);

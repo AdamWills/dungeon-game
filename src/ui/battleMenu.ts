@@ -104,6 +104,7 @@ export class BattleMenu {
       this.level = 'main';
       this.cursor = 0;
     }
+    if (battle.intro) return key === 'confirm' ? { kind: 'continue' } : null;
     if (battle.result) return key === 'confirm' && battle.wait === 0 ? { kind: 'continue' } : null;
     if (!battle.yourTurn || battle.wait > 0 || currentActor(battle)?.id !== 'player') return null;
 

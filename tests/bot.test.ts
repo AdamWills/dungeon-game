@@ -41,7 +41,7 @@ function playRun(seed: number, maxTicks = 30_000) {
     else if (state.mode === 'battle') {
       const b = state.battle!;
       const foes = b.combatants.filter((c) => c.side === 'enemy' && c.alive);
-      const options: BattleCommand[] = b.result
+      const options: BattleCommand[] = b.result || b.intro
         ? [{ kind: 'continue' }]
         : [
             ...foes.map((c) => ({ kind: 'attack', targetId: c.id }) as BattleCommand),

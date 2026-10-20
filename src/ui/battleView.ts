@@ -16,7 +16,8 @@ import type { PropSprites } from './propSprites';
 import { PROPS } from '../data/props';
 import { STATUSES } from '../data/statuses';
 import { UI_TEXT } from '../data/uiText';
-import { blink, confetti, lowRes, NEON, panel as neonPanel, popIn, sign, title, TITLE_STYLE } from './neon';
+import { blink, confetti, lowRes, NEON, panel as neonPanel, popIn, sign, stage, title, TITLE_STYLE } from './neon';
+import { ENEMIES } from '../data/enemies';
 import { drawText, fitScale, textHeight, wrapPixel } from './pixelFont';
 import { bar, centered, FONT, FONT_BIG, TONE_COLOR, wrapLines } from './text';
 
@@ -33,8 +34,67 @@ export class BattleView {
     private floorTile: (ctx: CanvasRenderingContext2D, x: number, y: number) => void,
   ) {}
 
+  private introAt = new Map<string, number>();
+
+  /**
+   * The boss's entrance (user request: "more buildup", a giant BOSS FIGHT): a
+   * red stage, the title, the boss drawn huge, its name and description, and
+   * Chet's introduction. Enter starts the fight.
+   */
+  private drawBossIntro(ctx: CanvasRenderingContext2D, w: number, h: number, defId: string, now: number, pixel: number): void {
+    const def = ENEMIES[defId];
+    const T = UI_TEXT.bossIntro;
+    if (!this.introAt.has(defId)) this.introAt.set(defId, now);
+    const since = this.introAt.get(defId)!;
+    const t = (now - since) / 1000;
+    const sprite = this.enemySprites(defId);
+    let spot = { cx: 0, top: 0, room: 0, lw: 0 };
+    lowRes(ctx, w, h, pixel, (g, lw, lh) => {
+      stage(g, lw, lh, now, NEON.red);
+      const cx = Math.round(lw / 2);
+      const heading = def.tier === 'floor' ? T.floor : T.room;
+      // The title slams in, then shakes a little.
+      const shake = t < 0.6 ? Math.round(Math.sin(now / 20) * 3 * (1 - t / 0.6)) : 0;
+      const scale = fitScale(heading, lw - 16, 4, TITLE_STYLE);
+      title(g, heading, cx + shake, 8, NEON.red, Math.max(2, Math.round(scale * Math.min(1, 0.4 + t * 2))));
+      // The boss, as big as the space between the title and the words allows, rising into view.
+      const maxW = Math.min(lw - 24, 300);
+      const blurb = wrapPixel(def.blurb, maxW);
+      const intro = def.intro ? wrapPixel(def.intro, maxW) : [];
+      const textH = 13 + blurb.length * 9 + 4 + intro.length * 9;
+      const titleBottom = 8 + textHeight({ ...TITLE_STYLE, scale }) + 6;
+      const room = lh - titleBottom - textH - 24;
+      // The boss itself is drawn after this layer, on the finer screen grid, as big as fits.
+      spot = { cx, top: titleBottom, room, lw };
+      let y = titleBottom + room + 2;
+      drawText(g, def.name.toUpperCase(), cx, y, { bold: true, color: NEON.gold.core, outline: '#2a0a0a', align: 'center' });
+      y += 13;
+      for (const l of blurb) {
+        drawText(g, l, cx, y, { color: '#ffffff', align: 'center' });
+        y += 9;
+      }
+      y += 4;
+      if (t > 0.8)
+        for (const l of intro) {
+          drawText(g, l, cx, y, { color: NEON.pink.text, align: 'center' });
+          y += 9;
+        }
+      if (t > 1.2 && blink(now)) drawText(g, T.keys, cx, lh - 14, { color: NEON.gold.core, outline: '#2a0a0a', align: 'center' });
+    });
+    // The boss, huge, rising into view and bobbing.
+    const big = Math.max(1, Math.min(Math.floor((spot.room * pixel) / sprite.height), Math.floor((spot.lw * pixel * 0.5) / sprite.width)));
+    const rise = Math.round(Math.max(0, 1 - t / 0.8) * 30 * pixel);
+    const bob = Math.round(Math.sin(now / 400) * 2 * pixel);
+    const top = spot.top * pixel + Math.max(0, Math.floor((spot.room * pixel - sprite.height * big) / 2)) + rise + bob;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sprite, Math.round(spot.cx * pixel - (sprite.width * big) / 2), top, sprite.width * big, sprite.height * big);
+    ctx.restore();
+  }
+
   draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, menu: BattleMenu, now: number, pixel: number): void {
     const battle = state.battle!;
+    if (battle.intro) return this.drawBossIntro(ctx, w, h, battle.intro, now, pixel);
     for (const f of battle.fx) if (!this.fxStart.has(f.seq)) this.fxStart.set(f.seq, now);
     const scale = Math.max(2, Math.min(5, Math.floor(Math.min(w, h) / 170)));
     const panelTop = Math.round(h - Math.min(310, Math.max(262, h * 0.34)));

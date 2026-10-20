@@ -43,6 +43,7 @@ export const UI_TEXT = {
     yours: 'SNEAK ATTACK: they had not noticed you. You all act first, +50% damage this round.',
     theirs: 'AMBUSHED FROM BEHIND: it caught you with your back turned. It acts first, +50% damage this round.',
   },
+  bossIntro: { floor: 'BOSS FIGHT!', room: 'ROOM BOSS!', keys: 'ENTER: FIGHT!' },
   settings: {
     title: 'AI SETTINGS',
     intro: 'Subpar Dungeon runs on AI: it reads what you type, and it will invent monsters, rooms and art as you go. It uses your own OpenAI API key. Each run stops using the AI at your spending limit.',

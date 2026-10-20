@@ -56,6 +56,8 @@ export function settle(state: GameState): void {
 /** Start a fight and fast-forward to your first turn, as if the pauses had played out. */
 export function startBattle(state: GameState, encounter: Encounter): void {
   realStart(state, encounter);
+  // Skip a boss's intro card, as a player pressing Enter would.
+  if (state.battle?.intro) realCommand(state, { kind: 'continue' });
   settle(state);
 }
 

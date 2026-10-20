@@ -239,6 +239,8 @@ export type BattleState = {
   badIdeas: number;
   /** Thick Skull: the first hit on you has been halved already. */
   skullUsed?: boolean;
+  /** A boss fight opens on its intro card (the boss's def); nothing moves until you dismiss it. */
+  intro?: string;
   /** You hit a weak spot this action: you go again (once per turn). */
   offBalance?: boolean;
   bonusUsed?: boolean;
