@@ -12,6 +12,7 @@ import { ITEMS } from '../data/items';
 import { PERKS } from '../data/perks';
 import { RACES } from '../data/races';
 import { SKILLS } from '../data/skills';
+import { SET_PIECES } from '../data/setPieces';
 import { fill } from '../data/battleText';
 import type { EventBus } from '../game/events';
 import type { GameState } from '../game/types';
@@ -61,6 +62,11 @@ export class Host {
     bus.on('bossRoared', (e) => this.say('bossRoared', { boss: enemy(e.defId) }, true));
     bus.on('stairsSealed', (e) => this.say('stairsSealed', { boss: enemy(e.defId) }, true));
     bus.on('bossDefeated', (e) => this.say(e.tier === 'floor' ? 'floorBossDown' : e.tier === 'room' ? 'roomBossDown' : 'eliteDown', { name: e.name }, true));
+    // Set pieces bring their own introductions (data/setPieces).
+    bus.on('setPieceFound', (e) => {
+      const lines = SET_PIECES[e.kind].intros;
+      this.show(lines[hash(++this.count, e.kind.length) % lines.length], true);
+    });
     bus.on('skillUp', (e) => this.say('skillUp', { skill: SKILLS[e.id].name, level: e.level }, true));
   }
 

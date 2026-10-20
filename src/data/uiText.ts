@@ -80,6 +80,7 @@ export const UI_TEXT = {
       ['#3cc8ff', 'Captive'],
       ['#ff4632', 'Enemy (in sight)'],
       ['#78aa3c', 'Hazard'],
+      ['#ff5ac8', 'Set piece'],
     ] as [string, string][],
     keys: 'ARROWS scroll   +/- zoom   C back to you   TAB or ESC close.   Time is paused while the map is open.',
   },
@@ -117,6 +118,8 @@ export const UI_TEXT = {
     leftItem: 'You left a {item} here. Press E to pick it up.',
     cell: '{name} is locked in a cell. Press E to talk to her.',
     bribe: '{name} will join your party for about {price} Prize Tokens (you have {tokens}). Press E to talk.',
+    station: '{name}: {help} Press E (or walk into it).',
+    stationDone: '{name}: used up. Press E to look anyway.',
   },
   levelUp: {
     title: 'LEVEL UP',
@@ -166,5 +169,13 @@ export const UI_TEXT = {
     roared: 'A roar shakes the sewer. The floor boss lair is now on your map (TAB). The stairs are inside.',
     sealed: 'The stairs are sealed. Beat {boss} first.',
     bossDown: '{name} is beaten. The stairs are open!',
+    found: '{name}: {help}',
+    boonUp: '+{amount} {stat} for good.',
+    boonDown: '-{amount} {stat} for good.',
+  },
+  scene: {
+    badge: 'SET PIECE',
+    keys: 'UP/DOWN choose   ENTER pick   ESC walk away',
+    tokens: 'Tokens {tokens}',
   },
 };

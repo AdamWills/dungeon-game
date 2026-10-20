@@ -10,6 +10,7 @@ import type { StatusKind } from '../data/statuses';
 import { TUNING } from '../data/tuning';
 import { giveItem, setStance } from './party';
 import { takePerk, train } from './progress';
+import { chooseScene } from './setPieces';
 import { choose, startTalk } from './talk';
 import { tileOf } from '../world/motion';
 import type { Entity, EquipSlot, Equipment, GameState, InvCommand, ItemInstance, Stats, Vec } from './types';
@@ -33,7 +34,7 @@ export function targetSlot(player: Entity, kind: ItemSlot): Slot {
  * Stats from class, race, level-up points and equipment. `hp` is the max;
  * callers keep current HP. Every second point in a favored stat is free.
  */
-export function computeStats(raceId: string, clsId: string, equipment: Equipment, trained: Partial<Record<StatKey, number>> = {}): Stats {
+export function computeStats(raceId: string, clsId: string, equipment: Equipment, trained: Partial<Record<StatKey, number>> = {}, boons: Partial<Record<StatKey, number>> = {}): Stats {
   const cls = CLASSES[clsId];
   const base = cls.base;
   const race = RACES[raceId];
@@ -44,6 +45,8 @@ export function computeStats(raceId: string, clsId: string, equipment: Equipment
     const points = n + (cls.favored.includes(k) ? Math.floor(n / 2) : 0);
     s[k] += points * TUNING.pointValue[k];
   }
+  // Set pieces' blessings and bargains count as they are.
+  for (const [k, n] of Object.entries(boons) as [StatKey, number][]) s[k] += n;
   for (const slot of SLOTS) {
     const inst = equipment[slot];
     const mods = inst ? ITEMS[inst.defId]?.mods : undefined;
@@ -59,7 +62,7 @@ export function computeStats(raceId: string, clsId: string, equipment: Equipment
 export function refreshPlayerStats(state: GameState): void {
   const p = state.player;
   const lost = p.stats.maxHp - p.stats.hp;
-  const next = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained);
+  const next = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained, state.boons);
   next.hp = Math.max(1, Math.min(next.maxHp, next.maxHp - lost));
   if (p.stats.hp <= 0) next.hp = 0;
   p.stats = next;
@@ -148,6 +151,10 @@ export function inventoryCommand(state: GameState, cmd: InvCommand): void {
   }
   if (state.talk) {
     if (cmd.kind === 'say') choose(state, cmd.choice);
+    return;
+  }
+  if (state.scene) {
+    if (cmd.kind === 'say') chooseScene(state, cmd.choice);
     return;
   }
   if (state.reveals.length) {
@@ -272,8 +279,8 @@ export function equipPreview(state: GameState, defId: string): { name: string; b
   const def = ITEMS[defId];
   if (!def?.slot) return [];
   const p = state.player;
-  const now = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained);
-  const next = computeStats(state.race, state.cls, { ...p.equipment, [targetSlot(p, def.slot)]: { defId, identified: true } }, state.trained);
+  const now = computeStats(state.race, state.cls, p.equipment ?? {}, state.trained, state.boons);
+  const next = computeStats(state.race, state.cls, { ...p.equipment, [targetSlot(p, def.slot)]: { defId, identified: true } }, state.trained, state.boons);
   const out = (Object.keys(STAT_NAMES) as StatKey[])
     .filter((k) => now[k] !== next[k])
     .map((k) => ({ name: STAT_NAMES[k], before: now[k], after: next[k] }));

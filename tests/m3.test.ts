@@ -351,10 +351,12 @@ describe('generation and loot', () => {
       );
       expect(hazards).toBeGreaterThan(0);
       // Chests and props block movement, but never the way to the stairs or any room.
-      const blocked = new Set([...f.chests, ...f.props].map((c) => `${c.pos.x},${c.pos.y}`));
+      const blocked = new Set([...f.chests.map((c) => c.pos), ...f.props.map((p) => p.pos), ...(f.setPieces ?? []).flatMap((p) => (p.station ? [p.station] : []))].map((c) => `${c.x},${c.y}`));
       const dist = bfsDistances(f, f.start, (x, y) => blocked.has(`${x},${y}`));
       expect(dist[f.stairs.y * f.width + f.stairs.x]).toBeGreaterThan(0);
-      for (const r of f.rooms) expect(dist[r.center.y * f.width + r.center.x], `seed ${seed} room ${r.id}`).toBeGreaterThanOrEqual(0);
+      // (A set piece's prize chest can sit on the centre tile: then the tiles beside it count.)
+      const reached = (x: number, y: number) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => dist[(y + dy) * f.width + x + dx] >= 0);
+      for (const r of f.rooms) expect(reached(r.center.x, r.center.y), `seed ${seed} room ${r.id}`).toBe(true);
       expect(f.props.length).toBeGreaterThan(0);
     }
   });

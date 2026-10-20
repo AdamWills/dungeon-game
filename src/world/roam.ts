@@ -9,6 +9,7 @@ import { updateEnemy } from '../game/ai';
 import { inventoryCommand, leaveOffer } from '../game/equipment';
 import { captiveAt, leaveTrail, spotCaptives, updateParty } from '../game/party';
 import { startTalk } from '../game/talk';
+import { startScene, stationAt, updateSetPieces } from '../game/setPieces';
 import { receiveAi } from '../game/aiItems';
 import type { BattleCommand, Dir, GameState, InputFrame, InvCommand, Mode, Vec } from '../game/types';
 import { isWalkable } from '../gen/reach';
@@ -28,7 +29,7 @@ const DELTA: Record<Dir, Vec> = {
 
 export function step(state: GameState, input: InputFrame): void {
   for (const d of input.ai ?? []) receiveAi(state, d);
-  if (input.pause && !state.levelUp && !state.talk) {
+  if (input.pause && !state.levelUp && !state.talk && !state.scene) {
     if (state.mode === 'roaming') setMode(state, 'menu');
     else if (state.mode === 'menu') {
       while (state.reveals.length) leaveOffer(state); // ESC on a prize card leaves it
@@ -79,6 +80,7 @@ export function step(state: GameState, input: InputFrame): void {
   updateHazards(state);
   if (state.mode !== 'roaming') return; // a hazard finished you off
 
+  updateSetPieces(state);
   updateLair(state);
   if (state.mode === 'roaming') updateBossRooms(state);
   if (state.mode !== 'roaming') return; // walked into a boss's room
@@ -107,6 +109,12 @@ function tryMove(state: GameState, dir: Dir): void {
   if (isClosedDoor(state, to.x, to.y)) return openDoor(state, to);
   if (chestAt(state, to.x, to.y)) {
     openChest(state, to.x, to.y);
+    return;
+  }
+  // Bumping a set piece's station opens its scene.
+  const station = stationAt(state, to.x, to.y);
+  if (station) {
+    if (state.dash.active === 0) startScene(state, station);
     return;
   }
   // Bumping a captive asks them to join; they do not get out of the way.
@@ -145,6 +153,11 @@ function interact(state: GameState): boolean {
     const captive = captiveAt(state, f.x, f.y);
     if (captive) {
       startTalk(state, captive, 'meet');
+      return true;
+    }
+    const station = stationAt(state, f.x, f.y);
+    if (station) {
+      startScene(state, station);
       return true;
     }
     if (isClosedDoor(state, f.x, f.y)) {

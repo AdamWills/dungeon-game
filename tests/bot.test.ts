@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createRng, nextFloat, nextInt, pick } from '../src/game/rng';
 import { createGameState } from '../src/game/state';
 import { talkView } from '../src/game/talk';
+import { sceneView } from '../src/game/setPieces';
 import type { BattleCommand, Dir, GameState, InputFrame, Vec } from '../src/game/types';
 import { NO_INPUT } from '../src/game/types';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
@@ -34,6 +35,7 @@ function playRun(seed: number, maxTicks = 30_000) {
     if (state.mode === 'menu') {
       const lu = state.levelUp;
       if (state.talk) input = { ...NO_INPUT, command: { kind: 'say', choice: nextInt(bot, 0, talkView(state)!.choices.length - 1) } };
+      else if (state.scene) input = { ...NO_INPUT, command: { kind: 'say', choice: nextInt(bot, 0, sceneView(state)!.choices.length - 1) } };
       else if (lu?.points) input = { ...NO_INPUT, command: { kind: 'train', stat: pick(bot, ['maxHp', 'str', 'speed', 'evasion', 'armor', 'charm'] as const) } };
       else if (lu?.perkChoices) input = { ...NO_INPUT, command: { kind: 'perk', id: pick(bot, lu.perkChoices) } };
       else input = { ...NO_INPUT, command: { kind: 'dismiss' } };

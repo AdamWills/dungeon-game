@@ -5,10 +5,11 @@ import type { Stance } from '../data/allies';
 import type { DamageType } from '../data/damage';
 import type { HazardKind } from '../data/hazards';
 import type { Grade, OutcomeEffect, PropVerb } from '../data/improv';
-import type { ItemDef, StatKey } from '../data/items';
+import type { ItemDef, Rarity, StatKey } from '../data/items';
 import type { StatusKind } from '../data/statuses';
 import type { Rng } from './rng';
 import type { Talk } from './talk';
+import type { Scene } from './setPieces';
 import type { AiDelivery } from './aiItems';
 
 export type Vec = { x: number; y: number };
@@ -27,7 +28,34 @@ export type Tile = {
   hazard?: HazardKind;
 };
 
-export type Chest = { id: string; pos: Vec; opened: boolean };
+/** `prize`: a set piece's chest, which always holds an item of this rarity. */
+export type Chest = { id: string; pos: Vec; opened: boolean; prize?: Rarity };
+
+/**
+ * A set piece placed on the floor (data/setPieces): the room it holds, its
+ * station (if any), and what it rolled when the floor was made.
+ */
+export type SetPiece = {
+  id: string;
+  kind: string;
+  room: number;
+  station: Vec | null;
+  /** You have walked into its room (Chet introduces it; the map labels it). */
+  found: boolean;
+  /** Used up. */
+  done: boolean;
+  /** Rolled with the floor: the vendor's shelves, what is behind each pipe, the right valve. */
+  stock?: { defId: string; sold: boolean }[];
+  pipes?: ('prize' | 'tokens' | 'monster')[];
+  answer?: number;
+  /** Per-piece memory: flags set by scenes, goes left, the pipe you picked. */
+  flags: string[];
+  tries?: number;
+  picked?: number;
+  revealed?: number;
+  /** Shop prices are multiplied by this after haggling. */
+  priceMult?: number;
+};
 
 /** A prop standing on the map (barrels, vending machines, ...). */
 export type MapProp = { id: string; defId: string; pos: Vec; usesLeft: number };
@@ -77,6 +105,8 @@ export type Floor = {
   lair?: { room: number; bossId: string; found: boolean; beaten: boolean };
   /** Room bosses: each in its own closed-off room; walking in starts the fight. */
   bossRooms?: { room: number; bossId: string }[];
+  /** Set pieces, each in a room of its own. */
+  setPieces?: SetPiece[];
   /** 1 where the player can currently see, flat index y * width + x. */
   visible: number[];
 };
@@ -339,7 +369,10 @@ export type GameEvent =
   | { type: 'bossDefeated'; defId: string; tier: 'elite' | 'room' | 'floor'; name: string }
   | { type: 'stairsSealed'; defId: string }
   | { type: 'weakSpotFound'; defId: string; damage: DamageType }
-  | { type: 'aiItemReady'; defId: string; rarity: string };
+  | { type: 'aiItemReady'; defId: string; rarity: string }
+  | { type: 'setPieceFound'; kind: string }
+  | { type: 'setPieceDone'; kind: string }
+  | { type: 'boon'; stat: StatKey; amount: number };
 
 export type GameState = {
   seed: number;
@@ -383,6 +416,10 @@ export type GameState = {
   skills: Record<string, { level: number; xp: number }>;
   /** A conversation in progress (time is paused). */
   talk: Talk | null;
+  /** A set piece's scene in progress (time is paused). */
+  scene: Scene | null;
+  /** Permanent stat changes from set pieces (shrines, deals), added as they are. */
+  boons: Partial<Record<StatKey, number>>;
   /** A level-up waiting on the player: points to spend and perks to pick from. */
   levelUp: { points: number; perkChoices: string[] | null } | null;
   record: RunRecord;

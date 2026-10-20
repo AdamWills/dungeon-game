@@ -58,6 +58,8 @@ export function createGameState(seed: number, raceId = 'human', classId = 'brawl
     skills: {},
     levelUp: null,
     talk: null,
+    scene: null,
+    boons: {},
     weakSpots: {},
     calm: 0,
     lastHp: 0,

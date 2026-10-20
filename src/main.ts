@@ -18,6 +18,8 @@ import { InventoryMenu } from './ui/inventory';
 import { Picker } from './ui/picker';
 import { LevelUpMenu } from './ui/levelUp';
 import { TalkMenu } from './ui/talk';
+import { SceneMenu } from './ui/scene';
+import { SET_PIECES, STAT_NAMES } from './data/setPieces';
 import { Host } from './host/host';
 import { ALLIES } from './data/allies';
 import { ENEMIES } from './data/enemies';
@@ -44,6 +46,7 @@ const inventory = new InventoryMenu();
 const picker = new Picker();
 const levelUp = new LevelUpMenu();
 const talk = new TalkMenu();
+const scene = new SceneMenu();
 const toasts: Toast[] = [];
 // AI (user decision: mandatory, the player's own OpenAI key, a spending limit per run).
 const settings = new SettingsScreen(loadSettings());
@@ -121,6 +124,8 @@ bus.on('bossRoared', () => toast(T.roared));
 bus.on('stairsSealed', (e) => toast(fill(T.sealed, { boss: ENEMIES[e.defId]?.name ?? 'the boss' })));
 bus.on('bossDefeated', (e) => e.tier === 'floor' && toast(fill(T.bossDown, { name: e.name })));
 bus.on('allyDismissed', (e) => toast(fill(T.dismissed, { name: ALLIES[e.allyId].short })));
+bus.on('setPieceFound', (e) => toast(fill(T.found, { name: SET_PIECES[e.kind].name, help: SET_PIECES[e.kind].help })));
+bus.on('boon', (e) => toast(fill(e.amount > 0 ? T.boonUp : T.boonDown, { amount: Math.abs(e.amount), stat: STAT_NAMES[e.stat] })));
 bus.on('levelUp', () => {
   levelUp.cursor = 0;
 });
@@ -213,6 +218,7 @@ function frame(now: number) {
       }
       else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.talk) pendingCommand = talk.handle(key, s) ?? pendingCommand;
+      else if (s.mode === 'menu' && s.scene) pendingCommand = scene.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
         const opts = prizeOptions(s);
         prizeView(s);
@@ -248,7 +254,7 @@ function frame(now: number) {
   }
   if (state && state.mode !== 'dead' && state.mode !== 'won') supplier.tick(state, now);
   if (!renderer.bigMap && !settings.open) loop.advance(now);
-  if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts, ai: budget, prize: state.reveals.length ? prizeView(state) : { options: [], cursor: 0 } }, now);
+  if (state) renderer.render(state, { menu, inventory, levelUp, talk, scene, host, toasts, ai: budget, prize: state.reveals.length ? prizeView(state) : { options: [], cursor: 0 } }, now);
   else renderer.renderPicker(picker, now);
   if (typeBox && state?.battle) {
     const box = typeBox;

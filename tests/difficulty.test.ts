@@ -11,6 +11,7 @@ import { weaponOf } from '../src/game/equipment';
 import { knownSpots } from '../src/game/weakspots';
 import { createGameState } from '../src/game/state';
 import { talkView } from '../src/game/talk';
+import { sceneView } from '../src/game/setPieces';
 import type { BattleCommand, Dir, GameState, InputFrame, Vec } from '../src/game/types';
 import { NO_INPUT } from '../src/game/types';
 import { bfsDistances, isWalkable } from '../src/gen/reach';
@@ -55,7 +56,9 @@ function play(seed: number, cls: string, maxTicks = 250_000) {
       const talk = s.talk ? talkView(s)!.choices : null;
       // Talking: take them on if that is offered, else walk away.
       const recruitAt = talk ? talk.findIndex((c) => c.effects?.some((e) => e.kind === 'recruit')) : -1;
-      input = { ...NO_INPUT, command: talk ? { kind: 'say', choice: recruitAt >= 0 ? recruitAt : talk.length - 1 } : lu?.points ? { kind: 'train', stat: 'maxHp' } : lu?.perkChoices ? { kind: 'perk', id: lu.perkChoices[0] } : { kind: 'dismiss' } };
+      // Set pieces: this bot walks away (the sim measures the fights).
+      if (s.scene) input = { ...NO_INPUT, command: { kind: 'say', choice: sceneView(s)!.choices.length - 1 } };
+      else input = { ...NO_INPUT, command: talk ? { kind: 'say', choice: recruitAt >= 0 ? recruitAt : talk.length - 1 } : lu?.points ? { kind: 'train', stat: 'maxHp' } : lu?.perkChoices ? { kind: 'perk', id: lu.perkChoices[0] } : { kind: 'dismiss' } };
     } else if (s.mode === 'battle') {
       if (s.battle!.wait === 0 || s.battle!.intro) input = { ...NO_INPUT, command: battleChoice(s) };
     } else if (!s.player.motion) {

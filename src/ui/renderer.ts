@@ -40,6 +40,9 @@ import { buildPropSprites, type PropSprites } from './propSprites';
 import type { Host } from '../host/host';
 import type { LevelUpMenu } from './levelUp';
 import type { TalkMenu } from './talk';
+import type { SceneMenu } from './scene';
+import { SET_PIECES } from '../data/setPieces';
+import { stationAt } from '../game/setPieces';
 import { counted, REPORT } from '../data/report';
 import { type AllySprites, buildAllySprites, buildChetPortrait } from './allySprites';
 import type { PlayerSprites } from './playerSprite';
@@ -49,7 +52,7 @@ import { bar, FONT, FONT_BIG, wrapText } from './text';
 export type Toast = { text: string; until: number };
 
 /** UI-side screens and messages the renderer draws on top of the game. */
-export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; host: Host; toasts: Toast[]; ai: { spent: number; limit: number }; prize: { options: string[]; cursor: number } };
+export type Overlays = { menu: BattleMenu; inventory: InventoryMenu; levelUp: LevelUpMenu; talk: TalkMenu; scene: SceneMenu; host: Host; toasts: Toast[]; ai: { spent: number; limit: number }; prize: { options: string[]; cursor: number } };
 
 /** Zoom is the largest whole number that still shows at least this many tiles. */
 const MIN_VIEW_TILES = { x: 22, y: 13 };
@@ -155,6 +158,7 @@ export class Renderer {
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
       if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
       else if (state.talk) ui.talk.draw(ctx, w, h, state, this.allySprites, now, this.since(state.talk, now), this.pixel);
+      else if (state.scene) ui.scene.draw(ctx, w, h, state, this.propSprites, now, this.since(state.scene, now), this.pixel);
       else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0].item, state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel, ui.prize);
       else ui.inventory.draw(ctx, w, h, state, this.icons, this.playerSprites, ui.host.history);
     }
@@ -364,6 +368,12 @@ export class Renderer {
       if (!floor.tiles[p.pos.y][p.pos.x].explored) continue;
       actors.push({ y: p.pos.y, draw: () => ctx.drawImage(this.propSprites(p.defId), p.pos.x * TILE - camX + TILE / 2 - SPRITE / 2, p.pos.y * TILE - camY + TILE - SPRITE) });
     }
+    for (const sp of floor.setPieces ?? []) {
+      const at = sp.station;
+      const station = SET_PIECES[sp.kind].station;
+      if (!at || !station || !floor.tiles[at.y][at.x].explored) continue;
+      actors.push({ y: at.y, draw: () => ctx.drawImage(this.propSprites(station), at.x * TILE - camX + TILE / 2 - SPRITE / 2, at.y * TILE - camY + TILE - SPRITE) });
+    }
     actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
 
     // Damage taken on the map, floating up from whoever took it.
@@ -543,6 +553,7 @@ export class Renderer {
         else px(x, y, lit ? 120 : 70, lit ? 110 : 64, lit ? 100 : 60);
       }
     for (const c of f.chests) if (!c.opened && f.tiles[c.pos.y][c.pos.x].explored) px(c.pos.x, c.pos.y, 200, 120, 40);
+    for (const sp of f.setPieces ?? []) if (sp.found && sp.station) px(sp.station.x, sp.station.y, 255, 90, 200);
     for (const e of f.entities) {
       const x = Math.round(e.pos.x);
       const y = Math.round(e.pos.y);
@@ -662,6 +673,20 @@ export class Renderer {
     pulse(state.player.pos.x, state.player.pos.y, '#ffffff');
     for (let y = 0; y < f.height; y++)
       for (let x = 0; x < f.width; x++) if (f.tiles[y][x].terrain === 'stairs' && f.tiles[y][x].explored) pulse(x, y, '#ffd23a');
+    // Set pieces you have found, by name.
+    ctx.font = FONT;
+    ctx.textBaseline = 'bottom';
+    for (const sp of f.setPieces ?? []) {
+      if (!sp.found) continue;
+      const room = f.rooms.find((r) => r.id === sp.room)!;
+      const name = SET_PIECES[sp.kind].name + (sp.done ? ' (done)' : '');
+      const tx = Math.round(ox + (room.center.x + 0.5) * scale - ctx.measureText(name).width / 2);
+      const ty = Math.round(oy + room.y1 * scale - 2);
+      ctx.fillStyle = 'rgba(6, 4, 10, 0.8)';
+      ctx.fillRect(tx - 3, ty - 14, ctx.measureText(name).width + 6, 15);
+      ctx.fillStyle = sp.done ? '#a888b8' : '#ff5ac8';
+      ctx.fillText(name, tx, ty);
+    }
     ctx.restore();
     ctx.strokeStyle = '#3a2a4a';
     ctx.lineWidth = 1;
@@ -779,6 +804,11 @@ export class Renderer {
     if (isClosedDoor(state, f.x, f.y)) return P.door;
     const prop = propAt(state, f.x, f.y);
     if (prop) return fill(P.prop, { prop: PROPS[prop.defId].name });
+    const station = stationAt(state, f.x, f.y);
+    if (station) {
+      const def = SET_PIECES[station.kind];
+      return fill(station.done ? P.stationDone : P.station, { name: def.name, help: def.help });
+    }
     const captive = captiveAt(state, f.x, f.y);
     if (captive) {
       const def = ALLIES[captive.defId];

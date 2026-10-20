@@ -10,6 +10,7 @@ import { nextFloat, nextInt, pick, type Rng } from '../game/rng';
 import { makeAlly } from '../game/party';
 import type { Entity, Floor, Room, Vec } from '../game/types';
 import { bfsDistances, enclosable } from './reach';
+import { setPieceRooms } from './setPieces';
 
 const MAX_ROAM_DISTANCE = 30; // tiles of walking to a neighbouring room
 const FACINGS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
@@ -22,7 +23,9 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
     ...floor.chests.map((c) => key(c.pos)),
     ...floor.props.map((p) => key(p.pos)),
     ...captives.map((c) => key(c.pos)),
+    ...(floor.setPieces ?? []).flatMap((p) => (p.station ? [key(p.station)] : [])),
   ]);
+  const pieces = setPieceRooms(floor);
   const counts: Record<string, number> = {};
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
 
@@ -44,7 +47,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
   // Room bosses: each alone in a room of its own, deeper in.
   const hasCaptive = (r: Room) => captives.some((c) => inRoom(r, c.pos));
   const bossRooms: Room[] = [];
-  const candidates = floor.rooms.filter((r) => r !== startRoom && r !== lair && !hasCaptive(r) && depthOfRoom(r) >= theme.roomBosses.minDepth && enclosable(floor, r));
+  const candidates = floor.rooms.filter((r) => r !== startRoom && r !== lair && !hasCaptive(r) && !pieces.has(r.id) && depthOfRoom(r) >= theme.roomBosses.minDepth && enclosable(floor, r));
   const ids = [...theme.roomBosses.ids];
   for (let i = nextInt(rng, theme.roomBosses.count[0], theme.roomBosses.count[1]); i > 0 && ids.length && candidates.length; i--) {
     const room = candidates.splice(nextInt(rng, 0, candidates.length - 1), 1)[0];
@@ -64,7 +67,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
 
   const firstResident = entities.length;
   for (const room of floor.rooms) {
-    if (room === startRoom || room === lair || bossRooms.includes(room)) continue;
+    if (room === startRoom || room === lair || bossRooms.includes(room) || pieces.has(room.id)) continue;
     const depth = depthOfRoom(room);
     const most = depth < theme.quietDepth ? Math.min(1, theme.enemiesPerRoom[1]) : theme.enemiesPerRoom[1];
     const n = nextInt(rng, theme.enemiesPerRoom[0], most);
@@ -88,7 +91,7 @@ export function populate(floor: Floor, rng: Rng, theme: FloorTheme, captives: { 
 
   // Deserters hang around with a gang somewhere away from the start.
   for (const id of theme.deserters) {
-    const rooms = floor.rooms.filter((r) => r !== startRoom && r !== lair && !bossRooms.includes(r));
+    const rooms = floor.rooms.filter((r) => r !== startRoom && r !== lair && !bossRooms.includes(r) && !pieces.has(r.id));
     if (!rooms.length) break;
     const room = pick(rng, rooms);
     const pos = freeTileIn(room, rng, taken, floor);
@@ -128,6 +131,13 @@ function guard(floor: Floor, def: EnemyDef, pos: Vec, rng: Rng, n: number): Enti
   const e = resident(floor, null, def, pos, rng, null, n);
   e.patrol!.route = [{ ...pos }];
   e.mind!.asleep = false;
+  return e;
+}
+
+/** A creature that pops out of a set piece: awake, standing its ground, with its own id. */
+export function spawnEnemy(floor: Floor, defId: string, pos: Vec, rng: Rng, id: string): Entity {
+  const e = guard(floor, ENEMIES[defId], pos, rng, 0);
+  e.id = id;
   return e;
 }
 

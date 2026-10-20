@@ -8,6 +8,7 @@ import { weightedPick } from '../game/combat';
 import { nextInt, pick, type Rng } from '../game/rng';
 import type { Floor, Room, Vec } from '../game/types';
 import { bfsDistances, isWalkable } from './reach';
+import { setPieceRooms } from './setPieces';
 
 const key = (p: Vec) => `${p.x},${p.y}`;
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -20,8 +21,11 @@ export function inRoom(r: Room, p: Vec): boolean {
 export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { allyId: string; pos: Vec }[] {
   const { tiles, width, height } = floor;
   const taken = new Set<string>([key(floor.start), key(floor.stairs)]);
+  for (const p of floor.setPieces ?? []) if (p.station) taken.add(key(p.station));
   const startRoom = floor.rooms.find((r) => inRoom(r, floor.start));
-  const otherRooms = floor.rooms.filter((r) => r !== startRoom);
+  // Set-piece rooms are left as they were built.
+  const pieces = setPieceRooms(floor);
+  const otherRooms = floor.rooms.filter((r) => r !== startRoom && !pieces.has(r.id));
   const isFloor = (x: number, y: number) => tiles[y]?.[x]?.terrain === 'floor';
   const nearDoor = (x: number, y: number) => N4.some(([dx, dy]) => tiles[y + dy]?.[x + dx]?.terrain === 'door');
   const free = (x: number, y: number) => isFloor(x, y) && !taken.has(`${x},${y}`) && !nearDoor(x, y);
@@ -36,6 +40,12 @@ export function placeFeatures(floor: Floor, rng: Rng, theme: FloorTheme): { ally
   let walkable = 0;
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (isWalkable(floor, x, y)) walkable++;
   const passable = (x: number, y: number) => isWalkable(floor, x, y) && blocked[y * width + x] === 0;
+  // Set-piece stations and the gauntlet's chest already stand in the way.
+  for (const pos of [...(floor.setPieces ?? []).flatMap((p) => (p.station ? [p.station] : [])), ...floor.chests.map((c) => c.pos)]) {
+    blocked[pos.y * width + pos.x] = 1;
+    blockerCount++;
+    taken.add(key(pos));
+  }
   // Fast path: if the open tiles around a spot are all joined up through its
   // ring of 8 neighbours, blocking it cannot cut anything off.
   const RING = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];

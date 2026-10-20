@@ -165,9 +165,10 @@ function distancesTo(state: GameState, target: Vec, careful: boolean) {
   return d;
 }
 
-/** Tiles other enemies stand on or are moving into, plus chests. */
+/** Tiles other enemies stand on or are moving into, plus chests, props and set-piece stations. */
 function occupiedBy(state: GameState, self: Entity): Set<string> {
   const s = new Set<string>([...state.floor.chests, ...state.floor.props].map((c) => `${c.pos.x},${c.pos.y}`));
+  for (const p of state.floor.setPieces ?? []) if (p.station) s.add(`${p.station.x},${p.station.y}`);
   for (const o of state.floor.entities) {
     if (o === self) continue;
     const t = tileOf(o);

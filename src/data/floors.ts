@@ -38,6 +38,8 @@ export type FloorTheme = {
   lairProps: string[];
   /** Sludge pools (clusters), spike tiles and gas vents per floor. */
   hazards: { sludgePools: [number, number]; spikes: [number, number]; gasVents: [number, number] };
+  /** Set pieces (data/setPieces), each in a room of its own, from this far along. */
+  setPieces: { kind: string; minDepth: number }[];
 };
 
 export const FLOOR_THEMES: Record<string, FloorTheme> = {
@@ -71,5 +73,14 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     floorBoss: 'fatberg',
     lairProps: ['barrel', 'barrel'],
     hazards: { sludgePools: [12, 20], spikes: [18, 28], gasVents: [8, 14] },
+    // One of each on the big floor; the shop and the shrine come early, the gambles later.
+    setPieces: [
+      { kind: 'gutter_mart', minDepth: 0.15 },
+      { kind: 'clog_shrine', minDepth: 0.2 },
+      { kind: 'pick_a_pipe', minDepth: 0.3 },
+      { kind: 'overflow_fella', minDepth: 0.35 },
+      { kind: 'valve_room', minDepth: 0.4 },
+      { kind: 'drain_gauntlet', minDepth: 0.5 },
+    ],
   },
 };

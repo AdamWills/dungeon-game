@@ -9,6 +9,7 @@ import type { Floor, Room, Tile, Vec } from '../game/types';
 import { placeFeatures } from './features';
 import { populate } from './populate';
 import { bfsDistances, enclosable } from './reach';
+import { placeSetPieces } from './setPieces';
 
 const MAX_ATTEMPTS = 50;
 
@@ -94,6 +95,7 @@ export function generateFloor(seed: number, index: number, themeId = 'intake_sew
       props: [],
       visible: new Array(width * height).fill(0),
     };
+    placeSetPieces(floor, rng, theme);
     const captives = placeFeatures(floor, rng, theme);
     floor.entities = populate(floor, rng, theme, captives);
     return floor;

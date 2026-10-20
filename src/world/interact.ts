@@ -1,11 +1,11 @@
 // The interact key (and bumping into things): stairs, eating remains,
 // chests and doors. Plus picking up whatever you step on.
 
-import { takeFromPool } from '../game/aiItems';
+import { owned, takeFromPool } from '../game/aiItems';
 import { RACES } from '../data/races';
 import { TUNING } from '../data/tuning';
 import { addItem } from '../game/equipment';
-import { depthOf, rollItem } from '../game/loot';
+import { depthOf, rollItem, rollItemOf } from '../game/loot';
 import { nextInt } from '../game/rng';
 import type { GameState, Vec } from '../game/types';
 import { updateFov } from './fov';
@@ -39,7 +39,10 @@ export function openDoor(state: GameState, at: Vec): void {
 export function openChest(state: GameState, x: number, y: number): boolean {
   const chest = chestAt(state, x, y);
   if (!chest || chest.opened) return false;
-  const item = rollItem(state.rng, depthOf(state.floor, chest.pos), 'chest', (r) => takeFromPool(state, r));
+  // A set piece's prize chest always holds something good.
+  const item = chest.prize
+    ? rollItemOf(state.rng, [chest.prize], (r) => takeFromPool(state, r), owned(state))
+    : rollItem(state.rng, depthOf(state.floor, chest.pos), 'chest', (r) => takeFromPool(state, r));
   const tokens = nextInt(state.rng, TUNING.chestTokens[0], TUNING.chestTokens[1]);
   state.tokens += tokens;
   state.events.push({ type: 'tokensGained', amount: tokens, from: 'chest' });
