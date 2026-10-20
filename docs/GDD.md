@@ -4,6 +4,24 @@ Oct 17, 2026 · Adam Wills
 
 A browser-playable roguelike with real-time roaming and turn-based battles, where ordinary people are dragged onto a tacky underground game show and must descend a deadly dungeon while a hologram host cheers every death, with gleeful gore, absurd loot and a strong achievement system. Working title; scope is a weekend prototype.
 
+## Direction change: AI-first (user decision, Oct 20, 2026)
+
+The first prototype proved the rules and the tone. The game now builds on them with a generative AI model as the point of the game, not an optional extra. In the user's words: more open, crazy, random play; dedicated set pieces rather than random critters; genuine AI randomness as the game progresses; and more interesting graphics generated on the fly.
+
+**What changes**
+
+- **AI is mandatory.** There is no no-AI mode. The provider is OpenAI: `gpt-6-luna` (the small, fast model) for in-the-moment calls, `gpt-image-2` for images, both configurable.
+- **Bring your own key.** The player enters their own OpenAI API key on a settings screen. It is kept only in their browser (localStorage) and sent only to `api.openai.com`, which allows calls straight from the browser. There is no game server.
+- **Spending limit per run.** The player sets it; the default is **$5.00**. The game prices every call from the usage the API reports and shows the running total. At the limit, AI calls stop and the game asks the player to raise the limit or end the run.
+- **The AI writes the content, the engine keeps the rules.** Every AI response is structured JSON in a fixed shape (an action outcome, a monster, an item, a set piece), checked by the validator: known effects only, clamped numbers, no item creation from nothing, no instant battle wins. Player text is untrusted. Every AI response is recorded in the run, so the core stays deterministic and replayable.
+- **Set pieces first.** Floors are built around hand-built set-piece mechanics (a rigged mini game show, a trap gauntlet, a stranger with a deal, a vendor, a shrine with a catch, a puzzle room, an arena) that the AI dresses and twists. Wandering creatures fill the gaps.
+- **A Director.** While you play a floor, the AI designs the next one from a summary of your run (your favourite tricks, allies you abandoned, how you beat the last boss), so later floors react to you and get stranger. Floor 1 stays mostly hand-made.
+- **Art: 32 to 48 px, generated.** Larger pixel art. Everyday creatures and items use a code-drawn parts kit the AI describes (instant, free, consistent); showpieces (bosses, set-piece cards, Legendary items, Chet's floor intros) use the image model, generated a floor ahead, downscaled to the pixel grid and cached. The size is a trial: build a sprite lab first and look.
+
+**Build order (each step playable):** (1) the OpenAI client, key screen, spending meter and free-typed actions in fights; (2) the sprite lab for the art trial; (3) the set-piece engine with about 6 hand-made templates; (4) AI-generated monsters, items and set-piece twists a floor ahead; (5) image-model showpieces and the Director.
+
+Sections below that describe the LLM as optional, a serverless narrator proxy, or hand-drawn creatures are superseded by this section.
+
 ## Pillars and tone
 
 The game is a tight tactical roguelike wrapped in a mean, funny narrator. Four pillars guide every decision:
@@ -237,7 +255,7 @@ Menus cover the sensible options; improvisation covers everything else. Every ba
 | Props | Shove, kick, throw, eat, hide in or ignite an object from the battle arena | Verb and prop-tag table | 6 props, 8 verbs |
 | Item jank | Combine two inventory items | Tag-pair table with a generic fallback, 15% backfire | 10 combos |
 | Bad Idea | Press one button and commit | Weighted random draw, once per battle | 12 outcomes |
-| Free text | Type what you want to do | LLM adjudication, parser fallback | Behind the narrator flag |
+| Free text | Type what you want to do | AI adjudication (`gpt-6-luna`), validated | Always on |
 
 **Props**
 
@@ -258,12 +276,11 @@ Menus cover the sensible options; improvisation covers everything else. Every ba
 - Charm nudges the weights slightly. Brilliant and legendary outcomes pay bonus Credits, and each outcome unlocks an achievement the first time it appears.
 - Disasters cost HP, a turn or ally loyalty, never an instant death.
 
-**Free-text improv**
+**Free-text improv** (AI-first)
 
-- Type any action. With the live narrator on, the serverless function sends the text plus context (props, inventory, enemies, class) to the model and gets back a structured outcome: a verb, targets, effects chosen from the game's own effect list with capped magnitudes, and a narration line.
-- The game validates everything: effects must exist, damage and healing are clamped, nothing can create items or end a battle outright, and the player's text is treated as untrusted (instructions hidden in it are ignored).
-- With the LLM off, offline, rate-limited or slower than 3 seconds, a verb-and-noun parser matches known verbs against props, items and enemies. If nothing matches, it rolls on the Bad Idea table and Chet scores the attempt as "creative".
-- Limit: 2 free-text improvs per battle and about 8 per run, sharing the narrator's rate limit.
+- Type any action. The game sends a compact scene (you, your allies, the enemies, the arena props, your pockets, statuses) and the text to the model, and gets back a structured outcome: a grade, effects chosen from the game's own effect list with capped magnitudes and damage types, the item or prop it used up, and Chet's narration of what you actually did.
+- The game validates everything: effects must exist, damage and healing are clamped, nothing creates items or ends a battle outright, and the player's text is treated as untrusted (instructions hidden in it are ignored). Weak spots apply to typed attacks too.
+- It costs your turn. Repeating the same idea gets weaker. If the call fails, the turn is not spent and you can try again or pick something else.
 
 **Balance rules**
 
@@ -318,9 +335,9 @@ The host speaks through two channels: fast scripted lines for routine events and
 
 **LLM moments:** the game sends a compact context object (event type, floor, class and race, last 5 actions, killer, item list, ally names) plus the host's voice rules and a length cap of 60 words. The response replaces the scripted line.
 
-**Fallbacks:** if the call fails, times out after 3 seconds or is rate-limited, the game plays a scripted line for that event instead. The game must be fully playable with the LLM off, which is also the default in local development.
+**Fallbacks:** if a narration call fails or times out, the scripted line for that event plays instead. Narration is a nice-to-have on top; the AI calls that matter are actions and content.
 
-**Safety and cost:** LLM calls only fire on rare events, at most about 10 per run for narration, plus the capped free-text improv calls described under Improvisation. The API key must never ship to the browser, so calls go through a single serverless function (for example a Cloudflare Worker or Vercel function) that holds the key, accepts only the compact context object, enforces the 60-word cap, and rate-limits per player. The game itself stays a static site, and it runs fine without the function.
+**Safety and cost:** calls go straight from the browser to OpenAI with the player's own key (see "Direction change"). Every call is priced from its reported usage and counted against the run's spending limit.
 
 ## Weekend prototype scope
 
@@ -345,7 +362,7 @@ The prototype proves one thing: a single floor is fun to play and the host makes
 - Sound, music, animation polish, and mobile or touch controls; real-time action combat on the map (roaming is movement only).
 - Accounts, cloud saves, multiplayer, leaderboards.
 
-**Platform and art constraints:** web browser only, no backend required to play. The one server piece is the optional serverless narrator proxy. Tech stack is left open; a roguelike toolkit with built-in field of view, pathfinding and dungeon generation (rot.js is one option) would save the most time.
+**Platform and art constraints:** web browser only, no backend. AI calls go from the browser to OpenAI with the player's own key. Tech stack is left open; a roguelike toolkit with built-in field of view, pathfinding and dungeon generation (rot.js is one option) would save the most time.
 
 **Definition of done**
 
@@ -357,7 +374,7 @@ The prototype proves one thing: a single floor is fun to play and the host makes
 
 ## Technical architecture
 
-The game is a static single-page app: TypeScript, rot.js for field of view, pathfinding and dungeon generation, and an HTML canvas for tiles. The only server code is one optional serverless function for the narrator. These are defaults, chosen to save time; swap any of them freely.
+The game is a static single-page app: TypeScript, rot.js for field of view, pathfinding and dungeon generation, and an HTML canvas for tiles. There is no server: AI calls go from the browser to OpenAI with the player's own key. These are defaults, chosen to save time; swap any of them freely.
 
 | Layer | Choice | Why |
 | --- | --- | --- |
@@ -366,7 +383,8 @@ The game is a static single-page app: TypeScript, rot.js for field of view, path
 | Rendering | Canvas 2D with a tile atlas | No framework needed; simple sprite blitting |
 | Build | Vite | Fast dev server, static output deploys anywhere |
 | Saves | localStorage, one JSON key | Meta state is small; no accounts |
-| Hosting | Any static host plus one serverless function | Narrator proxy only |
+| Hosting | Any static host | No server; AI calls use the player's own OpenAI key |
+| AI | OpenAI `gpt-6-luna` and `gpt-image-2` via `fetch` | Structured outputs for every game-facing response |
 
 **Modules**
 
@@ -393,7 +411,7 @@ The game is a static single-page app: TypeScript, rot.js for field of view, path
 - Systems talk through a small event bus (for example `entityDied`, `itemPicked`, `floorEntered`); the achievements and host modules only listen.
 - Roaming and battle share one set of entity data. Entering a battle snapshots enemy HP, so hazard damage carries in, and leaving it writes deaths, loot and gore back to the map.
 
-**Narrator proxy:** one serverless function takes the event context, calls the model with the host's voice rules, enforces a 60-word cap and a per-player rate limit, and returns text. The browser never sees the API key. Client timeout is 3 seconds, after which the scripted line plays.
+**AI client (`src/ai`):** builds requests, checks every response against its schema, prices it from the reported usage and counts it against the run's spending limit. AI results reach the game core as recorded inputs, never as direct state changes.
 
 ## Data models
 
@@ -546,7 +564,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 
 **Cut list (drop from the top first)**
 
-1. Live LLM narrator, LLM free-text improv and the serverless function (the parser stays).
+1. Live LLM narration lines (scripted lines stay; AI actions and content are never cut: AI-first).
 2. Gore intensity setting (ship one level).
 3. Secret achievements (ship 18 plain ones).
 4. Ally loyalty betrayals (allies leave but never turn).
@@ -583,7 +601,7 @@ Two days, five milestones, each ending in something playable. If a milestone run
 
 - [x] Final title: Subpar Dungeon is the working title; confirm before art or branding.
 - [x] Tile art source: the free 0x72 16x16 DungeonTileset II (CC0) for the map; characters hand-drawn for now.
-- [ ] Should the live LLM narrator be on by default for players, or an opt-in setting?
+- [x] Should the live LLM narrator be on by default? Superseded: AI is mandatory (user decision, Oct 20, 2026).
 - [ ] Gore setting: one toggle, or separate sliders for gibs, blood and body parts?
 - [ ] How many floors define "winning" in v1: 5, 10 or 15?
 - [ ] Is a run timer or turn limit wanted, or is pacing left entirely to the player?

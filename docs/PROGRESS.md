@@ -152,7 +152,9 @@
 
 ## Next
 
-M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
+**Direction change: AI-first** (user decision, Oct 20, 2026; see the top of the GDD). AI is mandatory; OpenAI with the player's own key, called from the browser (no server); spending limit per run, default $5.00; `gpt-6-luna` for text and `gpt-image-2` for images; art trial at 32 to 48 px. Build order: (1) OpenAI client, key screen, spending meter, free-typed actions in fights; (2) sprite lab; (3) set-piece engine; (4) AI-generated content a floor ahead; (5) image showpieces and the Director.
+
+After that, M5: Meta and polish. Credits, the Intake Desk with 5 unlocks, 20 achievements, local save, the safe room (with the vendor that takes Prize Tokens) and a gore pass. Then balance.
 
 Not yet built from the prototype scope: the free-text Improvise channel's verb-and-noun parser (no milestone lists it; it needs a text box), and Findings and Credits for first-time discoveries (M5 with meta-progression). The writing for the allies and Chet's lines is first-draft placeholder text (user: "not good, but ok"); it all lives in `src/data` for a rewrite pass.
 
