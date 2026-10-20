@@ -64,6 +64,7 @@ export const BATTLE_TEXT = {
   spareOk: ['You spare {target}! And {target} switches sides, folks! Loyalty is so fluid down here!'],
   spareFail: ['You offer {target} mercy. {target} offers you a nail. Rejected!', '{target} is not convinced. Try being more charming!'],
   spareNotYet: 'Rough {target} up a bit more first, contestant! Nobody takes mercy from a full health bar!',
+  typedNoEffect: '(No damage or healing.)',
   swapped: 'You switch to the {weapon}: {type} damage. That does not take your turn.',
   weakNote: ' WEAK SPOT ({type})!',
   resistNote: ' It shrugs off {type}.',

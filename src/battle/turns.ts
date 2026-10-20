@@ -445,6 +445,11 @@ function improvise(state: GameState, battle: BattleState, me: Combatant, cmd: Ex
     if (--prop.usesLeft <= 0) wrecked = PROPS[prop.defId].name;
   } else if (cmd.channel === 'jank') {
     for (const slot of [...cmd.slots].sort((a, b) => b - a)) state.player.inventory.splice(slot, 1);
+  } else if (cmd.channel === 'typed') {
+    // Whatever the AI says you used is used up, if you really had it.
+    const prop = battle.props.find((p) => p.id === res.propId);
+    if (prop && --prop.usesLeft <= 0) wrecked = PROPS[prop.defId].name;
+    if (res.itemSlot !== undefined) state.player.inventory.splice(res.itemSlot, 1);
   } else {
     battle.badIdeas++;
     state.record.badIdeas++;
@@ -456,6 +461,7 @@ function improvise(state: GameState, battle: BattleState, me: Combatant, cmd: Ex
   const victim = outcome.grade === 'disaster' && friends.length && nextFloat(state.rng) < 0.5 ? pick(state.rng, friends) : me;
   const victimHp = victim.stats.hp;
 
+  const hpBefore = new Map(battle.combatants.map((c) => [c.id, c.stats.hp]));
   const idx = battle.log.length;
   say(battle, '', outcome.grade === 'disaster' ? 'bad' : outcome.grade === 'meh' ? 'info' : 'good');
   battle.log[idx].text = applyOutcome(state, battle, outcome, names, {
@@ -467,11 +473,19 @@ function improvise(state: GameState, battle: BattleState, me: Combatant, cmd: Ex
       if (dmg) fx(battle, victim.id, 'hit', dmg);
       return dmg;
     },
-  });
+  }, res.focusId);
   if (victim !== me) {
     say(battle, fill(T.backfireAlly, { target: victim.name, dmg: victimHp - victim.stats.hp }), 'bad');
     const member = memberOf(state, victim);
     if (member) changeLoyalty(state, member, LOYALTY.hurtByYou);
+  }
+  // The AI's narration has no numbers in it, so a plain results line follows it.
+  if (cmd.channel === 'typed') {
+    const changes = battle.combatants
+      .map((c) => ({ c, d: c.stats.hp - (hpBefore.get(c.id) ?? c.stats.hp) }))
+      .filter(({ d }) => d !== 0)
+      .map(({ c, d }) => `${c.name} ${d > 0 ? '+' : ''}${d} HP`);
+    say(battle, changes.length ? `(${changes.join(', ')})` : T.typedNoEffect, 'info');
   }
   if (wrecked) say(battle, fill(T.propWrecked, { prop: wrecked }), 'info');
   state.events.push({ type: 'improvised', key: outcome.discoveryKey, grade: outcome.grade, firstThisRun: times === 0 });

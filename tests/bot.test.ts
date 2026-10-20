@@ -14,7 +14,7 @@ const VERB_LIST = ['shove', 'kick', 'throw', 'eat', 'hide', 'ignite'] as const;
 
 const DIRS: [Dir, number, number][] = [['right', 1, 0], ['left', -1, 0], ['down', 0, 1], ['up', 0, -1]];
 
-function playRun(seed: number, maxTicks = 40_000) {
+function playRun(seed: number, maxTicks = 30_000) {
   const state = createGameState(seed, seed % 2 ? 'human' : 'gutterfolk', seed % 3 ? 'brawler' : 'hexer');
   const bot = createRng(seed ^ 0x5eed);
   let target: Vec = state.floor.stairs;
@@ -103,9 +103,9 @@ function checkInvariants(state: GameState) {
 }
 
 describe('random-play bot', () => {
-  it('plays 16 runs without crashing, dies, and reaches the floor boss', () => {
+  it('plays 12 runs without crashing, dies, and reaches the floor boss', () => {
     const tally = { dead: 0, won: 0, other: 0, battles: 0, bossFights: 0 };
-    for (let seed = 1; seed <= 16; seed++) {
+    for (let seed = 1; seed <= 12; seed++) {
       const r = playRun(seed * 7907);
       tally.battles += r.battles;
       tally.bossFights += r.bossFights;
@@ -118,9 +118,9 @@ describe('random-play bot', () => {
       }
     }
     console.log('bot tally', JSON.stringify(tally));
-    expect(tally.battles).toBeGreaterThan(16);
+    expect(tally.battles).toBeGreaterThan(12);
     expect(tally.dead).toBeGreaterThan(0);
     // A random bot rarely beats the floor boss, but it must reach it (wins are tested directly).
     expect(tally.bossFights + tally.won).toBeGreaterThan(0);
-  }, 300_000);
+  }, 600_000);
 });

@@ -201,6 +201,8 @@ export type BattleCommand =
   | { kind: 'improvise'; channel: 'prop'; propId: string; verb: PropVerb }
   | { kind: 'improvise'; channel: 'jank'; slots: [number, number] }
   | { kind: 'improvise'; channel: 'badIdea' }
+  /** A typed action, with the AI's answer recorded so the core stays deterministic. */
+  | { kind: 'improvise'; channel: 'typed'; text: string; answer: unknown }
   | { kind: 'continue' }; // acknowledge the result screen
 
 /** Inventory screen commands (time is paused). Slots index player.inventory. */

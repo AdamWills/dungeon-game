@@ -25,6 +25,9 @@ import { Renderer, type Toast } from './ui/renderer';
 import { SettingsScreen } from './ui/settings';
 import { Budget } from './ai/budget';
 import { loadSettings } from './ai/settings';
+import { askAction } from './ai/actions';
+import { describeError } from './ai/openai';
+import { drawTypeBox, type TypeBoxState } from './ui/typeBox';
 import { step } from './world/roam';
 
 // ?seed=123 replays a run; otherwise pick one per run (outside the core).
@@ -44,6 +47,29 @@ const toasts: Toast[] = [];
 const settings = new SettingsScreen(loadSettings());
 const budget = new Budget(settings.settings.limitUsd);
 if (!settings.settings.apiKey) settings.show();
+/** A typed action in progress: being typed, or waiting on the AI. */
+let typeBox: TypeBoxState | null = null;
+
+/** Send a typed action to the AI; the answer becomes a recorded battle command. */
+function submitTyped(text: string): void {
+  const s = state;
+  if (!s?.battle || !text.trim()) {
+    typeBox = null;
+    return;
+  }
+  typeBox = { phase: 'thinking', text };
+  askAction({ apiKey: settings.settings.apiKey, budget }, s, text).then((res) => {
+    if (state !== s || !s.battle) return void (typeBox = null);
+    if (res.ok) {
+      pendingCommand = { kind: 'improvise', channel: 'typed', text, answer: res.value };
+      typeBox = null;
+    } else {
+      // Nothing was spent in the game: let them edit and try again.
+      typeBox = { phase: 'typing', text, error: describeError(res.error) };
+      keyboard.startTyping(text, 200);
+    }
+  });
+}
 let renderer!: Renderer;
 let state: GameState | null = null;
 let pendingCommand: BattleCommand | InvCommand | null = null;
@@ -104,6 +130,23 @@ function frame(now: number) {
     budget.limit = settings.settings.limitUsd;
     keyboard.clearAll();
     loop.reset();
+  } else if (typeBox) {
+    // Typing an action (the keyboard's text field has every key), or waiting on the AI.
+    const t = keyboard.typing;
+    if (typeBox.phase === 'typing' && t) {
+      typeBox.text = t.value;
+      if (t.done === 'submit') {
+        keyboard.stopTyping();
+        submitTyped(t.value);
+      } else if (t.done === 'cancel') {
+        keyboard.stopTyping();
+        typeBox = null;
+      }
+    }
+    if (!state?.battle) {
+      keyboard.stopTyping();
+      typeBox = null;
+    }
   } else if (!state) {
     for (const key of keys) {
       if (key === 'settings') {
@@ -132,7 +175,15 @@ function frame(now: number) {
     if (keys.length) keyboard.clearActionEdges();
     const s = state;
     for (const key of keys) {
-      if (s.mode === 'battle') pendingCommand = menu.handle(key, s) ?? pendingCommand;
+      if (s.mode === 'battle') {
+        pendingCommand = menu.handle(key, s) ?? pendingCommand;
+        if (menu.wantsTyping) {
+          menu.wantsTyping = false;
+          typeBox = { phase: 'typing', text: '' };
+          keyboard.startTyping('', 200);
+          break;
+        }
+      }
       else if (s.mode === 'menu' && s.levelUp) pendingCommand = levelUp.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.talk) pendingCommand = talk.handle(key, s) ?? pendingCommand;
       else if (s.mode === 'menu' && s.reveals.length) {
@@ -164,6 +215,10 @@ function frame(now: number) {
   if (!renderer.bigMap && !settings.open) loop.advance(now);
   if (state) renderer.render(state, { menu, inventory, levelUp, talk, host, toasts, ai: budget }, now);
   else renderer.renderPicker(picker, now);
+  if (typeBox && state?.battle) {
+    const box = typeBox;
+    renderer.overlay((ctx, w, h) => drawTypeBox(ctx, w, h, box, now));
+  }
   if (settings.open) renderer.overlay((ctx, w, h) => settings.draw(ctx, w, h, keyboard, now));
   if (toasts.length > 20) toasts.splice(0, toasts.length - 20);
   requestAnimationFrame(frame);

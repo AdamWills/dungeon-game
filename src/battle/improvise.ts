@@ -31,6 +31,7 @@ import { hasPerk } from '../game/progress';
 import { nextFloat, pick } from '../game/rng';
 import type { ArenaProp, BattleCommand, BattleState, Combatant, GameState, ImprovOutcome, Vec } from '../game/types';
 import { distance } from '../world/motion';
+import { resolveTyped, type TypedResolution } from './typed';
 
 type ImprovCommand = Extract<BattleCommand, { kind: 'improvise' }>;
 
@@ -71,7 +72,12 @@ export function badIdeaLimit(state: GameState): number {
 }
 
 /** Work out what an improvisation does. Null if it is not possible right now. */
-export function resolveImprov(state: GameState, battle: BattleState, cmd: ImprovCommand): (ImprovOutcome & { names: Record<string, string> }) | null {
+export function resolveImprov(state: GameState, battle: BattleState, cmd: ImprovCommand): (TypedResolution & { names: Record<string, string> }) | null {
+  if (cmd.channel === 'typed') {
+    if (!cmd.text.trim()) return null;
+    return { ...resolveTyped(state, battle, cmd.text, cmd.answer), names: {} };
+  }
+
   if (cmd.channel === 'prop') {
     const prop = battle.props.find((p) => p.id === cmd.propId && p.usesLeft > 0);
     if (!prop) return null;
@@ -165,10 +171,12 @@ export type ApplyHooks = {
 };
 
 /** Apply a validated outcome. Returns the line to log with numbers filled in. */
-export function applyOutcome(state: GameState, battle: BattleState, o: ImprovOutcome, names: Record<string, string>, hooks: ApplyHooks): string {
+export function applyOutcome(state: GameState, battle: BattleState, o: ImprovOutcome, names: Record<string, string>, hooks: ApplyHooks, focusId?: string): string {
   const me = battle.combatants[0];
   const alive = () => battle.combatants.filter((c) => c.side === 'enemy' && c.alive);
-  const one = alive().length ? pick(state.rng, alive()) : null;
+  // A typed action names its target; the tables pick one at random.
+  const named = focusId ? alive().find((c) => c.id === focusId) : undefined;
+  const one = named ?? (alive().length ? pick(state.rng, alive()) : null);
   const vars: Record<string, string | number> = { ...names, target: one?.name ?? 'nobody', dmg: 0, heal: 0, selfdmg: 0 };
   for (const e of o.effects) {
     if (e.target === 'self') {

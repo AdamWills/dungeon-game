@@ -19,7 +19,7 @@ import { weaponOf } from '../game/equipment';
 import type { BattleCommand, BattleState, GameState } from '../game/types';
 import type { MenuKey } from './input';
 
-export type MenuOption = { id: 'attack' | 'ability' | 'item' | 'improvise' | 'spare' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
+export type MenuOption = { id: 'attack' | 'type' | 'ability' | 'item' | 'improvise' | 'spare' | 'defend' | 'flee'; label: string; enabled: boolean; help: string };
 
 export type Row = { label: string; enabled: boolean; help: string };
 
@@ -43,6 +43,8 @@ export class BattleMenu {
   target = 0;
   itemCursor = 0;
   pending: Pending = { kind: 'attack' };
+  /** Set when the player picks "Type anything": the shell opens the text box and asks the AI. */
+  wantsTyping = false;
   private battle: BattleState | null = null;
 
   options(state: GameState): MenuOption[] {
@@ -55,6 +57,7 @@ export class BattleMenu {
     const abilityHelp = !ability ? '' : cd > 0 ? fill(H.recharging, { name: ability.name, turns: cd }) : ability.help;
     const opts: MenuOption[] = [
       { id: 'attack', label: `Attack (${DAMAGE_TYPES[weapon.type].name})`, enabled: true, help: fill(H.attack, { weapon: weapon.name, type: DAMAGE_TYPES[weapon.type].name }) },
+      { id: 'type', label: 'Type anything', enabled: true, help: H.typeAnything },
       { id: 'ability', label: ability ? (cd > 0 ? `${ability.name} (${cd})` : ability.name) : 'Ability', enabled: !!ability && cd === 0, help: abilityHelp },
       { id: 'item', label: `Item (${usable})`, enabled: usable > 0, help: usable > 0 ? H.item : H.noItems },
       { id: 'improvise', label: 'Improvise', enabled: true, help: H.improvise },
@@ -160,6 +163,9 @@ export class BattleMenu {
           if (!opt.enabled) return { kind: 'item', slot: -1 };
           this.level = 'item';
           this.itemCursor = Math.max(0, state.player.inventory.findIndex((i) => ITEMS[i.defId]?.use));
+          return null;
+        case 'type':
+          this.wantsTyping = true;
           return null;
         case 'improvise':
           this.level = 'improv';
