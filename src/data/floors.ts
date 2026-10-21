@@ -73,7 +73,7 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
     floorBoss: 'fatberg',
     lairProps: ['barrel', 'barrel'],
     hazards: { sludgePools: [12, 20], spikes: [18, 28], gasVents: [8, 14] },
-    // One of each on the big floor; the shop and the shrine come early, the gambles later.
+    // One of each on the big floor; the shop and the shrine come early, the gambles and creatures later.
     setPieces: [
       { kind: 'gutter_mart', minDepth: 0.15 },
       { kind: 'clog_shrine', minDepth: 0.2 },
@@ -81,6 +81,10 @@ export const FLOOR_THEMES: Record<string, FloorTheme> = {
       { kind: 'overflow_fella', minDepth: 0.35 },
       { kind: 'valve_room', minDepth: 0.4 },
       { kind: 'drain_gauntlet', minDepth: 0.5 },
+      // Creature encounters: talk your way through.
+      { kind: 'bartholomew_squeak', minDepth: 0.25 },
+      { kind: 'mother_mildew', minDepth: 0.35 },
+      { kind: 'sir_reginald', minDepth: 0.45 },
     ],
   },
 };

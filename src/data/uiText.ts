@@ -175,7 +175,9 @@ export const UI_TEXT = {
   },
   scene: {
     badge: 'SET PIECE',
+    creatureBadge: 'AN ENCOUNTER',
     keys: 'UP/DOWN choose   ENTER pick   ESC walk away',
     tokens: 'Tokens {tokens}',
+    patience: 'Patience {patience}',
   },
 };

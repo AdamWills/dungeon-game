@@ -53,6 +53,8 @@ export type SetPiece = {
   tries?: number;
   picked?: number;
   revealed?: number;
+  /** Creatures: how much more they will put up with (0: they fight). */
+  patience?: number;
   /** Shop prices are multiplied by this after haggling. */
   priceMult?: number;
 };

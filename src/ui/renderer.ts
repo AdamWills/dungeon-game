@@ -158,7 +158,7 @@ export class Renderer {
       const [w, h] = [canvas.width / dpr, canvas.height / dpr];
       if (state.levelUp) ui.levelUp.draw(ctx, w, h, state, now, this.since(state.levelUp, now), this.pixel);
       else if (state.talk) ui.talk.draw(ctx, w, h, state, this.allySprites, now, this.since(state.talk, now), this.pixel);
-      else if (state.scene) ui.scene.draw(ctx, w, h, state, this.propSprites, now, this.since(state.scene, now), this.pixel);
+      else if (state.scene) ui.scene.draw(ctx, w, h, state, this.propSprites, this.enemySprites, now, this.since(state.scene, now), this.pixel);
       else if (state.reveals.length) drawPrizeCard(ctx, w, h, state.reveals[0].item, state, state.reveals.length - 1, this.icons, now, this.since(state.reveals[0], now), this.pixel, ui.prize);
       else ui.inventory.draw(ctx, w, h, state, this.icons, this.playerSprites, ui.host.history);
     }
@@ -372,7 +372,8 @@ export class Renderer {
       const at = sp.station;
       const station = SET_PIECES[sp.kind].station;
       if (!at || !station || !floor.tiles[at.y][at.x].explored) continue;
-      actors.push({ y: at.y, draw: () => ctx.drawImage(this.propSprites(station), at.x * TILE - camX + TILE / 2 - SPRITE / 2, at.y * TILE - camY + TILE - SPRITE) });
+      const art = SET_PIECES[sp.kind].creature ? this.enemySprites(station) : this.propSprites(station);
+      actors.push({ y: at.y, draw: () => ctx.drawImage(art, at.x * TILE - camX + TILE / 2 - SPRITE / 2, at.y * TILE - camY + TILE - SPRITE) });
     }
     actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
 

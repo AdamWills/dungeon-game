@@ -44,6 +44,7 @@ export function placeSetPieces(floor: Floor, rng: Rng, theme: FloorTheme): void 
       if (def.station && !station) continue;
       used.push(room);
       const piece: SetPiece = { id: `sp-${floor.setPieces.length}`, kind, room: room.id, station, found: false, done: false, flags: [] };
+      if (def.patience !== undefined) piece.patience = def.patience;
       roll(floor, rng, piece, room);
       floor.setPieces.push(piece);
       break;

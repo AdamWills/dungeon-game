@@ -36,6 +36,14 @@ export type SceneEffect =
   | { kind: 'valve'; valve: number }
   /** Remember something for this set piece (a choice can then require it). */
   | { kind: 'flag'; flag: string }
+  /** Creatures: their patience goes up or down; at 0 the talking stops (their `snap` node). */
+  | { kind: 'patience'; amount: number }
+  /** Creatures: go one way if their patience is at least this, else the other. */
+  | { kind: 'check'; patience: number; pass: string; fail: string }
+  /** Hand over one of your pocket items (the least valuable); it is named in {item}. */
+  | { kind: 'give' }
+  /** The creature leaves its spot (it is about to fight you, or it wanders off). */
+  | { kind: 'leave' }
   /** The set piece is used up. */
   | { kind: 'done' }
   /** Walk away; you can come back. */
@@ -45,7 +53,11 @@ export type SceneRequire =
   | { kind: 'canPay'; amount: number | 'bet' }
   | { kind: 'inStock'; slot: number }
   | { kind: 'notHaggled' }
-  | { kind: 'noFlag'; flag: string };
+  | { kind: 'noFlag'; flag: string }
+  | { kind: 'hasFlag'; flag: string }
+  | { kind: 'hasItem' }
+  | { kind: 'race'; race: string }
+  | { kind: 'cls'; cls: string };
 
 export type SceneChoice = { text: string; next?: string; effects?: SceneEffect[]; requires?: SceneRequire };
 /** `effects` run once, as the node is entered. */
@@ -59,6 +71,11 @@ export type SetPieceDef = {
   help: string;
   /** The station's sprite, or null for a room with no one to talk to (the gauntlet). */
   station: string | null;
+  /** The station is a unique creature (drawn with the creature art; `station` is its art id). */
+  creature?: boolean;
+  /** Creatures: starting patience, and where the scene goes when it runs out. */
+  patience?: number;
+  snap?: string;
   /** Smallest room it fits in (inside the walls). */
   minSize: { w: number; h: number };
   /** Chet, the first time you walk in. */
@@ -71,6 +88,8 @@ export type SetPieceDef = {
 
 /** Gutter Mart shelf prices by rarity. Haggling moves them by these fractions. */
 export const SHOP = { prices: { junk: 4, standard: 12, special: 30, cursed: 10, hosts_pick: 60 } as Record<Rarity, number>, shelves: ['standard', 'standard', 'special'] as Rarity[], haggleWin: -0.25, haggleLose: 0.2 };
+/** Bartholomew Squeak's Drainage Levy. */
+export const LEVY = 15;
 /** The Fella's coin flip. */
 export const BET = 10;
 /** Pick-a-Pipe: what is behind the three pipes (shuffled per floor), and what each is called when Chet peeks. */
@@ -345,6 +364,274 @@ export const SET_PIECES: Record<string, SetPieceDef> = {
       },
       done: {
         line: 'The valves are locked tight. Someone has added to the plaque in marker: "TOLD YOU."',
+        choices: [LEAVE],
+      },
+    },
+  },
+
+  // --- Creature encounters (user idea: weird encounters you talk your way through) ---
+
+  mother_mildew: {
+    id: 'mother_mildew',
+    name: 'Mother Mildew',
+    help: 'A creature encounter: a huge, motherly mould who wants you to stay. Talk your way out; if her patience runs out, she fights.',
+    station: 'mother_mildew',
+    creature: true,
+    patience: 4,
+    snap: 'snap',
+    minSize: { w: 4, h: 4 },
+    intros: [
+      "Oh, folks, it's MOTHER MILDEW! Everybody's favourite damp relative! Nobody has ever left her table. Literally!",
+      "Look who's here, it's Mother Mildew! Contestant, mind your manners. She's got a lot of spores and a long memory!",
+      "MOTHER MILDEW, folks! She's warm, she's welcoming, she's mostly mould. Be polite, contestant. Be VERY polite!",
+    ],
+    start: 'start',
+    done: 'done',
+    nodes: {
+      start: {
+        line: 'Oh, look at you. All skin and bones and blood. Come in, sit down, dear. I\'ve made soup. I\'m always making soup.',
+        choices: [
+          { text: "Thank you, that's very kind.", next: 'soup', effects: [{ kind: 'patience', amount: 1 }, { kind: 'flag', flag: 'polite' }] },
+          { text: 'What are you?', next: 'what' },
+          { text: "I'm just passing through.", next: 'clingy', effects: [{ kind: 'patience', amount: -2 }] },
+          { text: 'Get away from me, you fungus.', next: 'hurt', effects: [{ kind: 'patience', amount: -3 }] },
+        ],
+      },
+      what: {
+        line: "I'm Mother. Everybody's mother, eventually. The damp gets into you, and then you're family. Soup?",
+        choices: [
+          { text: 'Soup sounds lovely.', next: 'soup', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: "I'd rather not be family.", next: 'clingy', effects: [{ kind: 'patience', amount: -1 }] },
+        ],
+      },
+      clingy: {
+        line: 'Passing through? Nobody passes through, dear. They pass INTO. Sit. Down.',
+        choices: [
+          { text: 'Sorry, Mother. Soup, then.', next: 'soup', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: 'I really do have to go.', next: 'stay', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      hurt: {
+        line: 'Fungus? FUNGUS? I am a COLONY. Four million of me raised you to be better than that. Well, one of me did. The others watched.',
+        choices: [
+          { text: "Sorry, Mother. That was rude.", next: 'soup', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: 'A fungus colony.', next: 'stay', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      soup: {
+        line: "It's mushroom. Well. It's me. Eat up, you're wasting away.",
+        choices: [
+          { text: 'Slurp the lot. (Gutterfolk: you can stomach anything)', requires: { kind: 'race', race: 'gutterfolk' }, next: 'stay', effects: [{ kind: 'heal', amount: 'full' }, { kind: 'patience', amount: 2 }] },
+          { text: 'Eat one polite spoonful.', next: 'stay', effects: [{ kind: 'heal', amount: 4 }] },
+          { text: "Tip it into a plant pot when she isn't looking. (Charm helps)", effects: [{ kind: 'roll', outcomes: [{ node: 'sneaky', weight: 50, perCharm: 10 }, { node: 'caught', weight: 50 }] }] },
+        ],
+      },
+      sneaky: {
+        line: 'Every drop! Good child. The plant pot is now also family. It waves at you.',
+        effects: [{ kind: 'patience', amount: 1 }],
+        choices: [{ text: 'Wave back.', next: 'stay' }],
+      },
+      caught: {
+        line: "Is that... in the PLANT? That was your grandmother's recipe. That was your GRANDMOTHER.",
+        effects: [{ kind: 'patience', amount: -2 }],
+        choices: [{ text: 'It slipped.', next: 'stay' }],
+      },
+      stay: {
+        line: "Now. You'll stay, won't you? Forever? There's a lovely damp corner with your name on it. I've grown your name on it. Patience is a virtue, dear, and mine is at {patience}.",
+        choices: [
+          { text: "I'd love to, but the show needs me. The folks at home are counting on me.", requires: { kind: 'hasFlag', flag: 'polite' }, effects: [{ kind: 'check', patience: 4, pass: 'blessing', fail: 'notYet' }] },
+          { text: "I'll visit every week. I promise. (Charm helps)", effects: [{ kind: 'roll', outcomes: [{ node: 'believed', weight: 40, perCharm: 10 }, { node: 'liar', weight: 60 }] }] },
+          { text: 'Give her a present. (Hand over your least valuable item)', requires: { kind: 'hasItem' }, next: 'touched', effects: [{ kind: 'give' }, { kind: 'patience', amount: 2 }, { kind: 'flag', flag: 'polite' }] },
+          { text: 'Absolutely not.', next: 'stay', effects: [{ kind: 'patience', amount: -3 }] },
+        ],
+      },
+      notYet: {
+        line: 'The show. Always the show. You never call. You never write. Eat something first and we will talk about it.',
+        effects: [{ kind: 'patience', amount: -1 }],
+        choices: [{ text: 'Another spoonful, then.', next: 'stay', effects: [{ kind: 'heal', amount: 4 }, { kind: 'patience', amount: 1 }] }],
+      },
+      touched: {
+        line: "A {item}! For me? Oh, you shouldn't have. I'll grow on it. That's how I say thank you.",
+        choices: [{ text: 'Speaking of leaving...', next: 'stay' }],
+      },
+      liar: {
+        line: "Every week? You said that last time. You weren't here last time. That makes it WORSE.",
+        effects: [{ kind: 'patience', amount: -2 }],
+        choices: [{ text: 'I meant it this time.', next: 'stay' }],
+      },
+      believed: {
+        line: "Every week. I'll hold you to that. I'll hold you to everything. Here, something for the road, and a full belly.",
+        effects: [{ kind: 'heal', amount: 'full' }, { kind: 'prize', rarities: ['standard'] }, { kind: 'done' }],
+        choices: [{ text: 'Bye, Mother. (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      blessing: {
+        line: "Off you go, then, to your little show. Take this, I grew it myself. Don't eat it. Or do. You're grown.",
+        effects: [{ kind: 'heal', amount: 'full' }, { kind: 'prize', rarities: ['special'] }, { kind: 'done' }],
+        choices: [{ text: 'Thank you, Mother. (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      snap: {
+        line: "Well. If you won't stay as a guest, you'll stay as COMPOST.",
+        effects: [{ kind: 'fight', enemies: ['mother_mildew'] }, { kind: 'leave' }, { kind: 'done' }],
+        choices: [{ text: 'Fight!', effects: [{ kind: 'end' }] }],
+      },
+      done: {
+        line: 'Mother Mildew is napping, spreading slowly up the wall. Best not to wake her.',
+        choices: [LEAVE],
+      },
+    },
+  },
+
+  bartholomew_squeak: {
+    id: 'bartholomew_squeak',
+    name: 'Bartholomew Squeak, CPA',
+    help: 'A creature encounter: a rat accountant says you owe a Drainage Levy. Pay, argue, barter or refuse; if his patience runs out, his cousins come to collect.',
+    station: 'bartholomew_squeak',
+    creature: true,
+    patience: 3,
+    snap: 'snap',
+    minSize: { w: 4, h: 4 },
+    intros: [
+      "Uh-oh, folks, it's the TAXMAN! Bartholomew Squeak has audited eleven contestants this season. Seven survived!",
+      "It's Bartholomew Squeak, Certified Pest Accountant! Contestant, keep your receipts. Keep your fingers, too!",
+      "Look out, it's tax season! Bartholomew Squeak is here, and he has a calculator and eleven thousand cousins!",
+    ],
+    start: 'start',
+    done: 'done',
+    nodes: {
+      start: {
+        line: 'Ah. Contestant. Bartholomew Squeak, Certified Pest Accountant. According to my ledger, you owe a Drainage Levy of {levy} Prize Tokens. Cash or tokens. Tokens.',
+        choices: [
+          { text: 'Pay the levy. ({levy} tokens)', requires: { kind: 'canPay', amount: 15 }, next: 'paid', effects: [{ kind: 'pay', amount: 15 }] },
+          { text: "What's the levy for?", next: 'what' },
+          { text: "I'd like to see the paperwork. (Charm helps)", requires: { kind: 'noFlag', flag: 'audited' }, effects: [{ kind: 'flag', flag: 'audited' }, { kind: 'roll', outcomes: [{ node: 'refund', weight: 35, perCharm: 10 }, { node: 'inOrder', weight: 65 }] }] },
+          { text: 'Offer him something instead. (Hand over your least valuable item)', requires: { kind: 'hasItem' }, next: 'barter', effects: [{ kind: 'give' }] },
+          { text: "I'm not paying a rat.", next: 'warned', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      what: {
+        line: "Drainage. You've been draining. Health, mostly. Other people's, mostly. It's all in the ledger. Page four hundred. Your page.",
+        effects: [{ kind: 'patience', amount: -1 }],
+        choices: [{ text: 'About that levy...', next: 'start' }],
+      },
+      inOrder: {
+        line: "The paperwork is in order. In triplicate. Notarised by a rat who is also me. Shall we settle up? Patience: {patience}, and falling.",
+        effects: [{ kind: 'patience', amount: -1 }],
+        choices: [{ text: 'About that levy...', next: 'start' }],
+      },
+      refund: {
+        line: "Hm. Hmm. There's... an error. In your favour. That has never happened. I am legally required to refund you {gained} tokens and I hate it.",
+        effects: [{ kind: 'tokens', amount: [20, 30] }, { kind: 'done' }, { kind: 'leave' }],
+        choices: [{ text: 'Pleasure doing business. (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      barter: {
+        line: '{item}. Hm. Depreciated, damp, of dubious provenance. ...Accepted. I have marked you down as "settled". Do not make me mark you down as anything else.',
+        effects: [{ kind: 'done' }, { kind: 'leave' }],
+        choices: [{ text: 'Thanks, I guess. (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      paid: {
+        line: 'Splendid. A taxpayer. As a valued member of the drainage community, you qualify for our loyalty scheme. Here. Do not tell anyone.',
+        effects: [{ kind: 'prize', rarities: ['standard'] }, { kind: 'done' }, { kind: 'leave' }],
+        choices: [{ text: 'Nice doing business. (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      warned: {
+        line: 'Careful. I have eleven thousand cousins, and all of them are in a union. Patience: {patience}.',
+        choices: [
+          { text: 'Fine. Pay the levy. ({levy} tokens)', requires: { kind: 'canPay', amount: 15 }, next: 'paid', effects: [{ kind: 'pay', amount: 15 }] },
+          { text: 'Offer him something instead. (Hand over your least valuable item)', requires: { kind: 'hasItem' }, next: 'barter', effects: [{ kind: 'give' }] },
+          { text: 'Still not paying.', next: 'warned', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      snap: {
+        line: 'Very well. I am referring your account to collections. COUSINS!',
+        effects: [{ kind: 'fight', enemies: ['intake_rat', 'intake_rat', 'intake_rat', 'intake_rat'] }, { kind: 'leave' }, { kind: 'done' }],
+        choices: [{ text: 'Fight!', effects: [{ kind: 'end' }] }],
+      },
+      done: {
+        line: '',
+        choices: [LEAVE],
+      },
+    },
+  },
+
+  sir_reginald: {
+    id: 'sir_reginald',
+    name: 'Sir Reginald Flushington III',
+    help: 'A creature encounter: a frog duke testing if you are worthy to be his champion. Impress him for a reward; if his patience runs out, he duels you.',
+    station: 'sir_reginald',
+    creature: true,
+    patience: 2,
+    snap: 'duel',
+    minSize: { w: 4, h: 4 },
+    intros: [
+      "Folks, it's royalty! Sir Reginald Flushington the Third, Duke of Drain Nine, deposed! Curtsy, contestant!",
+      "Ooh, a DUKE! Sir Reginald is looking for a champion, folks. The last one is in the pipes. All of the pipes!",
+      "It's Sir Reginald Flushington the Third! A frog with a crown, a cause and absolutely no sense of humour!",
+    ],
+    start: 'start',
+    done: 'done',
+    nodes: {
+      start: {
+        line: 'HALT, traveller! Kneel before Sir Reginald Flushington the Third, rightful Duke of Drain Nine, Defender of the Overflow, Keeper of the Plunger!',
+        choices: [
+          { text: 'Kneel.', next: 'quest', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: "You're a frog.", next: 'frog', effects: [{ kind: 'patience', amount: -1 }] },
+          { text: 'Put a hex on his crown. (Hexer)', requires: { kind: 'cls', cls: 'hexer' }, next: 'hexed', effects: [{ kind: 'patience', amount: 2 }] },
+        ],
+      },
+      frog: {
+        line: 'I am a DUKE who happens to be a frog. The frog part is incidental. The duke part is EVERYTHING.',
+        choices: [
+          { text: 'My apologies, Your Grace. (Kneel)', next: 'quest', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: 'A frog in a paper hat.', next: 'quest', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      hexed: {
+        line: 'My crown! It TINGLES! A sign! The ancient sign of the Flushingtons! Speak, mysterious one!',
+        choices: [{ text: 'I have come to serve.', next: 'quest' }],
+      },
+      quest: {
+        line: 'I seek a champion to retake my throne from the vile Fatberg, who sits upon it this very moment. Upon it, traveller. Tell me true: are you brave?',
+        choices: [
+          { text: "Brave? I'm on a game show.", next: 'weapon', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: 'Not especially.', next: 'weapon', effects: [{ kind: 'flag', flag: 'honest' }, { kind: 'patience', amount: 1 }] },
+          { text: 'I am the bravest person alive. (Charm helps)', effects: [{ kind: 'roll', outcomes: [{ node: 'believed', weight: 40, perCharm: 10 }, { node: 'scoffed', weight: 60 }] }] },
+        ],
+      },
+      believed: {
+        line: 'I BELIEVE you! I believe almost everything! It is my great weakness and also my great strength!',
+        effects: [{ kind: 'patience', amount: 2 }],
+        choices: [{ text: 'Ask me anything.', next: 'weapon' }],
+      },
+      scoffed: {
+        line: "Ha! The bravest person alive would not smell so strongly of fear. And of sewer. Mostly fear.",
+        effects: [{ kind: 'patience', amount: -2 }],
+        choices: [{ text: 'Ask me anything.', next: 'weapon' }],
+      },
+      weapon: {
+        line: "Then answer me this, would-be champion: what is a knight's greatest weapon?",
+        choices: [
+          { text: 'Honour.', next: 'verdict', effects: [{ kind: 'patience', amount: 1 }] },
+          { text: 'A big stick.', next: 'verdict' },
+          { text: 'Running away.', requires: { kind: 'hasFlag', flag: 'honest' }, next: 'verdict', effects: [{ kind: 'patience', amount: 2 }] },
+          { text: 'Running away.', requires: { kind: 'noFlag', flag: 'honest' }, next: 'verdict', effects: [{ kind: 'patience', amount: -2 }] },
+        ],
+      },
+      verdict: {
+        line: 'Hmm. HMMM. The Duke has heard enough. The Duke will now deliberate. The Duke is deliberating. Patience: {patience}.',
+        choices: [{ text: 'Await his verdict.', effects: [{ kind: 'check', patience: 4, pass: 'knighted', fail: 'duel' }] }],
+      },
+      knighted: {
+        line: 'Kneel... I dub thee Champion of Drain Nine! Go forth and flush the Fatberg from my throne! I have marked its lair upon your map. With my tongue. Do not ask.',
+        effects: [{ kind: 'boon', stat: 'str', amount: 1 }, { kind: 'reveal' }, { kind: 'done' }],
+        choices: [{ text: 'For Drain Nine! (Leave)', effects: [{ kind: 'end' }] }],
+      },
+      duel: {
+        line: 'UNWORTHY! You shall face me in single combat, as is the custom of my house! The custom is mostly slapping!',
+        effects: [{ kind: 'fight', enemies: ['sir_reginald'] }, { kind: 'leave' }, { kind: 'done' }],
+        choices: [{ text: 'Fight!', effects: [{ kind: 'end' }] }],
+      },
+      done: {
+        line: 'Sir Reginald is composing a ballad about you. It does not rhyme. He says rhyming is for commoners.',
         choices: [LEAVE],
       },
     },

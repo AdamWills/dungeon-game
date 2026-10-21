@@ -8,8 +8,9 @@ import { sceneView } from '../game/setPieces';
 import type { GameState, InvCommand } from '../game/types';
 import type { MenuKey } from './input';
 import { glowPad, lowRes, NEON, panel, popIn, sign } from './neon';
-import { drawText, wrapPixel } from './pixelFont';
+import { drawText, textWidth, wrapPixel } from './pixelFont';
 import type { PropSprites } from './propSprites';
+import type { EnemySprites } from './enemySprites';
 
 export class SceneMenu {
   cursor = 0;
@@ -41,7 +42,7 @@ export class SceneMenu {
     return null;
   }
 
-  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, props: PropSprites, now: number, since: number, pixel: number): void {
+  draw(ctx: CanvasRenderingContext2D, w: number, h: number, state: GameState, props: PropSprites, creatures: EnemySprites, now: number, since: number, pixel: number): void {
     const view = sceneView(state);
     if (!view) return;
     this.sync(state);
@@ -58,14 +59,20 @@ export class SceneMenu {
       const x = Math.round((lw - pw) / 2);
       const y = Math.round((lh - ph) / 2);
       panel(g, x, y, pw, ph, NEON.gold, NEON.pink, now);
-      sign(g, T.badge, x + 8, y - 10, NEON.gold, now);
+      sign(g, view.creature ? T.creatureBadge : T.badge, x + 8, y - 10, NEON.gold, now);
 
       if (view.station) {
         glowPad(g, x + 44, y + 66, NEON.gold);
         const bob = Math.round(Math.sin(now / 420));
-        g.drawImage(props(view.station), x + 20, y + 18 + bob, 48, 48);
+        g.drawImage(view.creature ? creatures(view.station) : props(view.station), x + 20, y + 18 + bob, 48, 48);
       }
       drawText(g, view.title, x + textX, y + 14, { bold: true, color: NEON.gold.core });
+      // A creature's patience: how much more it will put up with before it fights.
+      if (view.patience !== null) {
+        const label = fill(T.patience, { patience: view.patience });
+        const col = view.patience <= 1 ? NEON.red.text : view.patience <= 2 ? NEON.gold.core : NEON.cyan.core;
+        drawText(g, label, x + pw - 12 - textWidth(label), y + 14, { color: col });
+      }
       sign(g, fill(T.tokens, { tokens: state.tokens }), x + pw - 4, y - 10, NEON.pink, now, { align: 'right' });
 
       const key = `${state.scene?.pieceId}/${state.scene?.node}`;

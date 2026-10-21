@@ -5,8 +5,8 @@
 // while a scene is open.
 
 import { HAGGLE } from '../data/dialogue';
-import { ITEMS, type StatKey } from '../data/items';
-import { BET, BOON_SIZE, PIPES, type SceneChoice, type SceneEffect, type SceneRequire, SET_PIECES, SHOP, STAT_NAMES, VALVES } from '../data/setPieces';
+import { ITEMS, type Rarity, type StatKey } from '../data/items';
+import { BET, BOON_SIZE, LEVY, PIPES, type SceneChoice, type SceneEffect, type SceneRequire, SET_PIECES, SHOP, STAT_NAMES, VALVES } from '../data/setPieces';
 import { startBattle } from '../battle/turns';
 import { spawnEnemy } from '../gen/populate';
 import { isWalkable } from '../gen/reach';
@@ -70,7 +70,8 @@ export function priceOf(piece: SetPiece, slot: number): number {
 
 /** Everything a line or choice can mention. */
 function varsOf(state: GameState, piece: SetPiece): Record<string, string | number> {
-  const v: Record<string, string | number> = { tokens: state.tokens, bet: BET, ...state.scene?.vars };
+  const v: Record<string, string | number> = { tokens: state.tokens, bet: BET, levy: LEVY, ...state.scene?.vars };
+  if (piece.patience !== undefined) v.patience = piece.patience;
   piece.stock?.forEach((s, i) => {
     v[`item${i}`] = ITEMS[s.defId].name;
     v[`price${i}`] = priceOf(piece, i);
@@ -100,11 +101,19 @@ function allowed(state: GameState, piece: SetPiece, req?: SceneRequire): boolean
       return !piece.flags.includes('haggled');
     case 'noFlag':
       return !piece.flags.includes(req.flag);
+    case 'hasFlag':
+      return piece.flags.includes(req.flag);
+    case 'hasItem':
+      return state.player.inventory.length > 0;
+    case 'race':
+      return state.race === req.race;
+    case 'cls':
+      return state.cls === req.cls;
   }
 }
 
 /** The scene's heading, what is said now, and the choices you have. */
-export function sceneView(state: GameState): { title: string; station: string | null; line: string; choices: SceneChoice[] } | null {
+export function sceneView(state: GameState): { title: string; station: string | null; creature: boolean; patience: number | null; line: string; choices: SceneChoice[] } | null {
   const piece = pieceOf(state);
   if (!piece || !state.scene) return null;
   const def = SET_PIECES[piece.kind];
@@ -113,6 +122,8 @@ export function sceneView(state: GameState): { title: string; station: string | 
   return {
     title: def.name,
     station: def.station,
+    creature: !!def.creature,
+    patience: piece.patience ?? null,
     line: fillVars(node.line, v),
     choices: node.choices.filter((c) => allowed(state, piece, c.requires)).map((c) => ({ ...c, text: fillVars(c.text, v) })),
   };
@@ -131,7 +142,15 @@ export function chooseScene(state: GameState, index: number): void {
     else if (r) next = r;
   }
   if (close) return closeScene(state);
+  // A creature out of patience stops talking, whatever you just said.
+  const snap = snapped(piece);
+  if (snap && snap !== state.scene.node) next = snap;
   if (next) enter(state, piece, next);
+}
+
+function snapped(piece: SetPiece): string | undefined {
+  const def = SET_PIECES[piece.kind];
+  return def.snap && piece.patience !== undefined && piece.patience <= 0 && !piece.done ? def.snap : undefined;
 }
 
 /** Go to a node, running its arrival effects (which may send you on). */
@@ -142,6 +161,8 @@ function enter(state: GameState, piece: SetPiece, node: string, depth = 0): void
     const r = apply(state, piece, eff);
     if (r && r !== 'close' && depth < 4) return enter(state, piece, r, depth + 1);
   }
+  const snap = snapped(piece);
+  if (snap && snap !== node && depth < 4) enter(state, piece, snap, depth + 1);
 }
 
 /** Returns 'close' to end the scene, or a node to go to. */
@@ -228,6 +249,26 @@ function apply(state: GameState, piece: SetPiece, eff: SceneEffect): string | 'c
     case 'flag':
       if (!piece.flags.includes(eff.flag)) piece.flags.push(eff.flag);
       return;
+    case 'patience':
+      piece.patience = Math.max(0, (piece.patience ?? 0) + eff.amount);
+      return;
+    case 'check':
+      return (piece.patience ?? 0) >= eff.patience ? eff.pass : eff.fail;
+    case 'give': {
+      // The least valuable thing in your pockets.
+      const inv = state.player.inventory;
+      if (!inv.length) return;
+      let at = 0;
+      inv.forEach((it, i) => {
+        if (VALUE[ITEMS[it.defId].rarity] < VALUE[ITEMS[inv[at].defId].rarity]) at = i;
+      });
+      scene.vars.item = ITEMS[inv[at].defId].name;
+      inv.splice(at, 1);
+      return;
+    }
+    case 'leave':
+      piece.station = null;
+      return;
     case 'done':
       if (!piece.done) {
         piece.done = true;
@@ -238,6 +279,9 @@ function apply(state: GameState, piece: SetPiece, eff: SceneEffect): string | 'c
       return 'close';
   }
 }
+
+/** What a creature would rather be handed: junk first. */
+const VALUE: Record<Rarity, number> = { junk: 0, standard: 1, cursed: 2, special: 3, hosts_pick: 4 };
 
 function otherPipe(piece: SetPiece): number {
   return [0, 1, 2].find((i) => i !== piece.picked && i !== piece.revealed)!;

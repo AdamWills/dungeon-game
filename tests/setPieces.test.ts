@@ -228,3 +228,103 @@ describe('scenes', () => {
     expect(p.found).toBe(true);
   });
 });
+
+describe('creature encounters (user idea: weird creatures you talk your way past)', () => {
+  const choicesOf = (s: GameState) => sceneView(s)!.choices.map((c) => c.text);
+
+  it('Mother Mildew: good manners get her blessing and a Rare', () => {
+    const s = createGameState(11);
+    s.player.stats.hp = 5;
+    const p = open(s, 'mother_mildew');
+    expect(sceneView(s)!.patience).toBe(4);
+    pickText(s, "Thank you, that's very kind");
+    pickText(s, 'Eat one polite spoonful');
+    pickText(s, "I'd love to, but the show needs me");
+    expect(s.scene!.node).toBe('blessing');
+    expect(s.player.stats.hp).toBe(s.player.stats.maxHp);
+    expect(ITEMS[s.reveals[0].item.defId].rarity).toBe('special');
+    expect(p.done).toBe(true);
+    expect(p.station).not.toBeNull();
+  });
+
+  it('Mother Mildew: rudeness runs out her patience and she fights; she leaves her spot', () => {
+    const s = createGameState(11);
+    const p = open(s, 'mother_mildew');
+    pickText(s, 'Get away from me');
+    pickText(s, 'A fungus colony');
+    expect(s.scene!.node).toBe('snap');
+    expect(p.station).toBeNull();
+    chooseScene(s, 0);
+    expect(s.mode).toBe('battle');
+    expect(s.battle!.combatants.find((c) => c.side === 'enemy')!.defId).toBe('mother_mildew');
+  });
+
+  it('only Gutterfolk can slurp her soup; only a Hexer can hex the Duke', () => {
+    const human = createGameState(11, 'human', 'brawler');
+    open(human, 'mother_mildew');
+    pickText(human, 'What are you');
+    pickText(human, 'Soup sounds lovely');
+    expect(choicesOf(human).some((t) => t.startsWith('Slurp'))).toBe(false);
+    open(human, 'sir_reginald');
+    expect(choicesOf(human).some((t) => t.startsWith('Put a hex'))).toBe(false);
+    const gut = createGameState(11, 'gutterfolk', 'hexer');
+    open(gut, 'mother_mildew');
+    pickText(gut, 'What are you');
+    pickText(gut, 'Soup sounds lovely');
+    expect(choicesOf(gut).some((t) => t.startsWith('Slurp'))).toBe(true);
+    open(gut, 'sir_reginald');
+    expect(choicesOf(gut).some((t) => t.startsWith('Put a hex'))).toBe(true);
+  });
+
+  it('Bartholomew Squeak: paying the levy gets a loyalty gift; bartering costs your least valuable item', () => {
+    const s = createGameState(11);
+    s.tokens = 20;
+    const p = open(s, 'bartholomew_squeak');
+    pickText(s, 'Pay the levy');
+    expect(s.tokens).toBe(5);
+    expect(s.reveals.length).toBe(1);
+    expect(p.done && p.station === null).toBe(true);
+
+    const t = createGameState(11);
+    const rare = Object.values(ITEMS).find((d) => d.rarity === 'special' && !d.invented)!.id;
+    const junk = Object.values(ITEMS).find((d) => d.rarity === 'junk' && !d.invented)!.id;
+    t.player.inventory = [{ defId: rare, identified: true }, { defId: junk, identified: true }];
+    open(t, 'bartholomew_squeak');
+    pickText(t, 'Offer him something');
+    expect(t.player.inventory.map((i) => i.defId)).toEqual([rare]);
+    expect(sceneView(t)!.line).toContain('Accepted');
+  });
+
+  it('Bartholomew Squeak: refusing twice sends in the cousins', () => {
+    const s = createGameState(11);
+    open(s, 'bartholomew_squeak');
+    pickText(s, "I'm not paying a rat");
+    expect(sceneView(s)!.patience).toBe(1);
+    pickText(s, 'Still not paying');
+    expect(s.scene!.node).toBe('snap');
+    chooseScene(s, 0);
+    expect(s.battle!.combatants.filter((c) => c.side === 'enemy').map((c) => c.defId)).toEqual(['intake_rat', 'intake_rat', 'intake_rat', 'intake_rat']);
+  });
+
+  it('Sir Reginald: a worthy answer gets you knighted (+1 Strength and the lair on your map); insults get a duel', () => {
+    const s = createGameState(11);
+    const str = s.player.stats.str;
+    open(s, 'sir_reginald');
+    pickText(s, 'Kneel');
+    pickText(s, 'Not especially');
+    pickText(s, 'Running away');
+    pickText(s, 'Await his verdict');
+    expect(s.scene!.node).toBe('knighted');
+    expect(s.player.stats.str).toBe(str + 1);
+    expect(s.floor.lair!.found).toBe(true);
+
+    const t = createGameState(11);
+    open(t, 'sir_reginald');
+    pickText(t, "You're a frog");
+    pickText(t, 'A frog in a paper hat');
+    expect(t.scene!.node).toBe('duel');
+    chooseScene(t, 0);
+    expect(t.battle!.combatants.find((c) => c.side === 'enemy')!.defId).toBe('sir_reginald');
+  });
+});
+
